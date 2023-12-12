@@ -1,0 +1,93 @@
+{
+  "name": "@fhevm/contracts",
+  "description": "fhEVM contracts",
+  "version": "1.0.0",
+  "author": {
+    "name": "zama-ai",
+    "url": "https://github.com/zama-ai"
+  },
+  "license": "BSD-3-Clause",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
+    "@nomicfoundation/hardhat-ethers": "^3.0.0",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.6",
+    "@nomicfoundation/hardhat-toolbox": "^3.0.0",
+    "@nomicfoundation/hardhat-verify": "^1.0.0",
+    "@trivago/prettier-plugin-sort-imports": "^4.0.0",
+    "@typechain/ethers-v6": "^0.4.0",
+    "@typechain/hardhat": "^8.0.0",
+    "@types/chai": "^4.3.4",
+    "@types/fs-extra": "^9.0.13",
+    "@types/mocha": "^10.0.0",
+    "@types/node": "^18.11.9",
+    "@typescript-eslint/eslint-plugin": "^5.44.0",
+    "@typescript-eslint/parser": "^5.44.0",
+    "chai": "^4.3.7",
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.0.3",
+    "eslint": "^8.28.0",
+    "eslint-config-prettier": "^8.5.0",
+    "ethers": "^6.8.0",
+    "fhevm": "^0.2.0",
+    "fhevmjs": "^0.1.3",
+    "fs-extra": "^10.1.0",
+    "hardhat": "^2.18.1",
+    "hardhat-deploy": "^0.11.29",
+    "hardhat-gas-reporter": "^1.0.9",
+    "lodash": "^4.17.21",
+    "mocha": "^10.1.0",
+    "prettier": "^2.8.4",
+    "prettier-plugin-solidity": "^1.1.2",
+    "rimraf": "^4.1.2",
+    "solhint": "^3.4.0",
+    "solhint-plugin-prettier": "^0.0.5",
+    "solidity-coverage": "^0.8.2",
+    "ts-generator": "^0.1.1",
+    "ts-node": "^10.9.1",
+    "typechain": "^8.2.0",
+    "typescript": "^5.1.6"
+  },
+  "files": [
+    "contracts"
+  ],
+   "keywords": [
+    "solidity",
+    "ethereum",
+    "smart",
+    "contracts",
+    "security",
+    "zeppelin"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "clean": "rimraf ./artifacts ./cache ./coverage ./types ./coverage.json && pnpm typechain",
+    "compile": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat compile",
+    "coverage": "hardhat coverage --solcoverjs ./.solcover.js --temp artifacts --testfiles \"test/**/*.ts\" && pnpm typechain",
+    "deploy:contracts": "hardhat deploy",
+    "lint": "pnpm lint:sol && pnpm lint:ts && pnpm prettier:check",
+    "lint:sol": "solhint --max-warnings 0 \"contracts/**/*.sol\"",
+    "lint:ts": "eslint --ignore-path ./.eslintignore --ext .js,.ts .",
+    "postinstall": "DOTENV_CONFIG_PATH=./.env.example pnpm typechain",
+    "prettier:check": "prettier --check \"**/*.{js,json,md,sol,ts,yml}\"",
+    "prettier:write": "prettier --write \"**/*.{js,json,md,sol,ts,yml}\"",
+    "typechain": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat typechain",
+    "test": "hardhat test",
+    "task:getEthereumAddress": "hardhat task:getEthereumAddress",
+    "task:mint": "hardhat task:mint",
+    "task:deployERC20": "hardhat task:deployERC20",
+    "task:accounts": "hardhat task:accounts",
+    "fhevm:start": "docker run -i -p 8545:8545 --rm --name fhevm ghcr.io/zama-ai/evmos-dev-node:v0.1.10",
+    "fhevm:stop": "docker rm -f fhevm",
+    "fhevm:restart": "fhevm:stop && fhevm:start",
+    "fhevm:faucet": "npm run fhevm:faucet:alice && sleep 5 && npm run fhevm:faucet:bob && sleep 5 && npm run fhevm:faucet:carol && sleep 5 && npm run fhevm:faucet:dave",
+    "fhevm:faucet:alice": "docker exec -i fhevm faucet $(npx hardhat task:getEthereumAddressAlice)",
+    "fhevm:faucet:bob": "docker exec -i fhevm faucet $(npx hardhat task:getEthereumAddressBob)",
+    "fhevm:faucet:carol": "docker exec -i fhevm faucet $(npx hardhat task:getEthereumAddressCarol)",
+    "fhevm:faucet:dave": "docker exec -i fhevm faucet $(npx hardhat task:getEthereumAddressDave)"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.9.2"
+  }
+}
