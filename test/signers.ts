@@ -1,18 +1,44 @@
-import type { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/dist/src/signer-with-address";
+import { NonceManager } from "ethers";
+import { ethers } from "hardhat";
 
-export interface Signers {
-  alice: SignerWithAddress;
-  bob: SignerWithAddress;
-  carol: SignerWithAddress;
-  dave: SignerWithAddress;
+// Module augmentation to add 'address' to NonceManager
+declare module "ethers" {
+  interface NonceManager {
+    address: string;
+  }
 }
 
-export const getSigners = async (ethers: any): Promise<Signers> => {
-  const signers = await ethers.getSigners();
-  return {
-    alice: signers[0],
-    bob: signers[1],
-    carol: signers[2],
-    dave: signers[3],
-  };
+// Extend the NonceManager prototype
+Object.defineProperty(ethers.NonceManager.prototype, "address", {
+  get: function () {
+    return this.signer.address;
+  },
+  enumerable: true,
+});
+
+export interface Signers {
+  alice: NonceManager;
+  bob: NonceManager;
+  carol: NonceManager;
+  dave: NonceManager;
+  eve: NonceManager;
+}
+
+let signers: Signers;
+
+export const initSigners = async (): Promise<void> => {
+  if (!signers) {
+    const eSigners = await ethers.getSigners();
+    signers = {
+      alice: new NonceManager(eSigners[0]),
+      bob: new NonceManager(eSigners[1]),
+      carol: new NonceManager(eSigners[2]),
+      dave: new NonceManager(eSigners[3]),
+      eve: new NonceManager(eSigners[4]),
+    };
+  }
+};
+
+export const getSigners = async (): Promise<Signers> => {
+  return signers;
 };

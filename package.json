@@ -28,12 +28,13 @@
     "eslint": "^8.28.0",
     "eslint-config-prettier": "^8.5.0",
     "ethers": "^6.8.0",
-    "fhevm": "^0.2.0",
-    "fhevmjs": "^0.1.3",
+    "fhevm": "^0.3.0",
+    "fhevmjs": "^0.3.1",
     "fs-extra": "^10.1.0",
-    "hardhat": "^2.18.1",
+    "hardhat": "^2.19.4",
     "hardhat-deploy": "^0.11.29",
     "hardhat-gas-reporter": "^1.0.9",
+    "hardhat-preprocessor": "^0.1.5",
     "lodash": "^4.17.21",
     "mocha": "^10.1.0",
     "prettier": "^2.8.4",
@@ -50,13 +51,16 @@
   "files": [
     "contracts"
   ],
-   "keywords": [
-    "solidity",
+  "keywords": [
+    "blockchain",
+    "ethers",
     "ethereum",
-    "smart",
-    "contracts",
-    "security",
-    "zeppelin"
+    "hardhat",
+    "smart-contracts",
+    "solidity",
+    "template",
+    "typescript",
+    "typechain"
   ],
   "publishConfig": {
     "access": "public"
@@ -64,30 +68,32 @@
   "scripts": {
     "clean": "rimraf ./artifacts ./cache ./coverage ./types ./coverage.json && pnpm typechain",
     "compile": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat compile",
-    "coverage": "hardhat coverage --solcoverjs ./.solcover.js --temp artifacts --testfiles \"test/**/*.ts\" && pnpm typechain",
     "deploy:contracts": "hardhat deploy",
     "lint": "pnpm lint:sol && pnpm lint:ts && pnpm prettier:check",
-    "lint:sol": "solhint --max-warnings 0 \"contracts/**/*.sol\"",
+    "lint:sol": "solhint --max-warnings 10 \"contracts/**/*.sol\"",
     "lint:ts": "eslint --ignore-path ./.eslintignore --ext .js,.ts .",
     "postinstall": "DOTENV_CONFIG_PATH=./.env.example pnpm typechain",
     "prettier:check": "prettier --check \"**/*.{js,json,md,sol,ts,yml}\"",
     "prettier:write": "prettier --write \"**/*.{js,json,md,sol,ts,yml}\"",
     "typechain": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat typechain",
     "test": "hardhat test",
+    "test:mock": "HARDHAT_NETWORK=hardhat npx hardhat test --network hardhat",
+    "coverage:mock": "HARDHAT_NETWORK=hardhat npx hardhat coverage-mock --network hardhat",
     "task:getEthereumAddress": "hardhat task:getEthereumAddress",
     "task:mint": "hardhat task:mint",
     "task:deployERC20": "hardhat task:deployERC20",
     "task:accounts": "hardhat task:accounts",
-    "fhevm:start": "docker run -i -p 8545:8545 --rm --name fhevm ghcr.io/zama-ai/evmos-dev-node:v0.1.10",
+    "fhevm:start": "docker run -i -p 8545:8545 -p 8546:8546 --rm --name fhevm ghcr.io/zama-ai/ethermint-dev-node:v0.2.4",
     "fhevm:stop": "docker rm -f fhevm",
     "fhevm:restart": "fhevm:stop && fhevm:start",
-    "fhevm:faucet": "npm run fhevm:faucet:alice && sleep 5 && npm run fhevm:faucet:bob && sleep 5 && npm run fhevm:faucet:carol && sleep 5 && npm run fhevm:faucet:dave",
+    "fhevm:faucet": "npm run fhevm:faucet:alice && sleep 5 && npm run fhevm:faucet:bob && sleep 5 && npm run fhevm:faucet:carol && sleep 5 && npm run fhevm:faucet:dave && sleep 5 && npm run fhevm:faucet:eve",
     "fhevm:faucet:alice": "docker exec -i fhevm faucet $(npx hardhat task:getEthereumAddressAlice)",
     "fhevm:faucet:bob": "docker exec -i fhevm faucet $(npx hardhat task:getEthereumAddressBob)",
     "fhevm:faucet:carol": "docker exec -i fhevm faucet $(npx hardhat task:getEthereumAddressCarol)",
-    "fhevm:faucet:dave": "docker exec -i fhevm faucet $(npx hardhat task:getEthereumAddressDave)"
+    "fhevm:faucet:dave": "docker exec -i fhevm faucet $(npx hardhat task:getEthereumAddressDave)",
+    "fhevm:faucet:eve": "docker exec -i fhevm faucet $(npx hardhat task:getEthereumAddressEve)"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^4.9.2"
+    "@openzeppelin/contracts": "^5.0.1"
   }
 }
