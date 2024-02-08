@@ -3,9 +3,9 @@ import { ethers } from "hardhat";
 
 import { createInstances } from "../instance";
 import { getSigners, initSigners } from "../signers";
-import { deployEncryptedERC20Fixture } from "./ConfidentialERC20.fixture";
+import { deployEncryptedERC20Fixture } from "./EncryptedERC20.fixture";
 
-describe("ConfidentialERC20", function () {
+describe("EncryptedERC20", function () {
   before(async function () {
     await initSigners();
     this.signers = await getSigners();

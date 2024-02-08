@@ -1,6 +1,6 @@
 import type { FhevmInstance } from "fhevmjs";
 
-import { ConfidentialERC20 } from "../types";
+import { EncryptedERC20 } from "../types";
 import type { Signers } from "./signers";
 
 declare module "mocha" {
@@ -8,7 +8,7 @@ declare module "mocha" {
     signers: Signers;
     contractAddress: string;
     instances: FhevmInstances;
-    erc20: ConfidentialERC20;
+    erc20: EncryptedERC20;
   }
 }
 

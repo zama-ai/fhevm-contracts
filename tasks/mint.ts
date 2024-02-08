@@ -6,9 +6,9 @@ task("task:mint")
   .setAction(async function (taskArguments: TaskArguments, hre) {
     const { ethers, deployments } = hre;
     const signers = await ethers.getSigners();
-    const ConfidentialERC20 = await deployments.get("ConfidentialERC20");
+    const EncryptedERC20 = await deployments.get("EncryptedERC20");
 
-    const encryptedERC20 = await ethers.getContractAt("ConfidentialERC20", ConfidentialERC20.address);
+    const encryptedERC20 = await ethers.getContractAt("EncryptedERC20", EncryptedERC20.address);
 
     await encryptedERC20.connect(signers[0]).mint(+taskArguments.mint);
 
