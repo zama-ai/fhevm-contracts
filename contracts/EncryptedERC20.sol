@@ -69,10 +69,8 @@ contract EncryptedERC20 is Reencrypt, Ownable2Step {
         bytes32 publicKey,
         bytes calldata signature
     ) public view virtual onlySignedPublicKey(publicKey, signature) returns (bytes memory) {
-        if (wallet == msg.sender) {
-            return TFHE.reencrypt(balances[wallet], publicKey, 0);
-        }
-        return TFHE.reencrypt(TFHE.asEuint32(0), publicKey, 0);
+        require(wallet == msg.sender, "User cannot reencrypt a non-owned wallet balance");
+        return TFHE.reencrypt(balances[wallet], publicKey, 0);
     }
 
     // Sets the `encryptedAmount` as the allowance of `spender` over the caller's tokens.
