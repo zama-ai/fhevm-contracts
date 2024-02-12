@@ -38,31 +38,36 @@ abstract contract EncryptedErrors {
         return errorCodesMapping[errorId];
     }
 
-    function setErrorIf(ebool condition, uint8 indexCode) internal returns (uint256) {
+    function defineErrorIf(ebool condition, uint8 indexCode) internal returns (euint8) {
         require(indexCode != 0, "indexCode must be greater than 0");
-        uint256 errorId = counterErrors;
-        counterErrors++;
+        //uint256 errorId = counterErrors;
+        //counterErrors++;
         euint8 errorCode = TFHE.cmux(condition, errorCodes[indexCode], errorCodes[0]);
-        errorCodesMapping[errorId] = errorCode;
-        return errorId;
+        //errorCodesMapping[errorId] = errorCode;
+        return errorCode;
     }
 
-    function setErrorIfNot(ebool condition, uint8 indexCode) internal returns (uint256) {
+    function defineErrorIfNot(ebool condition, uint8 indexCode) internal returns (euint8) {
         require(indexCode != 0, "indexCode must be greater than 0");
+        //uint256 errorId = counterErrors;
+        //counterErrors++;
+        euint8 errorCode = TFHE.cmux(condition, errorCodes[0], errorCodes[indexCode]);
+        //errorCodesMapping[errorId] = errorCode;
+        return errorCode;
+    }
+
+    function changeErrorIf(ebool condition, uint8 indexCode, euint8 errorCode) internal returns (euint8) {
+        return TFHE.cmux(condition, errorCodes[indexCode], errorCode);
+    }
+
+    function changeErrorIfNot(ebool condition, uint8 indexCode, euint8 errorCode) internal returns (euint8) {
+        return TFHE.cmux(condition, errorCode, errorCodes[indexCode]);
+    }
+
+    function saveError(euint8 errorCode) internal returns (uint256) {
         uint256 errorId = counterErrors;
         counterErrors++;
-        euint8 errorCode = TFHE.cmux(condition, errorCodes[0], errorCodes[indexCode]);
         errorCodesMapping[errorId] = errorCode;
         return errorId;
-    }
-
-    function changeErrorIf(ebool condition, uint8 indexCode, uint256 errorId) internal {
-        require(errorId < counterErrors, "Error index too big");
-        errorCodesMapping[errorId] = TFHE.cmux(condition, errorCodes[indexCode], errorCodesMapping[errorId]);
-    }
-
-    function changeErrorIfNot(ebool condition, uint8 indexCode, uint256 errorId) internal {
-        require(errorId < counterErrors, "Error index too big");
-        errorCodesMapping[errorId] = TFHE.cmux(condition, errorCodesMapping[errorId], errorCodes[indexCode]);
     }
 }

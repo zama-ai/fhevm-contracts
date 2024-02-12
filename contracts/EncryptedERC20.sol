@@ -77,8 +77,8 @@ contract EncryptedERC20 is Reencrypt, Ownable2Step, EncryptedErrors {
     function transfer(address to, euint32 amount) public virtual returns (bool) {
         // makes sure the owner has enough tokens
         ebool canTransfer = TFHE.le(amount, balances[msg.sender]);
-        uint256 errorCounter = setErrorIfNot(canTransfer, uint8(ErrorCodes.UNSUFFICIENT_BALANCE));
-        _transfer(msg.sender, to, amount, canTransfer, errorCounter);
+        euint8 errorCode = defineErrorIfNot(canTransfer, uint8(ErrorCodes.UNSUFFICIENT_BALANCE));
+        _transfer(msg.sender, to, amount, canTransfer, errorCode);
         return true;
     }
 
@@ -127,8 +127,8 @@ contract EncryptedERC20 is Reencrypt, Ownable2Step, EncryptedErrors {
     // Transfers `amount` tokens using the caller's allowance.
     function transferFrom(address from, address to, euint32 amount) public virtual returns (bool) {
         address spender = msg.sender;
-        (ebool isTransferable, uint256 errorCounter) = _updateAllowance(from, spender, amount);
-        _transfer(from, to, amount, isTransferable, errorCounter);
+        (ebool isTransferable, euint8 errorCode) = _updateAllowance(from, spender, amount);
+        _transfer(from, to, amount, isTransferable, errorCode);
         return true;
     }
 
@@ -144,27 +144,23 @@ contract EncryptedERC20 is Reencrypt, Ownable2Step, EncryptedErrors {
         }
     }
 
-    function _updateAllowance(
-        address owner,
-        address spender,
-        euint32 amount
-    ) internal virtual returns (ebool, uint256) {
+    function _updateAllowance(address owner, address spender, euint32 amount) internal virtual returns (ebool, euint8) {
         euint32 currentAllowance = _allowance(owner, spender);
         // makes sure the allowance suffices
         ebool allowedTransfer = TFHE.le(amount, currentAllowance);
-        uint256 errorCounter = setErrorIfNot(allowedTransfer, uint8(ErrorCodes.UNSUFFICIENT_APPROVAL));
+        euint8 errorCode = defineErrorIfNot(allowedTransfer, uint8(ErrorCodes.UNSUFFICIENT_APPROVAL));
         // makes sure the owner has enough tokens
         ebool canTransfer = TFHE.le(amount, balances[owner]);
         ebool isTransferable = TFHE.and(canTransfer, allowedTransfer);
         _approve(owner, spender, TFHE.cmux(isTransferable, currentAllowance - amount, currentAllowance));
         ebool isNotTransferableButIsApproved = TFHE.and(TFHE.not(canTransfer), allowedTransfer);
-        changeErrorIf(
+        errorCode = changeErrorIf(
             isNotTransferableButIsApproved, // should indeed check that spender is approved to not leak information
             // on balance of `from` to unauthorized spender via calling reencryptTransferError afterwards
             uint8(ErrorCodes.UNSUFFICIENT_BALANCE),
-            errorCounter
+            errorCode
         );
-        return (isTransferable, errorCounter);
+        return (isTransferable, errorCode);
     }
 
     // Transfers an encrypted amount.
@@ -173,11 +169,12 @@ contract EncryptedERC20 is Reencrypt, Ownable2Step, EncryptedErrors {
         address to,
         euint32 amount,
         ebool isTransferable,
-        uint256 transferId
+        euint8 errorCode
     ) internal virtual {
         // Add to the balance of `to` and subract from the balance of `from`.
         balances[to] = balances[to] + TFHE.cmux(isTransferable, amount, TFHE.asEuint32(0));
         balances[from] = balances[from] - TFHE.cmux(isTransferable, amount, TFHE.asEuint32(0));
+        uint256 transferId = saveError(errorCode);
         emit Transfer(transferId, from, to);
         AllowedErrorReencryption memory allowedErrorReencryption = AllowedErrorReencryption(
             msg.sender,
