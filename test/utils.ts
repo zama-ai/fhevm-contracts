@@ -45,3 +45,29 @@ export const createTransaction = async <A extends [...{ [I in keyof A]-?: A[I] |
   ];
   return method(...updatedParams);
 };
+
+export const produceDummyTransactions = async (blockCount: number) => {
+  const contract = await deployCounterContract();
+  let counter = blockCount;
+  while (counter > 0) {
+    counter--;
+    const tx = await contract.increment();
+    const _ = await tx.wait();
+  }
+};
+
+async function deployCounterContract(): Promise<Counter> {
+  const signers = await getSigners();
+
+  const contractFactory = await ethers.getContractFactory("Counter");
+  const contract = await contractFactory.connect(signers.eve).deploy();
+  await contract.waitForDeployment();
+
+  return contract;
+}
+
+export const mineNBlocks = async (n: number) => {
+  for (let index = 0; index < n; index++) {
+    await ethers.provider.send("evm_mine");
+  }
+};

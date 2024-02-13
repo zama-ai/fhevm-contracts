@@ -38,7 +38,7 @@ abstract contract EncryptedErrors {
         return errorCodesMapping[errorId];
     }
 
-    function defineErrorIf(ebool condition, uint8 indexCode) internal returns (euint8) {
+    function defineErrorIf(ebool condition, uint8 indexCode) internal view returns (euint8) {
         require(indexCode != 0, "indexCode must be greater than 0");
         //uint256 errorId = counterErrors;
         //counterErrors++;
@@ -47,7 +47,7 @@ abstract contract EncryptedErrors {
         return errorCode;
     }
 
-    function defineErrorIfNot(ebool condition, uint8 indexCode) internal returns (euint8) {
+    function defineErrorIfNot(ebool condition, uint8 indexCode) internal view returns (euint8) {
         require(indexCode != 0, "indexCode must be greater than 0");
         //uint256 errorId = counterErrors;
         //counterErrors++;
@@ -56,11 +56,11 @@ abstract contract EncryptedErrors {
         return errorCode;
     }
 
-    function changeErrorIf(ebool condition, uint8 indexCode, euint8 errorCode) internal returns (euint8) {
+    function changeErrorIf(ebool condition, uint8 indexCode, euint8 errorCode) internal view returns (euint8) {
         return TFHE.cmux(condition, errorCodes[indexCode], errorCode);
     }
 
-    function changeErrorIfNot(ebool condition, uint8 indexCode, euint8 errorCode) internal returns (euint8) {
+    function changeErrorIfNot(ebool condition, uint8 indexCode, euint8 errorCode) internal view returns (euint8) {
         return TFHE.cmux(condition, errorCode, errorCodes[indexCode]);
     }
 
