@@ -21,21 +21,21 @@ contract EncryptedERC20 is Reencrypt, Ownable2Step, EncryptedErrors {
 
     event Transfer(uint256 indexed transferId, address indexed from, address indexed to);
     event Approval(address indexed owner, address indexed spender);
-    event Mint(address indexed to, uint32 amount);
+    event Mint(address indexed to, uint64 amount);
 
-    uint32 private _totalSupply;
+    uint64 private _totalSupply;
     string private _name;
     string private _symbol;
-    uint8 public constant decimals = 0;
+    uint8 public constant decimals = 6;
 
     // A mapping from transferId to the AllowedErrorReencryption
     mapping(uint256 => AllowedErrorReencryption) internal allowedErrorReencryptions;
 
     // A mapping from address to an encrypted balance.
-    mapping(address => euint32) internal balances;
+    mapping(address => euint64) internal balances;
 
     // A mapping of the form mapping(owner => mapping(spender => allowance)).
-    mapping(address => mapping(address => euint32)) internal allowances;
+    mapping(address => mapping(address => euint64)) internal allowances;
 
     constructor(
         string memory name_,
@@ -56,12 +56,12 @@ contract EncryptedERC20 is Reencrypt, Ownable2Step, EncryptedErrors {
     }
 
     // Returns the total supply of the token
-    function totalSupply() public view virtual returns (uint32) {
+    function totalSupply() public view virtual returns (uint64) {
         return _totalSupply;
     }
 
     // Sets the balance of the owner to the given encrypted balance.
-    function mint(uint32 mintedAmount) public virtual onlyOwner {
+    function mint(uint64 mintedAmount) public virtual onlyOwner {
         balances[owner()] = TFHE.add(balances[owner()], mintedAmount); // overflow impossible because of next line
         _totalSupply = _totalSupply + mintedAmount;
         emit Mint(owner(), mintedAmount);
@@ -69,12 +69,12 @@ contract EncryptedERC20 is Reencrypt, Ownable2Step, EncryptedErrors {
 
     // Transfers an encrypted amount from the message sender address to the `to` address.
     function transfer(address to, bytes calldata encryptedAmount) public virtual returns (bool) {
-        transfer(to, TFHE.asEuint32(encryptedAmount));
+        transfer(to, TFHE.asEuint64(encryptedAmount));
         return true;
     }
 
     // Transfers an amount from the message sender address to the `to` address.
-    function transfer(address to, euint32 amount) public virtual returns (bool) {
+    function transfer(address to, euint64 amount) public virtual returns (bool) {
         // makes sure the owner has enough tokens
         ebool canTransfer = TFHE.le(amount, balances[msg.sender]);
         euint8 errorCode = defineErrorIfNot(canTransfer, uint8(ErrorCodes.UNSUFFICIENT_BALANCE));
@@ -94,12 +94,12 @@ contract EncryptedERC20 is Reencrypt, Ownable2Step, EncryptedErrors {
 
     // Sets the `encryptedAmount` as the allowance of `spender` over the caller's tokens.
     function approve(address spender, bytes calldata encryptedAmount) public virtual returns (bool) {
-        approve(spender, TFHE.asEuint32(encryptedAmount));
+        approve(spender, TFHE.asEuint64(encryptedAmount));
         return true;
     }
 
     // Sets the `amount` as the allowance of `spender` over the caller's tokens.
-    function approve(address spender, euint32 amount) public virtual returns (bool) {
+    function approve(address spender, euint64 amount) public virtual returns (bool) {
         address owner = msg.sender;
         _approve(owner, spender, amount);
         emit Approval(owner, spender);
@@ -120,32 +120,32 @@ contract EncryptedERC20 is Reencrypt, Ownable2Step, EncryptedErrors {
 
     // Transfers `encryptedAmount` tokens using the caller's allowance.
     function transferFrom(address from, address to, bytes calldata encryptedAmount) public virtual returns (bool) {
-        transferFrom(from, to, TFHE.asEuint32(encryptedAmount));
+        transferFrom(from, to, TFHE.asEuint64(encryptedAmount));
         return true;
     }
 
     // Transfers `amount` tokens using the caller's allowance.
-    function transferFrom(address from, address to, euint32 amount) public virtual returns (bool) {
+    function transferFrom(address from, address to, euint64 amount) public virtual returns (bool) {
         address spender = msg.sender;
         (ebool isTransferable, euint8 errorCode) = _updateAllowance(from, spender, amount);
         _transfer(from, to, amount, isTransferable, errorCode);
         return true;
     }
 
-    function _approve(address owner, address spender, euint32 amount) internal virtual {
+    function _approve(address owner, address spender, euint64 amount) internal virtual {
         allowances[owner][spender] = amount;
     }
 
-    function _allowance(address owner, address spender) internal view virtual returns (euint32) {
+    function _allowance(address owner, address spender) internal view virtual returns (euint64) {
         if (TFHE.isInitialized(allowances[owner][spender])) {
             return allowances[owner][spender];
         } else {
-            return TFHE.asEuint32(0);
+            return TFHE.asEuint64(0);
         }
     }
 
-    function _updateAllowance(address owner, address spender, euint32 amount) internal virtual returns (ebool, euint8) {
-        euint32 currentAllowance = _allowance(owner, spender);
+    function _updateAllowance(address owner, address spender, euint64 amount) internal virtual returns (ebool, euint8) {
+        euint64 currentAllowance = _allowance(owner, spender);
         // makes sure the allowance suffices
         ebool allowedTransfer = TFHE.le(amount, currentAllowance);
         euint8 errorCode = defineErrorIfNot(allowedTransfer, uint8(ErrorCodes.UNSUFFICIENT_APPROVAL));
@@ -167,13 +167,13 @@ contract EncryptedERC20 is Reencrypt, Ownable2Step, EncryptedErrors {
     function _transfer(
         address from,
         address to,
-        euint32 amount,
+        euint64 amount,
         ebool isTransferable,
         euint8 errorCode
     ) internal virtual {
         // Add to the balance of `to` and subract from the balance of `from`.
-        balances[to] = balances[to] + TFHE.cmux(isTransferable, amount, TFHE.asEuint32(0));
-        balances[from] = balances[from] - TFHE.cmux(isTransferable, amount, TFHE.asEuint32(0));
+        balances[to] = balances[to] + TFHE.cmux(isTransferable, amount, TFHE.asEuint64(0));
+        balances[from] = balances[from] - TFHE.cmux(isTransferable, amount, TFHE.asEuint64(0));
         uint256 transferId = saveError(errorCode);
         emit Transfer(transferId, from, to);
         AllowedErrorReencryption memory allowedErrorReencryption = AllowedErrorReencryption(

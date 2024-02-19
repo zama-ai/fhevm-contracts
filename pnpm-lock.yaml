@@ -71,11 +71,11 @@ devDependencies:
     specifier: ^6.8.0
     version: 6.10.0
   fhevm:
-    specifier: ^0.3.0
-    version: 0.3.0(hardhat@2.19.5)
+    specifier: 0.4.0-0
+    version: 0.4.0-0(hardhat@2.19.5)
   fhevmjs:
-    specifier: ^0.3.1
-    version: 0.3.2
+    specifier: ^0.4.0-3
+    version: 0.4.0-3
   fs-extra:
     specifier: ^10.1.0
     version: 10.1.0
@@ -1867,6 +1867,14 @@ packages:
     resolution: {integrity: sha512-s0IrSOzLlbvX7yp4WBfPITzpAU8sqQcpsmwXDiKwrG4r491vwCO/XpejasRNl0piBMe/DvP4Tz0mIS/X1DPJBQ==}
     dev: true
 
+  /bigint-buffer@1.1.5:
+    resolution: {integrity: sha512-trfYco6AoZ+rKhKnxA0hgX0HAbVP/s808/EuDSe2JDzUnCp/xAsli35Orvk67UrTEcwuxZqYZDmfA2RXJgxVvA==}
+    engines: {node: '>= 10.0.0'}
+    requiresBuild: true
+    dependencies:
+      bindings: 1.5.0
+    dev: true
+
   /bigint-crypto-utils@3.3.0:
     resolution: {integrity: sha512-jOTSb+drvEDxEq6OuUybOAv/xxoh3cuYRUIPyu8sSHQNKM303UQ2R1DAo45o1AkcIXw6fzbaFI1+xGGdaXs2lg==}
     engines: {node: '>=14.0.0'}
@@ -1875,6 +1883,12 @@ packages:
   /binary-extensions@2.2.0:
     resolution: {integrity: sha512-jDctJ/IVQbZoJykoeHbhXpOlNBqGNcwXJKJog42E5HDPUwQTSdjCHdihjj0DlnheQ7blbT6dHOafNAiS8ooQKA==}
     engines: {node: '>=8'}
+    dev: true
+
+  /bindings@1.5.0:
+    resolution: {integrity: sha512-p2q/t/mhvuOj/UeLlV6566GD/guowlr0hHxClI0W9m7MWYkL1F0hLo+0Aexs9HSPCtR1SXQ0TD3MMKrXZajbiQ==}
+    dependencies:
+      file-uri-to-path: 1.0.0
     dev: true
 
   /blakejs@1.2.1:
@@ -2821,8 +2835,8 @@ packages:
       reusify: 1.0.4
     dev: true
 
-  /fhevm@0.3.0(hardhat@2.19.5):
-    resolution: {integrity: sha512-+xLuWQ0B0GeO/cPsmEvfW9yUEMIPlYoZ8v26sCjtWHyWzr4WBNHhxbMYxvZiW/hLTJTKCc91hBxGpdQjH4zBWw==}
+  /fhevm@0.4.0-0(hardhat@2.19.5):
+    resolution: {integrity: sha512-km+ruRXadNpavPiwbapj+P+P6PD3kxMnYUm+u8WbU7WIRDmbKNWOACTeuc/BtGdaBB7tyam9fThHEQlY7Wfh4w==}
     dependencies:
       '@openzeppelin/contracts': 5.0.1
       hardhat-preprocessor: 0.1.5(hardhat@2.19.5)
@@ -2830,18 +2844,18 @@ packages:
       - hardhat
     dev: true
 
-  /fhevmjs@0.3.2:
-    resolution: {integrity: sha512-/6D8uqlU3UYQRxyQJWxr6F6qjwe5pLvqeIZlp3YRilLytiFEoBQT5bwSbXzQ7UtY7VuTr82BfIUpNlSBItD5ww==}
+  /fhevmjs@0.4.0-3:
+    resolution: {integrity: sha512-7b/8OyLh0M5yzR3gxMd2ZtzM2XO4UP3zLwrGW0jtVbjSzcs8CzGiemSoRg1t5bFlFTMaigDHZNceOYrCiRCqIA==}
     hasBin: true
     dependencies:
+      bigint-buffer: 1.1.5
       commander: 11.1.0
       crypto-js: 4.2.0
       ethers: 6.10.0
       libsodium: 0.7.13
       libsodium-wrappers: 0.7.13
-      node-tfhe: 0.4.2
-      sha3: 2.1.4
-      tfhe: 0.4.2
+      node-tfhe: 0.5.1
+      tfhe: 0.5.1
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -2852,6 +2866,10 @@ packages:
     engines: {node: ^10.12.0 || >=12.0.0}
     dependencies:
       flat-cache: 3.2.0
+    dev: true
+
+  /file-uri-to-path@1.0.0:
+    resolution: {integrity: sha512-0Zt+s3L7Vf1biwWZ29aARiVYLx7iMGnEUl9x33fbB/j3jR81u/O2LbqK+Bm1CDSNDKVtJ/YjwY7TUd5SkeLQLw==}
     dev: true
 
   /fill-range@7.0.1:
@@ -4040,8 +4058,8 @@ packages:
     hasBin: true
     dev: true
 
-  /node-tfhe@0.4.2:
-    resolution: {integrity: sha512-fFUBRcOfvD5I4HpR8dN4OfdzQkPRi+Blug0sFXRMetMkcTdlmv6sM5Jf3qsKFvaUSIg3DTspG75rDVyrgvOgZA==}
+  /node-tfhe@0.5.1:
+    resolution: {integrity: sha512-jSPB9gsEoPL21Q5gNWTxxedJ0YxKDfnb7W3uIcKjEGvsw0QMMV4uD/NsACNltDplQ2cmIsK/z+4jC5LJxfw5kQ==}
     dev: true
 
   /nofilter@3.1.0:
@@ -4591,12 +4609,6 @@ packages:
       crypt: 0.0.2
     dev: true
 
-  /sha3@2.1.4:
-    resolution: {integrity: sha512-S8cNxbyb0UGUM2VhRD4Poe5N58gJnJsLJ5vC7FYWGUmGhcsj4++WaIOBFVDxlG0W3To6xBuiRh+i0Qp2oNCOtg==}
-    dependencies:
-      buffer: 6.0.3
-    dev: true
-
   /shebang-command@2.0.0:
     resolution: {integrity: sha512-kHxr2zZpYtdmrN1qDjrrX/Z1rR1kG8Dx+gkpK1G4eXmvXswmcE1hTWBWYUzlraYw1/yZp6YuDY77YtvbN0dmDA==}
     engines: {node: '>=8'}
@@ -4906,8 +4918,8 @@ packages:
     resolution: {integrity: sha512-N+8UisAXDGk8PFXP4HAzVR9nbfmVJ3zYLAWiTIoqC5v5isinhr+r5uaO8+7r3BMfuNIufIsA7RdpVgacC2cSpw==}
     dev: true
 
-  /tfhe@0.4.2:
-    resolution: {integrity: sha512-mf6LqRcClIJB5D6thrnDR73Zrq82QwFsmRros9RuFLIEm1S836CjrVuXrKq6Nmsm07ekh0peznscxMfshPykwA==}
+  /tfhe@0.5.1:
+    resolution: {integrity: sha512-OZt4nnz8YW/IjmrVNyNBRkiNuO2WFmDh5zPKTL8UiUzUHsVN+4Nqnz2XqetbbCfCXGrVfTTNkXU8zkuGXIV0BA==}
     dev: true
 
   /then-request@6.0.2:

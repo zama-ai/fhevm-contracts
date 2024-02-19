@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: MIT
-// OpenZeppelin Contracts (last updated v5.0.0) (utils/Strings.sol)
+// SPDX-License-Identifier: BSD-3-Clause-Clear
 
 pragma solidity ^0.8.20;
 
