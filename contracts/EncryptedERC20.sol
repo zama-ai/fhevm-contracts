@@ -92,6 +92,11 @@ contract EncryptedERC20 is Reencrypt, Ownable2Step, EncryptedErrors {
         return TFHE.reencrypt(balances[wallet], publicKey, 0);
     }
 
+    // Returns the encrypted balance of the caller.
+    function balanceOfMe() public view returns (euint64) {
+        return balances[msg.sender];
+    }
+
     // Sets the `encryptedAmount` as the allowance of `spender` over the caller's tokens.
     function approve(address spender, bytes calldata encryptedAmount) public virtual returns (bool) {
         approve(spender, TFHE.asEuint64(encryptedAmount));
