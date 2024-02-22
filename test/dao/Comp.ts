@@ -31,7 +31,11 @@ describe("Comp", function () {
       signature: "",
       publicKey: "",
     };
-    const encryptedAliceBalance = await this.comp.balanceOf(aliceToken.publicKey, aliceToken.signature);
+    const encryptedAliceBalance = await this.comp.balanceOf(
+      this.signers.alice.address,
+      aliceToken.publicKey,
+      aliceToken.signature,
+    );
     // Decrypt Alice's balance
     const aliceBalance = this.instances.alice.decrypt(this.contractAddress, encryptedAliceBalance);
     expect(aliceBalance).to.equal(800000);
@@ -42,7 +46,7 @@ describe("Comp", function () {
     };
     const encryptedBobBalance = await this.comp
       .connect(this.signers.bob)
-      .balanceOf(bobToken.publicKey, bobToken.signature);
+      .balanceOf(this.signers.bob.address, bobToken.publicKey, bobToken.signature);
     // Decrypt Bob's balance
     const bobBalance = this.instances.bob.decrypt(this.contractAddress, encryptedBobBalance);
     expect(bobBalance).to.equal(200000);
