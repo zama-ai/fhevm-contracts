@@ -7,7 +7,7 @@ export async function deployCompFixture(): Promise<Comp> {
   const signers = await getSigners();
 
   const contractFactory = await ethers.getContractFactory("Comp");
-  const contract = await contractFactory.connect(signers.alice).deploy(signers.alice.address);
+  const contract = await contractFactory.connect(signers.alice).deploy();
   await contract.waitForDeployment();
 
   return contract;

@@ -2,33 +2,12 @@
 pragma solidity ^0.8.20;
 
 import "fhevm/abstracts/Reencrypt.sol";
-
 import "fhevm/lib/TFHE.sol";
+import "../EncryptedERC20.sol";
 
-contract Comp is Reencrypt {
-    /// @notice EIP-20 token name for this token
-    string public constant name = "Compound";
-
-    /// @notice EIP-20 token symbol for this token
-    string public constant symbol = "COMP";
-
-    /// @notice EIP-20 token decimals for this token
-    uint8 public constant decimals = 6;
-
-    /// @notice Total number of tokens in circulation
-    euint64 public totalSupply = TFHE.asEuint64(1000000);
-
-    /// @notice owner address
-    address public contractOwner;
-
+contract Comp is EncryptedERC20 {
     /// @notice allowed smart contract
     address public allowedContract;
-
-    /// @notice Allowance amounts on behalf of others
-    mapping(address => mapping(address => euint64)) internal allowances;
-
-    /// @notice Official record of token balances for each account
-    mapping(address => euint64) internal balances;
 
     /// @notice A record of each accounts delegate
     mapping(address => address) public delegates;
@@ -62,142 +41,19 @@ contract Comp is Reencrypt {
     /// @notice An event thats emitted when a delegate account's vote balance changes
     event DelegateVotesChanged(address indexed delegate, euint64 previousBalance, euint64 newBalance);
 
-    /// @notice The standard EIP-20 transfer event
-    event Transfer(address indexed from, address indexed to, euint64 amount);
-
-    /// @notice The standard EIP-20 approval event
-    event Approval(address indexed owner, address indexed spender, euint64 amount);
-
     /**
      * @notice Construct a new Comp token
-     * @param account The initial account to grant all the tokens
      */
-    constructor(address account) {
-        contractOwner = account;
-        balances[contractOwner] = totalSupply;
+    constructor() EncryptedERC20("Compound", "COMP") {
+        mint(1000000);
     }
 
     /**
      * @notice Set allowed contract that can access votes
      * @param contractAddress The address of the smart contract which may access votes
      */
-    function setAllowedContract(address contractAddress) public onlyContractOwner {
+    function setAllowedContract(address contractAddress) public onlyOwner {
         allowedContract = contractAddress;
-    }
-
-    /**
-     * @notice Get the number of tokens held by the `account`
-     * @return reencrypted The number of tokens held
-     */
-    function balanceOf(
-        bytes32 publicKey,
-        bytes calldata signature
-    ) public view onlySignedPublicKey(publicKey, signature) returns (bytes memory) {
-        return TFHE.reencrypt(balances[msg.sender], publicKey, 0);
-    }
-
-    /**
-     * @notice Get the number of tokens
-     * @return reencrypted The number of tokens
-     */
-    function getTotalSupply() public view returns (uint64) {
-        return TFHE.decrypt(totalSupply);
-    }
-
-    /**
-     * @notice Approve `spender` to transfer up to `amount` from `src`
-     * @dev This will overwrite the approval amount for `spender`
-     *  and is subject to issues noted [here](https://eips.ethereum.org/EIPS/eip-20#approve)
-     * @param spender The address of the account which may transfer tokens
-     * @param encryptedAmount The number of tokens that are approved
-     * @return bool Whether or not the approval succeeded
-     */
-    function approve(address spender, bytes calldata encryptedAmount) external returns (bool) {
-        address owner = msg.sender;
-        _approve(owner, spender, TFHE.asEuint64(encryptedAmount));
-        return true;
-    }
-
-    function _approve(address owner, address spender, euint64 amount) internal {
-        emit Approval(owner, spender, amount);
-        allowances[owner][spender] = amount;
-    }
-
-    /**
-     * @notice Get the number of tokens `spender` is approved to spend on behalf of `account`
-     * @param spender The address of the account spending the funds
-     * @return reencrypted The number of tokens approved
-     */
-    function allowance(address spender) public view returns (bytes memory reencrypted) {
-        address owner = msg.sender;
-        return TFHE.reencrypt(_allowance(owner, spender), 0);
-    }
-
-    function _allowance(address owner, address spender) internal view returns (euint64) {
-        return allowances[owner][spender];
-    }
-
-    /**
-     * @notice Transfer `amount` tokens from `msg.sender` to `dst`
-     * @param to The address of the destination account
-     * @param encryptedAmount The number of tokens to transfer
-     */
-    function transfer(address to, bytes calldata encryptedAmount) public {
-        transfer(to, TFHE.asEuint64(encryptedAmount));
-    }
-
-    /**
-     * @notice Transfer `amount` tokens from `msg.sender` to `dst`
-     * @param to The address of the destination account
-     * @param amount The number of tokens to transfer
-     */
-    function transfer(address to, euint64 amount) public {
-        _transfer(msg.sender, to, amount);
-    }
-
-    /**
-     * @notice Transfer `amount` tokens from `src` to `dst`
-     * @param from The address of the source account
-     * @param to The address of the destination account
-     * @param encryptedAmount The number of tokens to transfer
-     * @return bool Whether or not the transfer succeeded
-     */
-    function transferFrom(address from, address to, bytes calldata encryptedAmount) public returns (bool) {
-        transferFrom(from, to, TFHE.asEuint64(encryptedAmount));
-        return true;
-    }
-
-    /**
-     * @notice Transfer `amount` tokens from `src` to `dst`
-     * @param from The address of the source account
-     * @param to The address of the destination account
-     * @param amount The number of tokens to transfer
-     * @return bool Whether or not the transfer succeeded
-     */
-    function transferFrom(address from, address to, euint64 amount) public returns (bool) {
-        address spender = msg.sender;
-        _updateAllowance(from, spender, amount);
-        _transfer(from, to, amount);
-        return true;
-    }
-
-    function _updateAllowance(address owner, address spender, euint64 amount) internal {
-        euint64 currentAllowance = _allowance(owner, spender);
-        ebool canApprove = TFHE.le(amount, currentAllowance);
-        _approve(owner, spender, TFHE.cmux(canApprove, currentAllowance - amount, TFHE.asEuint64(0)));
-    }
-
-    // Transfers an encrypted amount.
-    function _transfer(address from, address to, euint64 amount) internal {
-        // Make sure the sender has enough tokens.
-        ebool canTransfer = TFHE.le(amount, balances[from]);
-
-        // Add to the balance of `to` and subract from the balance of `from`.
-        balances[to] = balances[to] + TFHE.cmux(canTransfer, amount, TFHE.asEuint64(0));
-        balances[from] = balances[from] - TFHE.cmux(canTransfer, amount, TFHE.asEuint64(0));
-        emit Transfer(from, to, amount);
-
-        _moveDelegates(delegates[from], delegates[to], amount);
     }
 
     function _moveDelegates(address srcRep, address dstRep, euint64 amount) internal {
@@ -250,7 +106,7 @@ contract Comp is Reencrypt {
      */
     function delegateBySig(address delegatee, uint256 nonce, uint256 expiry, uint8 v, bytes32 r, bytes32 s) public {
         bytes32 domainSeparator = keccak256(
-            abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name)), getChainId(), address(this))
+            abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name())), getChainId(), address(this))
         );
         bytes32 structHash = keccak256(abi.encode(DELEGATION_TYPEHASH, delegatee, nonce, expiry));
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
@@ -329,11 +185,6 @@ contract Comp is Reencrypt {
 
     function getChainId() internal view returns (uint256) {
         return block.chainid;
-    }
-
-    modifier onlyContractOwner() {
-        require(msg.sender == contractOwner);
-        _;
     }
 
     modifier onlyAllowedContract() {
