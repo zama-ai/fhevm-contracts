@@ -15,7 +15,7 @@ contract EncryptedERC20 is Reencrypt, Ownable2Step, EncryptedErrors {
     }
 
     struct AllowedErrorReencryption {
-        address sender; // account's address allowed to reencrypt errorCode
+        address spender; // account's address allowed to reencrypt errorCode
         euint8 errorCode;
     }
 
@@ -196,7 +196,7 @@ contract EncryptedERC20 is Reencrypt, Ownable2Step, EncryptedErrors {
         AllowedErrorReencryption memory allowedErrorReencryption = allowedErrorReencryptions[transferId];
         euint8 errorCode = allowedErrorReencryption.errorCode;
         require(TFHE.isInitialized(errorCode), "Invalid transferId");
-        require(msg.sender == allowedErrorReencryption.sender, "Only sender can reencrypt his error");
+        require(msg.sender == allowedErrorReencryption.spender, "Only spender can reencrypt his error");
         return TFHE.reencrypt(errorCode, publicKey);
     }
 }

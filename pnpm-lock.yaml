@@ -74,8 +74,8 @@ devDependencies:
     specifier: 0.4.0-0
     version: 0.4.0-0(hardhat@2.19.5)
   fhevmjs:
-    specifier: ^0.4.0-3
-    version: 0.4.0-3
+    specifier: ^0.4.0-4
+    version: 0.4.0-4
   fs-extra:
     specifier: ^10.1.0
     version: 10.1.0
@@ -2844,8 +2844,8 @@ packages:
       - hardhat
     dev: true
 
-  /fhevmjs@0.4.0-3:
-    resolution: {integrity: sha512-7b/8OyLh0M5yzR3gxMd2ZtzM2XO4UP3zLwrGW0jtVbjSzcs8CzGiemSoRg1t5bFlFTMaigDHZNceOYrCiRCqIA==}
+  /fhevmjs@0.4.0-4:
+    resolution: {integrity: sha512-aCEtp3cNGIc8wuAaxnXaztfP6VLzIHPTFKgCT3izAaWLoo50P6xZ1okbKdeX3vT+lmOYdszwY03ICooKZO68xg==}
     hasBin: true
     dependencies:
       bigint-buffer: 1.1.5
