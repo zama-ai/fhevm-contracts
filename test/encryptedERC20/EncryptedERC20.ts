@@ -18,7 +18,7 @@ describe("EncryptedERC20", function () {
     this.instances = await createInstances(this.contractAddress, ethers, this.signers);
   });
 
-  it("could read token name and symbol", async function () {
+  it("should read token name and symbol", async function () {
     const name = await this.erc20.name();
     expect(name, "Naraggara");
     const symbol = await this.erc20.symbol();
@@ -44,9 +44,16 @@ describe("EncryptedERC20", function () {
   });
 
   it("non-owner should be unable to mint", async function () {
-    await expect(this.erc20.connect(this.signers.bob).mint(1000))
-      .to.be.revertedWithCustomError(this.erc20, "OwnableUnauthorizedAccount")
-      .withArgs(this.signers.bob.address);
+    if (network.name == "hardhat") {
+      // mocked mode
+      await expect(this.erc20.connect(this.signers.bob).mint(1000))
+        .to.be.revertedWithCustomError(this.erc20, "OwnableUnauthorizedAccount")
+        .withArgs(this.signers.bob.address);
+    } else {
+      // fhevm-mode
+      const tx = await this.erc20.connect(this.signers.bob).mint(1000, { gasLimit: 1_000_000n });
+      await expect(tx.wait()).to.throw;
+    }
   });
 
   it("should transfer tokens between two users", async function () {
@@ -211,7 +218,7 @@ describe("EncryptedERC20", function () {
     expect(balanceBob2).to.equal(1337); // check that transfer did happen this time
   });
 
-  it("only spender and owner coud read their allowance", async function () {
+  it("only spender and owner could read their allowance", async function () {
     const transaction = await this.erc20.mint(10000);
     await transaction.wait();
 
@@ -266,9 +273,12 @@ describe("EncryptedERC20", function () {
 
     // Carol would get a null allowance for (Alice,Carol)
     expect(
-      await this.erc20
-        .connect(this.signers.carol)
-        .allowance(this.signers.alice, this.signers.carol, tokenCarol.publicKey, tokenCarol.signature),
+      this.instances.carol.decrypt(
+        this.contractAddress,
+        await this.erc20
+          .connect(this.signers.carol)
+          .allowance(this.signers.alice, this.signers.carol, tokenCarol.publicKey, tokenCarol.signature),
+      ),
     ).to.equal(0n);
   });
 
