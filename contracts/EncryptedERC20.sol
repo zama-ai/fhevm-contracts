@@ -23,7 +23,7 @@ contract EncryptedERC20 is Reencrypt, Ownable2Step, EncryptedErrors {
     event Approval(address indexed owner, address indexed spender);
     event Mint(address indexed to, uint64 amount);
 
-    uint64 private _totalSupply;
+    uint64 internal _totalSupply;
     string private _name;
     string private _symbol;
     uint8 public constant decimals = 6;
