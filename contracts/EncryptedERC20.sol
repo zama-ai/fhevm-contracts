@@ -93,7 +93,7 @@ contract EncryptedERC20 is Reencrypt, Ownable2Step, EncryptedErrors {
     }
 
     // Returns the encrypted balance of the caller.
-    function balanceOfMe() public view returns (euint64) {
+    function balanceOfMe() public view virtual returns (euint64) {
         return balances[msg.sender];
     }
 
@@ -177,8 +177,9 @@ contract EncryptedERC20 is Reencrypt, Ownable2Step, EncryptedErrors {
         euint8 errorCode
     ) internal virtual {
         // Add to the balance of `to` and subract from the balance of `from`.
-        balances[to] = balances[to] + TFHE.cmux(isTransferable, amount, TFHE.asEuint64(0));
-        balances[from] = balances[from] - TFHE.cmux(isTransferable, amount, TFHE.asEuint64(0));
+        euint64 amountTransferred = TFHE.cmux(isTransferable, amount, TFHE.asEuint64(0));
+        balances[to] = balances[to] + amountTransferred;
+        balances[from] = balances[from] - amountTransferred;
         uint256 transferId = saveError(errorCode);
         emit Transfer(transferId, from, to);
         AllowedErrorReencryption memory allowedErrorReencryption = AllowedErrorReencryption(
@@ -192,7 +193,7 @@ contract EncryptedERC20 is Reencrypt, Ownable2Step, EncryptedErrors {
         uint256 transferId,
         bytes32 publicKey,
         bytes calldata signature
-    ) external view onlySignedPublicKey(publicKey, signature) returns (bytes memory) {
+    ) external view virtual onlySignedPublicKey(publicKey, signature) returns (bytes memory) {
         AllowedErrorReencryption memory allowedErrorReencryption = allowedErrorReencryptions[transferId];
         euint8 errorCode = allowedErrorReencryption.errorCode;
         require(TFHE.isInitialized(errorCode), "Invalid transferId");
