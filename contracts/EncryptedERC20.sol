@@ -28,7 +28,7 @@ contract EncryptedERC20 is Reencrypt, Ownable2Step, EncryptedErrors {
     string private _symbol;
     uint8 public constant decimals = 6;
 
-    // A mapping from transferId to the AllowedErrorReencryption
+    // A mapping from transferId to the AllowedErrorReencryption.
     mapping(uint256 => AllowedErrorReencryption) internal allowedErrorReencryptions;
 
     // A mapping from address to an encrypted balance.
@@ -55,16 +55,21 @@ contract EncryptedERC20 is Reencrypt, Ownable2Step, EncryptedErrors {
         return _symbol;
     }
 
-    // Returns the total supply of the token
+    // Returns the total supply of the token.
     function totalSupply() public view virtual returns (uint64) {
         return _totalSupply;
     }
 
-    // Sets the balance of the owner to the given encrypted balance.
+    // Increase owner's balance by the given `mintedAmount`.
     function mint(uint64 mintedAmount) public virtual onlyOwner {
-        balances[owner()] = TFHE.add(balances[owner()], mintedAmount); // overflow impossible because of next line
-        _totalSupply = _totalSupply + mintedAmount;
-        emit Mint(owner(), mintedAmount);
+        _mint(mintedAmount);
+    }
+
+    // Increase sender's balance by the given `amount`.
+    function _mint(uint64 amount) internal virtual {
+        balances[msg.sender] = TFHE.add(balances[msg.sender], amount); // overflow impossible because of next line
+        _totalSupply = _totalSupply + amount;
+        emit Mint(msg.sender, amount);
     }
 
     // Transfers an encrypted amount from the message sender address to the `to` address.
@@ -112,7 +117,7 @@ contract EncryptedERC20 is Reencrypt, Ownable2Step, EncryptedErrors {
     }
 
     // Returns the remaining number of tokens that `spender` is allowed to spend
-    // on behalf of the caller. The returned ciphertext is under the caller public FHE key.
+    // on behalf of the `owner`. The returned ciphertext is under the caller's `publicKey`.
     function allowance(
         address owner,
         address spender,
@@ -189,6 +194,8 @@ contract EncryptedERC20 is Reencrypt, Ownable2Step, EncryptedErrors {
         allowedErrorReencryptions[transferId] = allowedErrorReencryption;
     }
 
+    // Returns the error code corresponding to transferId.
+    // The returned ciphertext is under the caller's `publicKey`.
     function reencryptError(
         uint256 transferId,
         bytes32 publicKey,
