@@ -6,7 +6,7 @@ This abstract contract is used for error handling in the fhEVM.
 
 Error codes are trivially encrypted during construction inside the `errorCodes` array.
 
-WARNING: `errorCodes[0]` should always refer to the NO_ERROR code, by default.
+WARNING: `errorCodes[0]` should always refer to the `NO_ERROR` code, by default.
 
 ### constructor
 
@@ -16,7 +16,7 @@ constructor(uint8 numErrors) internal
 
 Sets the non-null value for `numErrors` corresponding to the total number of errors.
 
-_`numErrors` must be non-null, null index of `errorCodes` corresponds to `NO_ERROR` code._
+_`numErrors` must be non-null, note that `errorCodes[0]` corresponds to the `NO_ERROR` code._
 
 #### Parameters
 
@@ -50,7 +50,7 @@ Returns the encrypted error code at index `indexCode`.
 function getErrorCounter() internal view returns (uint256)
 ```
 
-Returns the total number of error codes already stored in `errorCodesMapping`.
+Returns the total number of error codes currently stored in `errorCodesMapping`.
 
 #### Return Values
 
@@ -64,8 +64,7 @@ Returns the total number of error codes already stored in `errorCodesMapping`.
 function getNumErrors() internal view returns (uint8)
 ```
 
-Returns the total number of the possible errors, equals `no_error_codes - 1`, because `NO_ERROR` code is an encrypted
-(null) error code.
+Returns the total number of the possible errors.
 
 #### Return Values
 

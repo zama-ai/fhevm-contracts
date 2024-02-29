@@ -9,7 +9,7 @@ import "fhevm/lib/TFHE.sol";
  *
  * Error codes are trivially encrypted during construction inside the `errorCodes` array.
  *
- * WARNING: `errorCodes[0]` should always refer to the NO_ERROR code, by default.
+ * WARNING: `errorCodes[0]` should always refer to the `NO_ERROR` code, by default.
  *
  */
 abstract contract EncryptedErrors {
@@ -23,7 +23,7 @@ abstract contract EncryptedErrors {
     /**
      * @notice Sets the non-null value for `numErrors` corresponding to the total number of errors.
      * @param numErrors the total number of different errors.
-     * @dev `numErrors` must be non-null, null index of `errorCodes` corresponds to `NO_ERROR` code.
+     * @dev `numErrors` must be non-null, note that `errorCodes[0]` corresponds to the `NO_ERROR` code.
      */
     constructor(uint8 numErrors) {
         require(numErrors != 0, "numErrors must be greater than 0");
@@ -43,7 +43,7 @@ abstract contract EncryptedErrors {
     }
 
     /**
-     * @notice Returns the total number of error codes already stored in `errorCodesMapping`.
+     * @notice Returns the total number of error codes currently stored in `errorCodesMapping`.
      * @return the number of error codes stored in the `errorCodesMapping` mapping.
      */
     function getErrorCounter() internal view returns (uint256) {
@@ -51,8 +51,7 @@ abstract contract EncryptedErrors {
     }
 
     /**
-     * @notice Returns the total number of the possible errors, equals `no_error_codes - 1`,
-     * because `NO_ERROR` code is an encrypted (null) error code.
+     * @notice Returns the total number of the possible errors.
      * @return the total number of the different possible errors.
      */
     function getNumErrors() internal view returns (uint8) {
