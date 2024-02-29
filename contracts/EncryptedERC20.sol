@@ -40,7 +40,7 @@ contract EncryptedERC20 is Reencrypt, Ownable2Step, EncryptedErrors {
     constructor(
         string memory name_,
         string memory symbol_
-    ) Ownable(msg.sender) EncryptedErrors(uint256(type(ErrorCodes).max) + 1) {
+    ) Ownable(msg.sender) EncryptedErrors(uint8(type(ErrorCodes).max)) {
         _name = name_;
         _symbol = symbol_;
     }
