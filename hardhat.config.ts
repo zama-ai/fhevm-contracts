@@ -9,6 +9,7 @@ import { task } from "hardhat/config";
 import type { NetworkUserConfig } from "hardhat/types";
 import { resolve } from "path";
 import * as path from "path";
+import "solidity-docgen";
 
 import "./tasks/accounts";
 import "./tasks/deployERC20";
@@ -99,6 +100,9 @@ function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
 }
 
 const config: HardhatUserConfig = {
+  docgen: {
+    pages: "files",
+  },
   preprocess: {
     eachLine: () => ({
       transform: (line: string) => {
