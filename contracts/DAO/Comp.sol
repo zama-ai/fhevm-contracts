@@ -3,9 +3,10 @@ pragma solidity ^0.8.20;
 
 import "fhevm/abstracts/Reencrypt.sol";
 import "fhevm/lib/TFHE.sol";
-import "../EncryptedERC20.sol";
+import "../token/ERC20/EncryptedERC20.sol";
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
-contract Comp is EncryptedERC20 {
+contract Comp is EncryptedERC20, Ownable2Step {
     /// @notice allowed smart contract
     address public allowedContract;
 
@@ -44,8 +45,8 @@ contract Comp is EncryptedERC20 {
     /**
      * @notice Construct a new Comp token
      */
-    constructor() EncryptedERC20("Compound", "COMP") {
-        mint(1000000);
+    constructor() EncryptedERC20("Compound", "COMP") Ownable(msg.sender) {
+        _mint(1000000);
     }
 
     /**

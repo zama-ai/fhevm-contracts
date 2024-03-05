@@ -4,10 +4,9 @@ pragma solidity ^0.8.20;
 
 import "fhevm/lib/TFHE.sol";
 import "fhevm/abstracts/Reencrypt.sol";
-import "./utils/EncryptedErrors.sol";
-import "@openzeppelin/contracts/access/Ownable2Step.sol";
+import "../../utils/EncryptedErrors.sol";
 
-contract EncryptedERC20 is Reencrypt, Ownable2Step, EncryptedErrors {
+abstract contract EncryptedERC20 is Reencrypt, EncryptedErrors {
     enum ErrorCodes {
         NO_ERROR,
         UNSUFFICIENT_BALANCE,
@@ -37,10 +36,7 @@ contract EncryptedERC20 is Reencrypt, Ownable2Step, EncryptedErrors {
     // A mapping of the form mapping(owner => mapping(spender => allowance)).
     mapping(address => mapping(address => euint64)) internal allowances;
 
-    constructor(
-        string memory name_,
-        string memory symbol_
-    ) Ownable(msg.sender) EncryptedErrors(uint8(type(ErrorCodes).max)) {
+    constructor(string memory name_, string memory symbol_) EncryptedErrors(uint8(type(ErrorCodes).max)) {
         _name = name_;
         _symbol = symbol_;
     }
@@ -58,11 +54,6 @@ contract EncryptedERC20 is Reencrypt, Ownable2Step, EncryptedErrors {
     // Returns the total supply of the token.
     function totalSupply() public view virtual returns (uint64) {
         return _totalSupply;
-    }
-
-    // Increase owner's balance by the given `mintedAmount`.
-    function mint(uint64 mintedAmount) public virtual onlyOwner {
-        _mint(mintedAmount);
     }
 
     // Increase sender's balance by the given `amount`.
