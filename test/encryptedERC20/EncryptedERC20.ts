@@ -26,7 +26,7 @@ describe("EncryptedERC20", function () {
   });
 
   it("should mint the contract", async function () {
-    const transaction = await this.erc20.mint(1000);
+    const transaction = await this.erc20.mint(1000, this.signers.alice.address);
     await transaction.wait();
     // Call the method
     const token = this.instances.alice.getPublicKey(this.contractAddress) || {
@@ -46,18 +46,20 @@ describe("EncryptedERC20", function () {
   it("non-owner should be unable to mint", async function () {
     if (network.name == "hardhat") {
       // mocked mode
-      await expect(this.erc20.connect(this.signers.bob).mint(1000))
+      await expect(this.erc20.connect(this.signers.bob).mint(1000, this.signers.alice.address))
         .to.be.revertedWithCustomError(this.erc20, "OwnableUnauthorizedAccount")
         .withArgs(this.signers.bob.address);
     } else {
       // fhevm-mode
-      const tx = await this.erc20.connect(this.signers.bob).mint(1000, { gasLimit: 1_000_000n });
+      const tx = await this.erc20
+        .connect(this.signers.bob)
+        .mint(1000, this.signers.alice.address, { gasLimit: 1_000_000n });
       await expect(tx.wait()).to.throw;
     }
   });
 
   it("should transfer tokens between two users", async function () {
-    const transaction = await this.erc20.mint(10000);
+    const transaction = await this.erc20.mint(10000, this.signers.alice.address);
     await transaction.wait();
 
     const encryptedTransferAmount = this.instances.alice.encrypt64(1337);
@@ -90,7 +92,7 @@ describe("EncryptedERC20", function () {
   });
 
   it("should only be able to read hiw own balance", async function () {
-    const transaction = await this.erc20.mint(10000);
+    const transaction = await this.erc20.mint(10000, this.signers.alice.address);
     await transaction.wait();
     const tokenAlice = this.instances.alice.getPublicKey(this.contractAddress)!;
     const encryptedBalanceAlice = await this.erc20.balanceOf(
@@ -116,7 +118,7 @@ describe("EncryptedERC20", function () {
 
   it("balanceOfMe should recover own's balance handle", async function () {
     expect(await this.erc20.balanceOfMe()).to.be.eq(0n); // Alice's initial handle is 0
-    const transaction = await this.erc20.mint(1000);
+    const transaction = await this.erc20.mint(1000, this.signers.alice.address);
     await transaction.wait();
     if (network.name == "hardhat") {
       // mocked mode
@@ -130,7 +132,7 @@ describe("EncryptedERC20", function () {
   });
 
   it("should not transfer tokens between two users", async function () {
-    const transaction = await this.erc20.mint(1000);
+    const transaction = await this.erc20.mint(1000, this.signers.alice.address);
     await transaction.wait();
 
     const encryptedTransferAmount = this.instances.alice.encrypt64(1337);
@@ -163,7 +165,7 @@ describe("EncryptedERC20", function () {
   });
 
   it("should be able to transferFrom only if allowance is sufficient", async function () {
-    const transaction = await this.erc20.mint(10000);
+    const transaction = await this.erc20.mint(10000, this.signers.alice.address);
     await transaction.wait();
 
     const encryptedAllowanceAmount = this.instances.alice.encrypt64(1337);
@@ -219,7 +221,7 @@ describe("EncryptedERC20", function () {
   });
 
   it("only spender and owner could read their allowance", async function () {
-    const transaction = await this.erc20.mint(10000);
+    const transaction = await this.erc20.mint(10000, this.signers.alice.address);
     await transaction.wait();
 
     const encryptedAllowanceAmount = this.instances.alice.encrypt64(1337);
@@ -284,7 +286,7 @@ describe("EncryptedERC20", function () {
 
   it("should handle errors correctly", async function () {
     // case 1 succesful transfer
-    const transaction = await this.erc20.mint(10000);
+    const transaction = await this.erc20.mint(10000, this.signers.alice.address);
     await transaction.wait();
     let encryptedTransferAmount = this.instances.alice.encrypt64(1337);
     const tx = await this.erc20["transfer(address,bytes)"](this.signers.bob.address, encryptedTransferAmount);
