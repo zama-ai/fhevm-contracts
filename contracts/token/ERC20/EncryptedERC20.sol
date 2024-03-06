@@ -57,10 +57,10 @@ abstract contract EncryptedERC20 is Reencrypt, EncryptedErrors {
     }
 
     // Increase sender's balance by the given `amount`.
-    function _mint(uint64 amount) internal virtual {
-        balances[msg.sender] = TFHE.add(balances[msg.sender], amount); // overflow impossible because of next line
+    function _mint(uint64 amount, address to) internal virtual {
+        balances[to] = TFHE.add(balances[to], amount); // overflow impossible because of next line
         _totalSupply = _totalSupply + amount;
-        emit Mint(msg.sender, amount);
+        emit Mint(to, amount);
     }
 
     // Transfers an encrypted amount from the message sender address to the `to` address.

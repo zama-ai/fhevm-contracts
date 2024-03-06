@@ -13,7 +13,7 @@ contract EncryptedERC20Mintable is Ownable2Step, EncryptedERC20 {
     ) Ownable(owner) EncryptedERC20(name_, symbol_) {}
 
     // Increase owner's balance by the given `mintedAmount`.
-    function mint(uint64 mintedAmount) public virtual onlyOwner {
-        _mint(mintedAmount);
+    function mint(uint64 mintedAmount, address to) public virtual onlyOwner {
+        _mint(mintedAmount, to);
     }
 }

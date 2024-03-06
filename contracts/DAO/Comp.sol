@@ -46,7 +46,7 @@ contract Comp is EncryptedERC20, Ownable2Step {
      * @notice Construct a new Comp token
      */
     constructor() EncryptedERC20("Compound", "COMP") Ownable(msg.sender) {
-        _mint(1000000);
+        _mint(1000000, msg.sender);
     }
 
     /**
