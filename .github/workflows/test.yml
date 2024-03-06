@@ -14,18 +14,18 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ matrix.node-version }}
+      - uses: pnpm/action-setup@v3
+      with:
+          version: 8
       - run: cp .env.example .env
-      - run: npm ci
-      - run: npm run prettier:check
-      - name: "npm CI test"
+      - run: pnpm install
+      - run: pnpm prettier:check
+      - name: "pnpm CI test"
         run: |
           # sometimes not created and is not tailed
           touch fhevm.log
-          npm run fhevm:start &> fhevm.log &
+          pnpm fhevm:start &> fhevm.log &
           tail -f fhevm.log | sed '/Starting JSON WebSocket server/ q'
-          npm run fhevm:faucet
-          npm run test
-          npm run fhevm:stop || true
+          pnpm fhevm:faucet
+          pnpm test
+          pnpm fhevm:stop || true

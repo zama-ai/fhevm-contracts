@@ -1,4 +1,4 @@
-name: Pull request tests with mocks
+name: Pull request tests
 
 on:
   pull_request:
@@ -7,19 +7,18 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: large_ubuntu_16
     strategy:
       matrix:
         node-version: [18.x]
     steps:
       - uses: actions/checkout@v3
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ matrix.node-version }}
+      - uses: pnpm/action-setup@v3
+      with:
+          version: 8
       - run: cp .env.example .env
-      - run: npm ci
-      - name: "npm CI test"
-        run: |
-          # sometimes not created and is not tailed
-          npm run test:mock
+      - run: pnpm install
+      - run: pnpm prettier:check
+      - name: "pnpm CI test:moc"
+        run: pnpm test:mock
