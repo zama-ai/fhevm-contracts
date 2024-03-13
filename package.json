@@ -1,7 +1,7 @@
 {
-  "name": "@fhevm/contracts",
+  "name": "fhevm-contracts",
   "description": "fhEVM contracts",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "author": {
     "name": "zama-ai",
     "url": "https://github.com/zama-ai"
@@ -28,7 +28,7 @@
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^8.10.0",
     "ethers": "^6.11.1",
-    "fhevm": "0.4.0-2",
+    "fhevm": "0.4.0-3",
     "fhevmjs": "0.4.0-7",
     "fs-extra": "^10.1.0",
     "hardhat": "^2.21.0",
