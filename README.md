@@ -38,13 +38,8 @@ import "fhevm/lib/TFHE.sol";
 import "fhevm-contracts/contracts/token/ERC20/EncryptedERC20.sol";
 
 contract MyERC20 is EncryptedERC20 {
-  function _transfer(address from, address to, uint256 amount) internal virtual override {
-    require(_validRecipient(to), "ERC20WithSafeTransfer: invalid recipient");
-    super._transfer(from, to, amount);
-  }
-
-  function _validRecipient(address to) private view returns (bool) {
-    ...
+  constructor() EncryptedERC20("MyToken", "MYTOKEN") {
+    _mint(1000000, msg.sender);
   }
 }
 ```
@@ -83,15 +78,17 @@ year = "2023"
 
 There are two ways to contribute to the Zama fhEVM contracts:
 
-- [Open issues](https://github.com/zama-ai/fhevm-contracts/issues/new/choose) to report bugs and typos, or to suggest new ideas
+- [Open issues](https://github.com/zama-ai/fhevm-contracts/issues/new/choose) to report bugs and typos, or to suggest
+  new ideas
 - Request to become an official contributor by emailing hello@zama.ai.
 
-Becoming an approved contributor involves signing our Contributor License Agreement (CLA)). Only approved contributors can send pull requests, so please make sure to get in touch before you do!
-<br></br>
+Becoming an approved contributor involves signing our Contributor License Agreement (CLA)). Only approved contributors
+can send pull requests, so please make sure to get in touch before you do! <br></br>
 
 ### License
 
-This software is distributed under the **BSD-3-Clause-Clear** license. If you have any questions, please contact us at hello@zama.ai.
+This software is distributed under the **BSD-3-Clause-Clear** license. If you have any questions, please contact us at
+hello@zama.ai.
 
 <p align="right">
   <a href="#table-of-contents" > ↑ Back to top </a> 
@@ -103,7 +100,8 @@ This software is distributed under the **BSD-3-Clause-Clear** license. If you ha
   <img src="https://github.com/zama-ai/fhevm/assets/157474013/4e75e34e-df3f-4e9e-8a22-12b1d4013578">
 </a>
 
-🌟 If you find this project helpful or interesting, please consider giving it a star on GitHub! Your support helps to grow the community and motivates further development.
+🌟 If you find this project helpful or interesting, please consider giving it a star on GitHub! Your support helps to
+grow the community and motivates further development.
 
 <p align="right">
   <a href="#about" > ↑ Back to top </a> 
