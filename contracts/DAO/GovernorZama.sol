@@ -395,8 +395,8 @@ contract GovernorZama is Reencrypt {
         require(receipt.hasVoted == false, "GovernorAlpha::_castVote: voter already voted");
         euint64 votes = comp.getPriorVotes(voter, proposal.startBlock);
 
-        proposal.forVotes = TFHE.cmux(support, proposal.forVotes + votes, proposal.forVotes);
-        proposal.againstVotes = TFHE.cmux(support, proposal.againstVotes, proposal.againstVotes + votes);
+        proposal.forVotes = TFHE.select(support, proposal.forVotes + votes, proposal.forVotes);
+        proposal.againstVotes = TFHE.select(support, proposal.againstVotes, proposal.againstVotes + votes);
 
         receipt.hasVoted = true;
         receipt.support = support;

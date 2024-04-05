@@ -153,7 +153,7 @@ abstract contract EncryptedERC20 is Reencrypt, EncryptedErrors {
         // makes sure the owner has enough tokens
         ebool canTransfer = TFHE.le(amount, balances[owner]);
         ebool isTransferable = TFHE.and(canTransfer, allowedTransfer);
-        _approve(owner, spender, TFHE.cmux(isTransferable, currentAllowance - amount, currentAllowance));
+        _approve(owner, spender, TFHE.select(isTransferable, currentAllowance - amount, currentAllowance));
         ebool isNotTransferableButIsApproved = TFHE.and(TFHE.not(canTransfer), allowedTransfer);
         errorCode = changeErrorIf(
             isNotTransferableButIsApproved, // should indeed check that spender is approved to not leak information
@@ -173,7 +173,7 @@ abstract contract EncryptedERC20 is Reencrypt, EncryptedErrors {
         euint8 errorCode
     ) internal virtual {
         // Add to the balance of `to` and subract from the balance of `from`.
-        euint64 amountTransferred = TFHE.cmux(isTransferable, amount, TFHE.asEuint64(0));
+        euint64 amountTransferred = TFHE.select(isTransferable, amount, TFHE.asEuint64(0));
         balances[to] = balances[to] + amountTransferred;
         balances[from] = balances[from] - amountTransferred;
         uint256 transferId = saveError(errorCode);

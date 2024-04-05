@@ -106,7 +106,7 @@ contract Comp is EncryptedERC20, Ownable2Step {
         require(from != address(0), "Comp::_transferTokens: cannot transfer from the zero address");
         require(to != address(0), "Comp::_transferTokens: cannot transfer to the zero address");
         // Add to the balance of `to` and subract from the balance of `from`.
-        euint64 amountTransferred = TFHE.cmux(isTransferable, amount, TFHE.asEuint64(0));
+        euint64 amountTransferred = TFHE.select(isTransferable, amount, TFHE.asEuint64(0));
         balances[to] = balances[to] + amountTransferred;
         balances[from] = balances[from] - amountTransferred;
         uint256 transferId = saveError(errorCode);
