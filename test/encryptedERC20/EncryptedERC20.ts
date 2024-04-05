@@ -44,7 +44,7 @@ describe("EncryptedERC20", function () {
   });
 
   it("non-owner should be unable to mint", async function () {
-    if (network.name == "hardhat") {
+    if (network.name === "hardhat") {
       // mocked mode
       await expect(this.erc20.connect(this.signers.bob).mint(1000, this.signers.alice.address))
         .to.be.revertedWithCustomError(this.erc20, "OwnableUnauthorizedAccount")
@@ -120,7 +120,7 @@ describe("EncryptedERC20", function () {
     expect(await this.erc20.balanceOfMe()).to.be.eq(0n); // Alice's initial handle is 0
     const transaction = await this.erc20.mint(1000, this.signers.alice.address);
     await transaction.wait();
-    if (network.name == "hardhat") {
+    if (network.name === "hardhat") {
       // mocked mode
       expect(await this.erc20.balanceOfMe()).to.be.eq(1000n);
     } else {

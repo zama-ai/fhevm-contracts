@@ -2,8 +2,9 @@ import { ContractMethodArgs, Typed } from "ethers";
 import { ethers } from "hardhat";
 
 import { TypedContractMethod } from "../types/common";
+import { getSigners } from "./signers";
 
-export const waitForBlock = (blockNumber: bigint) => {
+export const waitForBlock = (blockNumber: bigint | number) => {
   if (process.env.HARDHAT_NETWORK === "hardhat") {
     return new Promise((resolve, reject) => {
       const intervalId = setInterval(async () => {
@@ -34,6 +35,29 @@ export const waitForBlock = (blockNumber: bigint) => {
   }
 };
 
+export const waitNBlocks = async (Nblocks: number) => {
+  const currentBlock = await ethers.provider.getBlockNumber();
+  if (process.env.HARDHAT_NETWORK === "hardhat") {
+    await produceDummyTransactions(Nblocks);
+  }
+  await waitForBlock(currentBlock + Nblocks);
+};
+
+export const waitForBalance = async (address: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    const checkBalance = async () => {
+      const balance = await ethers.provider.getBalance(address);
+      if (balance > 0) {
+        await ethers.provider.off("block", checkBalance);
+        resolve();
+      }
+    };
+    ethers.provider.on("block", checkBalance).catch((err) => {
+      reject(err);
+    });
+  });
+};
+
 export const createTransaction = async <A extends [...{ [I in keyof A]-?: A[I] | Typed }]>(
   method: TypedContractMethod<A>,
   ...params: A
@@ -47,27 +71,19 @@ export const createTransaction = async <A extends [...{ [I in keyof A]-?: A[I] |
 };
 
 export const produceDummyTransactions = async (blockCount: number) => {
-  const contract = await deployCounterContract();
-  let counter = blockCount;
-  while (counter > 0) {
-    counter--;
-    const tx = await contract.increment();
-    const _ = await tx.wait();
+  const nullAddress = "0x0000000000000000000000000000000000000000";
+  const signers = await getSigners();
+  while (blockCount > 0) {
+    blockCount--;
+    // Sending 0 ETH to the null address
+    const tx = await signers.dave.sendTransaction({
+      to: nullAddress,
+      value: ethers.parseEther("0"),
+    });
   }
 };
 
-async function deployCounterContract(): Promise<Counter> {
-  const signers = await getSigners();
-
-  const contractFactory = await ethers.getContractFactory("Counter");
-  const contract = await contractFactory.connect(signers.dave).deploy();
-  await contract.waitForDeployment();
-
-  return contract;
-}
-
 export const mineNBlocks = async (n: number) => {
-  for (let index = 0; index < n; index++) {
-    await ethers.provider.send("evm_mine");
-  }
+  // this only works in mocked mode
+  await ethers.provider.send("hardhat_mine", ["0x" + n.toString(16)]);
 };

@@ -1,22 +1,24 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity ^0.8.20;
 
+import "fhevm/abstracts/Reencrypt.sol";
 import "fhevm/lib/TFHE.sol";
 
-contract GovernorZama {
+contract GovernorZama is Reencrypt {
     /// @notice The name of this contract
     string public constant name = "Compound Governor Zama";
 
+    uint32 public immutable VOTING_PERIOD; // Duration of voting in number of blocks, typically should by at least a few days, default was 3 days originally ~21600 blocks if 12s per block
+    // WARNING: do not use too small value in production such as 5 or a few dozens to avoid security issues, unless for testing purpose
+
     /// @notice The number of votes in support of a proposal required in order for a quorum to be reached and for a vote to succeed
     function quorumVotes() public pure returns (uint256) {
-        return 10000;
-        // return 400000e18;
+        return 400000e6;
     } // 400,000 = 4% of Comp
 
     /// @notice The number of votes required in order for a voter to become a proposer
-    function proposalThreshold() public pure returns (uint32) {
-        return 3;
-        // return 100000e18;
+    function proposalThreshold() public pure returns (uint64) {
+        return 100000e6;
     } // 100,000 = 1% of Comp
 
     /// @notice The maximum number of actions that can be included in a proposal
@@ -30,9 +32,9 @@ contract GovernorZama {
     } // 1 block
 
     /// @notice The duration of voting on a proposal, in blocks
-    function votingPeriod() public pure virtual returns (uint32) {
-        return 17280;
-    } // ~3 days in blocks (assuming 15s blocks)
+    function votingPeriod() public view virtual returns (uint32) {
+        return VOTING_PERIOD;
+    } // recommended 3 days in blocks, i.e 21600 (assuming 12s blocks)
 
     /// @notice The address of the Compound Protocol Timelock
     TimelockInterface public timelock;
@@ -77,12 +79,37 @@ contract GovernorZama {
         mapping(address => Receipt) receipts;
     }
 
+    struct ProposalInfo {
+        /// @notice Unique id for looking up a proposal
+        uint256 id;
+        /// @notice Creator of the proposal
+        address proposer;
+        /// @notice The timestamp that the proposal will be available for execution, set once the vote succeeds
+        uint256 eta;
+        /// @notice the ordered list of target addresses for calls to be made
+        address[] targets;
+        /// @notice The ordered list of values (i.e. msg.value) to be passed to the calls to be made
+        uint256[] values;
+        /// @notice The ordered list of function signatures to be called
+        string[] signatures;
+        /// @notice The ordered list of calldata to be passed to each call
+        bytes[] calldatas;
+        /// @notice The block at which voting begins: holders must delegate their votes prior to this block
+        uint256 startBlock;
+        /// @notice The block at which voting ends: votes must be cast prior to this block
+        uint256 endBlock;
+        /// @notice Flag marking whether the proposal has been canceled
+        bool canceled;
+        /// @notice Flag marking whether the proposal has been executed
+        bool executed;
+    }
+
     /// @notice Ballot receipt record for a voter
     struct Receipt {
         /// @notice Whether or not a vote has been cast
         bool hasVoted;
         /// @notice Whether or not the voter supports the proposal
-        bool support;
+        ebool support;
         /// @notice The number of votes the voter had, which were cast
         euint64 votes;
     }
@@ -100,17 +127,10 @@ contract GovernorZama {
     }
 
     /// @notice The official record of all proposals ever proposed
-    mapping(uint256 => Proposal) public proposals;
+    mapping(uint256 => Proposal) internal proposals;
 
     /// @notice The latest proposal for each proposer
     mapping(address => uint256) public latestProposalIds;
-
-    /// @notice The EIP-712 typehash for the contract's domain
-    bytes32 public constant DOMAIN_TYPEHASH =
-        keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
-
-    /// @notice The EIP-712 typehash for the ballot struct used by the contract
-    bytes32 public constant BALLOT_TYPEHASH = keccak256("Ballot(uint256 proposalId,bool support)");
 
     /// @notice An event emitted when a new proposal is created
     event ProposalCreated(
@@ -127,7 +147,6 @@ contract GovernorZama {
 
     /// @notice An event emitted when a vote has been cast on a proposal
     event VoteCast(address voter, uint256 proposalId);
-    // event VoteCast(address voter, uint256 proposalId, bool support, uint256 votes);
 
     /// @notice An event emitted when a proposal has been canceled
     event ProposalCanceled(uint256 id);
@@ -138,10 +157,11 @@ contract GovernorZama {
     /// @notice An event emitted when a proposal has been executed in the Timelock
     event ProposalExecuted(uint256 id);
 
-    constructor(address timelock_, address comp_, address guardian_) {
+    constructor(address timelock_, address comp_, address guardian_, uint32 _votingPeriod) {
         timelock = TimelockInterface(timelock_);
         comp = CompInterface(comp_);
         guardian = guardian_;
+        VOTING_PERIOD = _votingPeriod; // WARNING: do not use too small value in production such as 5 or a few dozens to avoid security issues, unless for testing purpose,  typically should by at least a few days, default was 3 days originally i.e votingPeriod=21600 blocks if 12s per block
     }
 
     function propose(
@@ -149,7 +169,6 @@ contract GovernorZama {
         uint256[] memory values,
         string[] memory signatures,
         bytes[] memory calldatas,
-        uint256 customVotingPeriod,
         string memory description
     ) public returns (uint256) {
         require(
@@ -178,14 +197,13 @@ contract GovernorZama {
             );
         }
 
-        uint256 startBlock = add256(block.number, votingDelay());
-        uint256 endBlock = add256(startBlock, customVotingPeriod != 0 ? customVotingPeriod : votingPeriod());
+        uint256 startBlock = block.number + votingDelay();
+        uint256 endBlock = startBlock + votingPeriod();
 
         proposalCount++;
         uint256 proposalId = proposalCount;
         Proposal storage newProposal = proposals[proposalId];
-        // This should never happen but add a check in case.
-        require(newProposal.id == 0, "GovernorAlpha::propose: ProposalID collsion");
+
         newProposal.id = proposalId;
         newProposal.proposer = msg.sender;
         newProposal.eta = 0;
@@ -222,7 +240,8 @@ contract GovernorZama {
             "GovernorAlpha::queue: proposal can only be queued if it is succeeded"
         );
         Proposal storage proposal = proposals[proposalId];
-        uint256 eta = add256(block.timestamp, timelock.delay());
+        uint256 eta = block.timestamp + timelock.delay();
+
         for (uint256 i = 0; i < proposal.targets.length; i++) {
             _queueOrRevert(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], eta);
         }
@@ -303,15 +322,40 @@ contract GovernorZama {
         return (p.targets, p.values, p.signatures, p.calldatas);
     }
 
-    function getReceipt(uint256 proposalId, address voter) public view returns (Receipt memory) {
-        return proposals[proposalId].receipts[voter];
+    function getMyReceipt(
+        uint256 proposalId,
+        bytes32 publicKey,
+        bytes calldata signature
+    ) external view onlySignedPublicKey(publicKey, signature) returns (bool, bytes memory, bytes memory) {
+        Receipt memory myReceipt = proposals[proposalId].receipts[msg.sender];
+        return (
+            myReceipt.hasVoted,
+            TFHE.reencrypt(myReceipt.support, publicKey, false),
+            TFHE.reencrypt(myReceipt.votes, publicKey, 0)
+        );
+    }
+
+    function getProposalInfo(uint256 proposalId) external view returns (ProposalInfo memory propInfo) {
+        require(proposalId <= proposalCount && proposalId != 0, "Invalid proposalId");
+        Proposal storage proposal = proposals[proposalId];
+        propInfo.id = proposal.id;
+        propInfo.proposer = proposal.proposer;
+        propInfo.eta = proposal.eta;
+        propInfo.targets = proposal.targets;
+        propInfo.values = proposal.values;
+        propInfo.signatures = proposal.signatures;
+        propInfo.calldatas = proposal.calldatas;
+        propInfo.startBlock = proposal.startBlock;
+        propInfo.endBlock = proposal.endBlock;
+        propInfo.canceled = proposal.canceled;
+        propInfo.executed = proposal.executed;
     }
 
     function isDefeated(Proposal storage proposal) private view returns (bool) {
         ebool defeated = TFHE.le(proposal.forVotes, proposal.againstVotes);
-        ebool reachedQuorum = TFHE.lt(proposal.forVotes, uint32(quorumVotes()));
+        ebool notReachedQuorum = TFHE.lt(proposal.forVotes, uint64(quorumVotes()));
 
-        return TFHE.decrypt(reachedQuorum) || TFHE.decrypt(defeated);
+        return TFHE.decrypt(TFHE.or(notReachedQuorum, defeated));
     }
 
     function state(uint256 proposalId) public view returns (ProposalState) {
@@ -323,24 +367,13 @@ contract GovernorZama {
             return ProposalState.Pending;
         } else if (block.number <= proposal.endBlock) {
             return ProposalState.Active;
-        }
-        // We can't have this for privacy reasons; otherwise, users could spam-call the `state` view function and deduce individual votes.
-        // We must then only reveal the defeat/success of a proposal after the time limit has been reached.
-        // else if (
-        //     proposal.forVotes <= proposal.againstVotes ||
-        //     proposal.forVotes < ()
-        // ) {
-        //     return ProposalState.Defeated;
-        // }
-        else if (proposal.eta == 0) {
-            if (isDefeated(proposal)) {
-                return ProposalState.Defeated;
-            } else {
-                return ProposalState.Succeeded;
-            }
+        } else if (isDefeated(proposal)) {
+            return ProposalState.Defeated;
+        } else if (proposal.eta == 0) {
+            return ProposalState.Succeeded;
         } else if (proposal.executed) {
             return ProposalState.Executed;
-        } else if (block.timestamp >= add256(proposal.eta, timelock.GRACE_PERIOD())) {
+        } else if (block.timestamp >= proposal.eta + timelock.GRACE_PERIOD()) {
             return ProposalState.Expired;
         } else {
             return ProposalState.Queued;
@@ -355,21 +388,6 @@ contract GovernorZama {
         return _castVote(msg.sender, proposalId, support);
     }
 
-    function castVoteBySig(uint256 proposalId, bytes calldata support, uint8 v, bytes32 r, bytes32 s) public {
-        return castVoteBySig(proposalId, TFHE.asEbool(support), v, r, s);
-    }
-
-    function castVoteBySig(uint256 proposalId, ebool support, uint8 v, bytes32 r, bytes32 s) public {
-        bytes32 domainSeparator = keccak256(
-            abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name)), getChainId(), address(this))
-        );
-        bytes32 structHash = keccak256(abi.encode(BALLOT_TYPEHASH, proposalId, support));
-        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
-        address signatory = ecrecover(digest, v, r, s);
-        require(signatory != address(0), "GovernorAlpha::castVoteBySig: invalid signature");
-        return _castVote(signatory, proposalId, support);
-    }
-
     function _castVote(address voter, uint256 proposalId, ebool support) internal {
         require(state(proposalId) == ProposalState.Active, "GovernorAlpha::_castVote: voting is closed");
         Proposal storage proposal = proposals[proposalId];
@@ -381,10 +399,10 @@ contract GovernorZama {
         proposal.againstVotes = TFHE.cmux(support, proposal.againstVotes, proposal.againstVotes + votes);
 
         receipt.hasVoted = true;
+        receipt.support = support;
         receipt.votes = votes;
 
         // `support` and `votes` are encrypted values, no need to include them in the event.
-        // emit VoteCast(voter, proposalId, support, votes);
         emit VoteCast(voter, proposalId);
     }
 
@@ -406,25 +424,6 @@ contract GovernorZama {
     function __executeSetTimelockPendingAdmin(address newPendingAdmin, uint256 eta) public {
         require(msg.sender == guardian, "GovernorAlpha::__executeSetTimelockPendingAdmin: sender must be gov guardian");
         timelock.executeTransaction(address(timelock), 0, "setPendingAdmin(address)", abi.encode(newPendingAdmin), eta);
-    }
-
-    function add256(uint256 a, uint256 b) internal pure returns (uint256) {
-        uint256 c = a + b;
-        require(c >= a, "addition overflow");
-        return c;
-    }
-
-    function sub256(uint256 a, uint256 b) internal pure returns (uint256) {
-        require(b <= a, "subtraction underflow");
-        return a - b;
-    }
-
-    function getChainId() internal view returns (uint256) {
-        uint256 chainId;
-        assembly {
-            chainId := chainid()
-        }
-        return chainId;
     }
 }
 

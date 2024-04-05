@@ -20,7 +20,7 @@ contract Comp is EncryptedERC20, Ownable2Step {
     }
 
     /// @notice A record of votes checkpoints for each account, by index
-    mapping(address => mapping(uint32 => Checkpoint)) public checkpoints;
+    mapping(address => mapping(uint32 => Checkpoint)) internal checkpoints;
 
     /// @notice The number of checkpoints for each account
     mapping(address => uint32) public numCheckpoints;
@@ -40,13 +40,13 @@ contract Comp is EncryptedERC20, Ownable2Step {
     event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
 
     /// @notice An event thats emitted when a delegate account's vote balance changes
-    event DelegateVotesChanged(address indexed delegate, euint64 previousBalance, euint64 newBalance);
+    event DelegateVotesChanged(address indexed delegate);
 
     /**
      * @notice Construct a new Comp token
      */
-    constructor() EncryptedERC20("Compound", "COMP") Ownable(msg.sender) {
-        _mint(1000000, msg.sender);
+    constructor(address account) EncryptedERC20("Compound", "COMP") Ownable(account) {
+        _mint(10000000e6, account); // 10 million Comp
     }
 
     /**
@@ -63,19 +63,19 @@ contract Comp is EncryptedERC20, Ownable2Step {
                 uint32 srcRepNum = numCheckpoints[srcRep];
                 euint64 srcRepOld = srcRepNum > 0 ? checkpoints[srcRep][srcRepNum - 1].votes : TFHE.asEuint64(0);
                 euint64 srcRepNew = srcRepOld - amount;
-                _writeCheckpoint(srcRep, srcRepNum, srcRepOld, srcRepNew);
+                _writeCheckpoint(srcRep, srcRepNum, srcRepNew);
             }
 
             if (dstRep != address(0)) {
                 uint32 dstRepNum = numCheckpoints[dstRep];
                 euint64 dstRepOld = dstRepNum > 0 ? checkpoints[dstRep][dstRepNum - 1].votes : TFHE.asEuint64(0);
                 euint64 dstRepNew = dstRepOld + amount;
-                _writeCheckpoint(dstRep, dstRepNum, dstRepOld, dstRepNew);
+                _writeCheckpoint(dstRep, dstRepNum, dstRepNew);
             }
         }
     }
 
-    function _writeCheckpoint(address delegatee, uint32 nCheckpoints, euint64 oldVotes, euint64 newVotes) internal {
+    function _writeCheckpoint(address delegatee, uint32 nCheckpoints, euint64 newVotes) internal {
         uint32 blockNumber = safe32(block.number, "Comp::_writeCheckpoint: block number exceeds 32 bits");
 
         if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromBlock == blockNumber) {
@@ -85,7 +85,7 @@ contract Comp is EncryptedERC20, Ownable2Step {
             numCheckpoints[delegatee] = nCheckpoints + 1;
         }
 
-        emit DelegateVotesChanged(delegatee, oldVotes, newVotes);
+        emit DelegateVotesChanged(delegatee);
     }
 
     /**
@@ -94,6 +94,29 @@ contract Comp is EncryptedERC20, Ownable2Step {
      */
     function delegate(address delegatee) public {
         return _delegate(msg.sender, delegatee);
+    }
+
+    function _transfer(
+        address from,
+        address to,
+        euint64 amount,
+        ebool isTransferable,
+        euint8 errorCode
+    ) internal override {
+        require(from != address(0), "Comp::_transferTokens: cannot transfer from the zero address");
+        require(to != address(0), "Comp::_transferTokens: cannot transfer to the zero address");
+        // Add to the balance of `to` and subract from the balance of `from`.
+        euint64 amountTransferred = TFHE.cmux(isTransferable, amount, TFHE.asEuint64(0));
+        balances[to] = balances[to] + amountTransferred;
+        balances[from] = balances[from] - amountTransferred;
+        uint256 transferId = saveError(errorCode);
+        emit Transfer(transferId, from, to);
+        AllowedErrorReencryption memory allowedErrorReencryption = AllowedErrorReencryption(
+            msg.sender,
+            getError(transferId)
+        );
+        allowedErrorReencryptions[transferId] = allowedErrorReencryption;
+        _moveDelegates(delegates[from], delegates[to], amountTransferred);
     }
 
     /**
@@ -118,14 +141,13 @@ contract Comp is EncryptedERC20, Ownable2Step {
         return _delegate(signatory, delegatee);
     }
 
-    /**
-     * @notice Gets the current votes balance for `account`
-     * @param account The address to get votes balance
-     * @return The number of current votes for `account`
-     */
-    function getCurrentVotes(address account) external view onlyAllowedContract returns (euint64) {
-        uint32 nCheckpoints = numCheckpoints[account];
-        return nCheckpoints > 0 ? checkpoints[account][nCheckpoints - 1].votes : TFHE.asEuint64(0);
+    function getMyCurrentVotes(
+        bytes32 publicKey,
+        bytes calldata signature
+    ) external view onlySignedPublicKey(publicKey, signature) returns (bytes memory) {
+        uint32 nCheckpoints = numCheckpoints[msg.sender];
+        euint64 result = nCheckpoints > 0 ? checkpoints[msg.sender][nCheckpoints - 1].votes : TFHE.asEuint64(0);
+        return TFHE.reencrypt(result, publicKey, 0);
     }
 
     /**
@@ -135,7 +157,7 @@ contract Comp is EncryptedERC20, Ownable2Step {
      * @param blockNumber The block number to get the vote balance at
      * @return The number of votes the account had as of the given block
      */
-    function getPriorVotes(address account, uint256 blockNumber) public view onlyAllowedContract returns (euint64) {
+    function getPriorVotes(address account, uint256 blockNumber) external view onlyAllowedContract returns (euint64) {
         require(blockNumber < block.number, "Comp::getPriorVotes: not yet determined");
 
         uint32 nCheckpoints = numCheckpoints[account];
@@ -169,6 +191,48 @@ contract Comp is EncryptedERC20, Ownable2Step {
         return checkpoints[account][lower].votes;
     }
 
+    function getMyPriorVotes(
+        uint256 blockNumber,
+        bytes32 publicKey,
+        bytes calldata signature
+    ) public view onlySignedPublicKey(publicKey, signature) returns (bytes memory) {
+        require(blockNumber < block.number, "Comp::getPriorVotes: not yet determined");
+
+        uint32 nCheckpoints = numCheckpoints[msg.sender];
+        euint64 result;
+        if (nCheckpoints == 0) {
+            return TFHE.reencrypt(result, publicKey, 0);
+        }
+
+        // First check most recent balance
+        if (checkpoints[msg.sender][nCheckpoints - 1].fromBlock <= blockNumber) {
+            result = checkpoints[msg.sender][nCheckpoints - 1].votes;
+            return TFHE.reencrypt(result, publicKey, 0);
+        }
+
+        // Next check implicit zero balance
+        if (checkpoints[msg.sender][0].fromBlock > blockNumber) {
+            return TFHE.reencrypt(result, publicKey, 0);
+        }
+
+        uint32 lower = 0;
+        uint32 upper = nCheckpoints - 1;
+        while (upper > lower) {
+            uint32 center = upper - (upper - lower) / 2; // ceil, avoiding overflow
+            Checkpoint memory cp = checkpoints[msg.sender][center];
+            if (cp.fromBlock == blockNumber) {
+                result = cp.votes;
+                return TFHE.reencrypt(result, publicKey, 0);
+            } else if (cp.fromBlock < blockNumber) {
+                lower = center;
+            } else {
+                upper = center - 1;
+            }
+        }
+        result = checkpoints[msg.sender][lower].votes;
+        return TFHE.reencrypt(result, publicKey, 0);
+    }
+
     function _delegate(address delegator, address delegatee) internal {
         address currentDelegate = delegates[delegator];
         euint64 delegatorBalance = balances[delegator];
@@ -189,7 +253,7 @@ contract Comp is EncryptedERC20, Ownable2Step {
     }
 
     modifier onlyAllowedContract() {
-        require(msg.sender == allowedContract);
+        require(msg.sender == allowedContract, "Caller not allowed to call this function");
         _;
     }
 }
