@@ -80,7 +80,7 @@ abstract contract EncryptedErrors {
     function defineErrorIf(ebool condition, uint8 indexCode) internal view returns (euint8) {
         require(indexCode != 0, "indexCode must be greater than 0");
         require(indexCode <= totalNumErrors, "indexCode must be a valid error code");
-        euint8 errorCode = TFHE.cmux(condition, errorCodes[indexCode], errorCodes[0]);
+        euint8 errorCode = TFHE.select(condition, errorCodes[indexCode], errorCodes[0]);
         return errorCode;
     }
 
@@ -95,7 +95,7 @@ abstract contract EncryptedErrors {
     function defineErrorIfNot(ebool condition, uint8 indexCode) internal view returns (euint8) {
         require(indexCode != 0, "indexCode must be greater than 0");
         require(indexCode <= totalNumErrors, "indexCode must be a valid error code");
-        euint8 errorCode = TFHE.cmux(condition, errorCodes[0], errorCodes[indexCode]);
+        euint8 errorCode = TFHE.select(condition, errorCodes[0], errorCodes[indexCode]);
         return errorCode;
     }
 
@@ -109,7 +109,7 @@ abstract contract EncryptedErrors {
      */
     function changeErrorIf(ebool condition, uint8 indexCode, euint8 errorCode) internal view returns (euint8) {
         require(indexCode <= totalNumErrors, "indexCode must be a valid error code");
-        return TFHE.cmux(condition, errorCodes[indexCode], errorCode);
+        return TFHE.select(condition, errorCodes[indexCode], errorCode);
     }
 
     /**
@@ -122,7 +122,7 @@ abstract contract EncryptedErrors {
      */
     function changeErrorIfNot(ebool condition, uint8 indexCode, euint8 errorCode) internal view returns (euint8) {
         require(indexCode <= totalNumErrors, "indexCode must be a valid error code");
-        return TFHE.cmux(condition, errorCode, errorCodes[indexCode]);
+        return TFHE.select(condition, errorCode, errorCodes[indexCode]);
     }
 
     /**
