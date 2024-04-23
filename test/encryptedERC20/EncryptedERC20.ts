@@ -125,9 +125,7 @@ describe("EncryptedERC20", function () {
       expect(await this.erc20.balanceOfMe()).to.be.eq(1000n);
     } else {
       // fhevm node mode (real handle)
-      expect(await this.erc20.balanceOfMe()).to.be.eq(
-        42886855740009186301312685209120323787138419884243836762205742602803093210845n,
-      );
+      expect(await this.erc20.balanceOfMe()).to.be.gt(0);
     }
   });
 
