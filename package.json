@@ -1,7 +1,7 @@
 {
   "name": "fhevm-contracts",
   "description": "fhEVM contracts",
-  "version": "0.1.0-1",
+  "version": "0.1.0",
   "author": {
     "name": "Zama",
     "url": "https://github.com/zama-ai"
