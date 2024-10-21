@@ -52,7 +52,7 @@ task("task:computePredeployAddress")
 
     const solidityTemplate = `// SPDX-License-Identifier: BSD-3-Clause-Clear
 
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 address constant ORACLE_CONTRACT_PREDEPLOY_ADDRESS = ${oraclePredeployAddressPrecomputed};
         `;
