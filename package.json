@@ -31,7 +31,7 @@
     "fhevm": "^0.5.9",
     "fhevmjs": "^0.5.7",
     "fs-extra": "^10.1.0",
-    "hardhat": "2.21.0",
+    "hardhat": "2.22.14",
     "hardhat-deploy": "^0.11.45",
     "hardhat-gas-reporter": "^1.0.10",
     "hardhat-ignore-warnings": "^0.2.11",
@@ -43,8 +43,7 @@
     "rimraf": "^4.4.1",
     "solhint": "^3.6.2",
     "solhint-plugin-prettier": "^0.0.5",
-    "solidity-coverage": "0.8.6",
-    "solidity-docgen": "0.6.0-beta.36",
+    "solidity-coverage": "0.8.12",
     "ts-generator": "^0.1.1",
     "ts-node": "^10.9.2",
     "typechain": "^8.3.2",
@@ -80,7 +79,7 @@
     "typechain": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat typechain",
     "test": "hardhat test",
     "test:mock": "HARDHAT_NETWORK=hardhat npx hardhat test --network hardhat",
-    "coverage:mock": "hardhat coverage",
+    "coverage:mock": "npx hardhat coverage",
     "task:getEthereumAddress": "hardhat task:getEthereumAddress",
     "task:accounts": "hardhat task:accounts",
     "fhevm:start": "./launch-fhevm.sh",
@@ -94,6 +93,8 @@
     "fhevm:faucet:eve": "docker exec -i fhevm faucet $(npx hardhat task:getEthereumAddressEve)"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^5.0.2"
+    "@openzeppelin/contracts": "^5.0.2",
+    "extra-bigint": "^1.1.18",
+    "sqlite3": "^5.1.7"
   }
 }
