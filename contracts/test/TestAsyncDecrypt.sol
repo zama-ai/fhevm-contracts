@@ -1,21 +1,24 @@
 // SPDX-License-Identifier: BSD-3-Clause-Clear
-
 pragma solidity ^0.8.24;
 
 import "fhevm/lib/TFHE.sol";
 import "fhevm/gateway/GatewayCaller.sol";
 
+/**
+ * @title                       TestAsyncDecrypt
+ * @notice                      This test contract is used to test the Gateway.
+ */
 contract TestAsyncDecrypt is GatewayCaller {
-    ebool xBool;
-    euint4 xUint4;
-    euint8 xUint8;
-    euint16 xUint16;
-    euint32 xUint32;
-    euint64 xUint64;
-    euint64 xUint64_2;
-    euint64 xUint64_3;
-    eaddress xAddress;
-    eaddress xAddress2;
+    ebool internal xBool;
+    euint4 internal xUint4;
+    euint8 internal xUint8;
+    euint16 internal xUint16;
+    euint32 internal xUint32;
+    euint64 internal xUint64;
+    euint64 internal xUint64_2;
+    euint64 internal xUint64_3;
+    eaddress internal xAddress;
+    eaddress internal xAddress2;
 
     bool public yBool;
     uint8 public yUint4;
