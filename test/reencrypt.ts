@@ -22,7 +22,7 @@ export async function reencryptEbool(
   user: string,
   handle: bigint,
   contractAddress: string,
-): Promise<bigint> {
+): Promise<boolean> {
   verifyType(handle, EBOOL_T);
   return reencryptHandle(signers, instances, user, handle, contractAddress);
 }
@@ -93,15 +93,17 @@ export async function reencryptEuint128(
   return reencryptHandle(signers, instances, user, handle, contractAddress);
 }
 
-export async function reencryptEuint160(
+export async function reencryptEAddress(
   signers: Signers,
   instances: FhevmInstances,
   user: string,
   handle: bigint,
   contractAddress: string,
-): Promise<bigint> {
+): Promise<string> {
   verifyType(handle, EUINT160_T);
-  return reencryptHandle(signers, instances, user, handle, contractAddress);
+  const addressAsUint160: bigint = await reencryptHandle(signers, instances, user, handle, contractAddress);
+  const handleStr = "0x" + addressAsUint160.toString(16).padStart(40, "0");
+  return handleStr;
 }
 
 export async function reencryptEuint256(
@@ -149,7 +151,8 @@ export async function reencryptEbytes256(
 }
 
 /**
- * This function is to reencrypt handles.
+ * @dev This function is to reencrypt handles.
+ *      It does not verify types.
  */
 async function reencryptHandle(
   signers: Signers,
@@ -157,7 +160,7 @@ async function reencryptHandle(
   user: string,
   handle: bigint,
   contractAddress: string,
-): Promise<bigint> {
+): Promise<any> {
   const { publicKey: publicKey, privateKey: privateKey } = instances[user as keyof FhevmInstances].generateKeypair();
   const eip712 = instances[user as keyof FhevmInstances].createEIP712(publicKey, contractAddress);
   const signature = await signers[user as keyof Signers].signTypedData(

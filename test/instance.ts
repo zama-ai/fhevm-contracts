@@ -8,7 +8,16 @@ import path from "path";
 
 import { awaitCoprocessor, getClearText } from "./coprocessorUtils";
 import { createEncryptedInputMocked, reencryptRequestMocked } from "./fhevmjsMocked";
-import { EBOOL_T, EUINT160_T, EUINT16_T, EUINT4_T, EUINT8_T, verifyType } from "./handleTypeCheck";
+import {
+  EBOOL_T,
+  EUINT4_T,
+  EUINT8_T,
+  EUINT16_T,
+  EUINT32_T,
+  EUINT64_T,
+  EUINT160_T,
+  verifyType,
+} from "./handleTypeCheck";
 import type { Signers } from "./signers";
 import { FhevmInstances } from "./types";
 
@@ -140,7 +149,7 @@ export const decrypt8 = async (handle: bigint): Promise<bigint> => {
  * It cannot be used in production code, since it requires the FHE private key for decryption.
  * In production, decryption is only possible via an asyncronous on-chain call to the Gateway.
  *
- * @param {bigint} a handle to decrypt
+ * @param {bigint} handle to decrypt
  * @returns {bigint}
  */
 export const decrypt16 = async (handle: bigint): Promise<bigint> => {
@@ -160,7 +169,7 @@ export const decrypt16 = async (handle: bigint): Promise<bigint> => {
  * It cannot be used in production code, since it requires the FHE private key for decryption.
  * In production, decryption is only possible via an asyncronous on-chain call to the Gateway.
  *
- * @param {bigint} a handle to decrypt
+ * @param {bigint} handle to decrypt
  * @returns {bigint}
  */
 export const decrypt32 = async (handle: bigint): Promise<bigint> => {
@@ -180,7 +189,7 @@ export const decrypt32 = async (handle: bigint): Promise<bigint> => {
  * It cannot be used in production code, since it requires the FHE private key for decryption.
  * In production, decryption is only possible via an asyncronous on-chain call to the Gateway.
  *
- * @param {bigint} a handle to decrypt
+ * @param {bigint} handle to decrypt
  * @returns {bigint}
  */
 export const decrypt64 = async (handle: bigint): Promise<bigint> => {
@@ -200,7 +209,7 @@ export const decrypt64 = async (handle: bigint): Promise<bigint> => {
  * It cannot be used in production code, since it requires the FHE private key for decryption.
  * In production, decryption is only possible via an asyncronous on-chain call to the Gateway.
  *
- * @param {bigint} a handle to decrypt
+ * @param {bigint} handle to decrypt
  * @returns {string}
  */
 export const decryptAddress = async (handle: bigint): Promise<string> => {
