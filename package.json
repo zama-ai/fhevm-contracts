@@ -93,7 +93,7 @@
     "fhevm:faucet:eve": "docker exec -i fhevm faucet $(npx hardhat task:getEthereumAddressEve)"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^5.0.2",
+    "@openzeppelin/contracts": "5.0.2",
     "extra-bigint": "^1.1.18",
     "sqlite3": "^5.1.7"
   }
