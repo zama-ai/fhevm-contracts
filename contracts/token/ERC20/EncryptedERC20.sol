@@ -178,7 +178,7 @@ abstract contract EncryptedERC20 is IEncryptedERC20 {
         return _allowances[owner][spender];
     }
 
-    function _isSenderAllowedForAmount(euint64 amount) internal view {
+    function _isSenderAllowedForAmount(euint64 amount) internal view virtual {
         if (!TFHE.isSenderAllowed(amount)) {
             revert TFHESenderNotAllowed();
         }
