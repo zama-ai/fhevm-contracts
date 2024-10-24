@@ -67,6 +67,11 @@ interface IEncryptedERC20 {
     function balanceOf(address wallet) external view returns (euint64);
 
     /**
+     * @notice Returns the number of decimals.
+     */
+    function decimals() external view returns (uint8);
+
+    /**
      * @notice Returns the name of the token.
      */
     function name() external view returns (string memory);

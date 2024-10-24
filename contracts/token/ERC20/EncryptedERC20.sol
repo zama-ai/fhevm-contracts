@@ -8,9 +8,6 @@ import { IEncryptedERC20 } from "./IEncryptedERC20.sol";
  * @title       EncryptedERC20
  */
 abstract contract EncryptedERC20 is IEncryptedERC20 {
-    /// @notice Number of decimals.
-    uint8 internal constant _DECIMALS = 6;
-
     /// @notice Total supply.
     uint64 internal _totalSupply;
 
@@ -115,6 +112,13 @@ abstract contract EncryptedERC20 is IEncryptedERC20 {
      */
     function balanceOf(address account) public view virtual returns (euint64) {
         return _balances[account];
+    }
+
+    /**
+     * @notice See {IEncryptedERC20-decimals}.
+     */
+    function decimals() public view virtual returns (uint8) {
+        return 6;
     }
 
     /**
