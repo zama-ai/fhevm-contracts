@@ -1,7 +1,7 @@
 import { ethers } from "hardhat";
 
 import type { EncryptedERC20Mintable, IEncryptedERC20 } from "../../types";
-import { reencryptHandle } from "../reencrypt";
+import { reencryptEuint64 } from "../reencrypt";
 import { Signers } from "../signers";
 import { FhevmInstances } from "../types";
 
@@ -28,7 +28,7 @@ export async function reencryptAllowance(
   tokenAddress: string,
 ): Promise<bigint> {
   const allowanceHandle = await token.allowance(signers[user as keyof Signers], signers[spender as keyof Signers]);
-  const allowance = await reencryptHandle(signers, instances, user, allowanceHandle, tokenAddress);
+  const allowance = await reencryptEuint64(signers, instances, user, allowanceHandle, tokenAddress);
   return allowance;
 }
 
@@ -40,6 +40,6 @@ export async function reencryptBalance(
   tokenAddress: string,
 ): Promise<bigint> {
   const balanceHandle = await token.balanceOf(signers[user as keyof Signers]);
-  const balance = await reencryptHandle(signers, instances, user, balanceHandle, tokenAddress);
+  const balance = await reencryptEuint64(signers, instances, user, balanceHandle, tokenAddress);
   return balance;
 }

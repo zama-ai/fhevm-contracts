@@ -1,18 +1,163 @@
+import {
+  EBOOL_T,
+  EBYTES64_T,
+  EBYTES128_T,
+  EBYTES256_T,
+  EUINT4_T,
+  EUINT8_T,
+  EUINT16_T,
+  EUINT32_T,
+  EUINT64_T,
+  EUINT128_T,
+  EUINT160_T,
+  EUINT256_T,
+  verifyType,
+} from "./handleTypeCheck";
 import { Signers } from "./signers";
 import { FhevmInstances } from "./types";
 
-/**
- * @debug
- * This function is to reencrypt handles.
- */
-export async function reencryptHandle(
+export async function reencryptEbool(
   signers: Signers,
   instances: FhevmInstances,
   user: string,
   handle: bigint,
   contractAddress: string,
 ): Promise<bigint> {
-  // Verify if the type is matched
+  verifyType(handle, EBOOL_T);
+  return reencryptHandle(signers, instances, user, handle, contractAddress);
+}
+
+export async function reencryptEuint4(
+  signers: Signers,
+  instances: FhevmInstances,
+  user: string,
+  handle: bigint,
+  contractAddress: string,
+): Promise<bigint> {
+  verifyType(handle, EUINT4_T);
+  return reencryptHandle(signers, instances, user, handle, contractAddress);
+}
+
+export async function reencryptEuint8(
+  signers: Signers,
+  instances: FhevmInstances,
+  user: string,
+  handle: bigint,
+  contractAddress: string,
+): Promise<bigint> {
+  verifyType(handle, EUINT8_T);
+  return reencryptHandle(signers, instances, user, handle, contractAddress);
+}
+
+export async function reencryptEuint16(
+  signers: Signers,
+  instances: FhevmInstances,
+  user: string,
+  handle: bigint,
+  contractAddress: string,
+): Promise<bigint> {
+  verifyType(handle, EUINT16_T);
+  return reencryptHandle(signers, instances, user, handle, contractAddress);
+}
+
+export async function reencryptEuint32(
+  signers: Signers,
+  instances: FhevmInstances,
+  user: string,
+  handle: bigint,
+  contractAddress: string,
+): Promise<bigint> {
+  verifyType(handle, EUINT32_T);
+  return reencryptHandle(signers, instances, user, handle, contractAddress);
+}
+
+export async function reencryptEuint64(
+  signers: Signers,
+  instances: FhevmInstances,
+  user: string,
+  handle: bigint,
+  contractAddress: string,
+): Promise<bigint> {
+  verifyType(handle, EUINT64_T);
+  return reencryptHandle(signers, instances, user, handle, contractAddress);
+}
+
+export async function reencryptEuint128(
+  signers: Signers,
+  instances: FhevmInstances,
+  user: string,
+  handle: bigint,
+  contractAddress: string,
+): Promise<bigint> {
+  verifyType(handle, EUINT128_T);
+  return reencryptHandle(signers, instances, user, handle, contractAddress);
+}
+
+export async function reencryptEuint160(
+  signers: Signers,
+  instances: FhevmInstances,
+  user: string,
+  handle: bigint,
+  contractAddress: string,
+): Promise<bigint> {
+  verifyType(handle, EUINT160_T);
+  return reencryptHandle(signers, instances, user, handle, contractAddress);
+}
+
+export async function reencryptEuint256(
+  signers: Signers,
+  instances: FhevmInstances,
+  user: string,
+  handle: bigint,
+  contractAddress: string,
+): Promise<bigint> {
+  verifyType(handle, EUINT256_T);
+  return reencryptHandle(signers, instances, user, handle, contractAddress);
+}
+
+export async function reencryptEbytes64(
+  signers: Signers,
+  instances: FhevmInstances,
+  user: string,
+  handle: bigint,
+  contractAddress: string,
+): Promise<bigint> {
+  verifyType(handle, EBYTES64_T);
+  return reencryptHandle(signers, instances, user, handle, contractAddress);
+}
+
+export async function reencryptEbytes128(
+  signers: Signers,
+  instances: FhevmInstances,
+  user: string,
+  handle: bigint,
+  contractAddress: string,
+): Promise<bigint> {
+  verifyType(handle, EBYTES128_T);
+  return reencryptHandle(signers, instances, user, handle, contractAddress);
+}
+
+export async function reencryptEbytes256(
+  signers: Signers,
+  instances: FhevmInstances,
+  user: string,
+  handle: bigint,
+  contractAddress: string,
+): Promise<bigint> {
+  verifyType(handle, EBYTES256_T);
+  return reencryptHandle(signers, instances, user, handle, contractAddress);
+}
+
+/**
+ * This function is to reencrypt handles.
+ */
+async function reencryptHandle(
+  signers: Signers,
+  instances: FhevmInstances,
+  user: string,
+  handle: bigint,
+  contractAddress: string,
+): Promise<bigint> {
   const { publicKey: publicKey, privateKey: privateKey } = instances[user as keyof FhevmInstances].generateKeypair();
   const eip712 = instances[user as keyof FhevmInstances].createEIP712(publicKey, contractAddress);
   const signature = await signers[user as keyof Signers].signTypedData(

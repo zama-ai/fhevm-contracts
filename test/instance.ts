@@ -8,6 +8,7 @@ import path from "path";
 
 import { awaitCoprocessor, getClearText } from "./coprocessorUtils";
 import { createEncryptedInputMocked, reencryptRequestMocked } from "./fhevmjsMocked";
+import { EBOOL_T, EUINT160_T, EUINT16_T, EUINT4_T, EUINT8_T, verifyType } from "./handleTypeCheck";
 import type { Signers } from "./signers";
 import { FhevmInstances } from "./types";
 
@@ -83,6 +84,8 @@ const getDecryptor = () => {
  * @returns {bool}
  */
 export const decryptBool = async (handle: bigint): Promise<boolean> => {
+  verifyType(handle, EBOOL_T);
+
   if (network.name === "hardhat") {
     await awaitCoprocessor();
     return (await getClearText(handle)) === "1";
@@ -101,6 +104,8 @@ export const decryptBool = async (handle: bigint): Promise<boolean> => {
  * @returns {bigint}
  */
 export const decrypt4 = async (handle: bigint): Promise<bigint> => {
+  verifyType(handle, EUINT4_T);
+
   if (network.name === "hardhat") {
     await awaitCoprocessor();
     return BigInt(await getClearText(handle));
@@ -119,6 +124,8 @@ export const decrypt4 = async (handle: bigint): Promise<bigint> => {
  * @returns {bigint}
  */
 export const decrypt8 = async (handle: bigint): Promise<bigint> => {
+  verifyType(handle, EUINT8_T);
+
   if (network.name === "hardhat") {
     await awaitCoprocessor();
     return BigInt(await getClearText(handle));
@@ -137,6 +144,8 @@ export const decrypt8 = async (handle: bigint): Promise<bigint> => {
  * @returns {bigint}
  */
 export const decrypt16 = async (handle: bigint): Promise<bigint> => {
+  verifyType(handle, EUINT16_T);
+
   if (network.name === "hardhat") {
     await awaitCoprocessor();
     return BigInt(await getClearText(handle));
@@ -155,6 +164,8 @@ export const decrypt16 = async (handle: bigint): Promise<bigint> => {
  * @returns {bigint}
  */
 export const decrypt32 = async (handle: bigint): Promise<bigint> => {
+  verifyType(handle, EUINT32_T);
+
   if (network.name === "hardhat") {
     await awaitCoprocessor();
     return BigInt(await getClearText(handle));
@@ -173,6 +184,8 @@ export const decrypt32 = async (handle: bigint): Promise<bigint> => {
  * @returns {bigint}
  */
 export const decrypt64 = async (handle: bigint): Promise<bigint> => {
+  verifyType(handle, EUINT64_T);
+
   if (network.name === "hardhat") {
     await awaitCoprocessor();
     return BigInt(await getClearText(handle));
@@ -191,6 +204,8 @@ export const decrypt64 = async (handle: bigint): Promise<bigint> => {
  * @returns {string}
  */
 export const decryptAddress = async (handle: bigint): Promise<string> => {
+  verifyType(handle, EUINT160_T);
+
   if (network.name === "hardhat") {
     await awaitCoprocessor();
     const bigintAdd = BigInt(await getClearText(handle));
