@@ -32,7 +32,7 @@ contract EncryptedERC20Mintable is Ownable2Step, EncryptedERC20 {
      * @notice Mint tokens.
      * @param amount Amount of tokens to mint.
      */
-    function mint(uint64 amount) public {
+    function mint(uint64 amount) public onlyOwner {
         _balances[msg.sender] = TFHE.add(_balances[msg.sender], amount);
         TFHE.allow(_balances[msg.sender], address(this));
         TFHE.allow(_balances[msg.sender], msg.sender);
