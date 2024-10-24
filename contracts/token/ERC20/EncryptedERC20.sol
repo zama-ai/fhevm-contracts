@@ -6,6 +6,11 @@ import { IEncryptedERC20 } from "./IEncryptedERC20.sol";
 
 /**
  * @title       EncryptedERC20
+ * @notice      This contract implements an encrypted ERC20-like token with confidential balances using
+ *              Zama's FHE (Fully Homomorphic Encryption) library.
+ * @dev         It supports standard ERC20 functions such as transferring tokens, minting,
+ *              and setting allowances, but uses encrypted data types.
+ *              The total supply is not encrypted.
  */
 abstract contract EncryptedERC20 is IEncryptedERC20 {
     /// @notice Total supply.
