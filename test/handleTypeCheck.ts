@@ -16,7 +16,7 @@ export function verifyType(handle: bigint, expectedType: number) {
     throw "Handle is not initialized";
   }
 
-  if (handle.toString(2).length === 34) {
+  if (handle.toString(2).length > 256) {
     throw "Handle is not a bytes32";
   }
 
