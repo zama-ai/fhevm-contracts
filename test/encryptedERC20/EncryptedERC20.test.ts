@@ -11,7 +11,7 @@ describe("EncryptedERC20", function () {
   });
 
   beforeEach(async function () {
-    const contract = await deployEncryptedERC20Fixture("Naraggara", "NARA");
+    const contract = await deployEncryptedERC20Fixture(this.signers, "Naraggara", "NARA", "alice");
     this.encryptedERC20Address = await contract.getAddress();
     this.encryptedERC20 = contract;
     this.instances = await createInstances(this.signers);

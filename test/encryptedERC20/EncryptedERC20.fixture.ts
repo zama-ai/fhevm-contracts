@@ -1,14 +1,20 @@
 import { ethers } from "hardhat";
 
-import type { IEncryptedERC20, TestEncryptedERC20Mintable } from "../../types";
+import type { EncryptedERC20Mintable, IEncryptedERC20 } from "../../types";
 import { reencryptHandle } from "../reencrypt";
-import { Signers, getSigners } from "../signers";
+import { Signers } from "../signers";
 import { FhevmInstances } from "../types";
 
-export async function deployEncryptedERC20Fixture(name: string, symbol: string): Promise<TestEncryptedERC20Mintable> {
-  const signers = await getSigners();
-  const contractFactory = await ethers.getContractFactory("TestEncryptedERC20Mintable");
-  const contract = await contractFactory.connect(signers.alice).deploy(name, symbol);
+export async function deployEncryptedERC20Fixture(
+  signers: Signers,
+  name: string,
+  symbol: string,
+  owner: string,
+): Promise<EncryptedERC20Mintable> {
+  const contractFactory = await ethers.getContractFactory("EncryptedERC20Mintable");
+  const contract = await contractFactory
+    .connect(signers[owner as keyof Signers])
+    .deploy(name, symbol, signers[owner as keyof Signers].address);
   await contract.waitForDeployment();
   return contract;
 }
