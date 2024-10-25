@@ -9,7 +9,7 @@ importers:
   .:
     dependencies:
       '@openzeppelin/contracts':
-        specifier: ^5.0.2
+        specifier: 5.0.2
         version: 5.0.2
       extra-bigint:
         specifier: ^1.1.18
