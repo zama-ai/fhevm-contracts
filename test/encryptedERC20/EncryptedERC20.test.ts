@@ -6,7 +6,7 @@ import { deployEncryptedERC20Fixture, reencryptAllowance, reencryptBalance } fro
 
 describe("EncryptedERC20", function () {
   before(async function () {
-    await initSigners();
+    await initSigners(2);
     this.signers = await getSigners();
   });
 
@@ -25,7 +25,7 @@ describe("EncryptedERC20", function () {
 
   it("should mint the contract", async function () {
     const mintAmount = 1000;
-    const tx = await this.encryptedERC20.mint(mintAmount);
+    const tx = await this.encryptedERC20.connect(this.signers.alice).mint(mintAmount);
     await tx.wait();
 
     expect(
@@ -39,13 +39,14 @@ describe("EncryptedERC20", function () {
     const mintAmount = 10_000;
     const transferAmount = 1337;
 
-    let tx = await this.encryptedERC20.mint(mintAmount);
+    let tx = await this.encryptedERC20.connect(this.signers.alice).mint(mintAmount);
     const t1 = await tx.wait();
     expect(t1?.status).to.eq(1);
 
     const input = this.instances.alice.createEncryptedInput(this.encryptedERC20Address, this.signers.alice.address);
+
     input.add64(transferAmount);
-    const encryptedTransferAmount = input.encrypt();
+    const encryptedTransferAmount = await input.encrypt();
 
     tx = await this.encryptedERC20["transfer(address,bytes32,bytes)"](
       this.signers.bob.address,
@@ -78,7 +79,7 @@ describe("EncryptedERC20", function () {
 
     const input = this.instances.alice.createEncryptedInput(this.encryptedERC20Address, this.signers.alice.address);
     input.add64(transferAmount);
-    const encryptedTransferAmount = input.encrypt();
+    const encryptedTransferAmount = await input.encrypt();
     tx = await this.encryptedERC20["transfer(address,bytes32,bytes)"](
       this.signers.bob.address,
       encryptedTransferAmount.handles[0],
@@ -103,7 +104,7 @@ describe("EncryptedERC20", function () {
     const mintAmount = 10_000;
     const transferAmount = 1337;
 
-    let tx = await this.encryptedERC20.mint(mintAmount);
+    let tx = await this.encryptedERC20.connect(this.signers.alice).mint(mintAmount);
     await tx.wait();
 
     const inputAlice = this.instances.alice.createEncryptedInput(
@@ -111,7 +112,8 @@ describe("EncryptedERC20", function () {
       this.signers.alice.address,
     );
     inputAlice.add64(transferAmount);
-    const encryptedAllowanceAmount = inputAlice.encrypt();
+    const encryptedAllowanceAmount = await inputAlice.encrypt();
+
     tx = await this.encryptedERC20["approve(address,bytes32,bytes)"](
       this.signers.bob.address,
       encryptedAllowanceAmount.handles[0],
@@ -134,7 +136,8 @@ describe("EncryptedERC20", function () {
     const bobErc20 = this.encryptedERC20.connect(this.signers.bob);
     const inputBob1 = this.instances.bob.createEncryptedInput(this.encryptedERC20Address, this.signers.bob.address);
     inputBob1.add64(transferAmount + 1); // above allowance so next tx should actually not send any token
-    const encryptedTransferAmount = inputBob1.encrypt();
+    const encryptedTransferAmount = await inputBob1.encrypt();
+
     const tx2 = await bobErc20["transferFrom(address,address,bytes32,bytes)"](
       this.signers.alice.address,
       this.signers.bob.address,
@@ -155,7 +158,8 @@ describe("EncryptedERC20", function () {
 
     const inputBob2 = this.instances.bob.createEncryptedInput(this.encryptedERC20Address, this.signers.bob.address);
     inputBob2.add64(transferAmount); // below allowance so next tx should send token
-    const encryptedTransferAmount2 = inputBob2.encrypt();
+    const encryptedTransferAmount2 = await inputBob2.encrypt();
+
     const tx3 = await bobErc20["transferFrom(address,address,bytes32,bytes)"](
       this.signers.alice.address,
       this.signers.bob.address,
@@ -195,7 +199,7 @@ describe("EncryptedERC20", function () {
       this.signers.alice.address,
     );
     inputAlice.add64(amount);
-    const encryptedAllowanceAmount = inputAlice.encrypt();
+    const encryptedAllowanceAmount = await inputAlice.encrypt();
 
     const tx = await this.encryptedERC20
       .connect(this.signers.alice)
@@ -268,7 +272,7 @@ describe("EncryptedERC20", function () {
     }
   });
 
-  it("Sender who is not allowed cannot transfer using a handle from another account", async function () {
+  it("sender who is not allowed cannot transfer using a handle from another account", async function () {
     const mintAmount = 100_000;
     const transferAmount = 50_000;
     let tx = await this.encryptedERC20.connect(this.signers.alice).mint(mintAmount);
@@ -276,7 +280,7 @@ describe("EncryptedERC20", function () {
 
     const input = this.instances.alice.createEncryptedInput(this.encryptedERC20Address, this.signers.alice.address);
     input.add64(transferAmount);
-    const encryptedTransferAmount = input.encrypt();
+    const encryptedTransferAmount = await input.encrypt();
 
     tx = await this.encryptedERC20
       .connect(this.signers.alice)
@@ -295,7 +299,7 @@ describe("EncryptedERC20", function () {
     ).to.be.revertedWithCustomError(this.encryptedERC20, "TFHESenderNotAllowed");
   });
 
-  it("Sender who is not allowed cannot transferFrom using a handle from another account", async function () {
+  it("sender who is not allowed cannot transferFrom using a handle from another account", async function () {
     const mintAmount = 100_000;
     const transferAmount = 50_000;
 
@@ -304,7 +308,7 @@ describe("EncryptedERC20", function () {
 
     let input = this.instances.alice.createEncryptedInput(this.encryptedERC20Address, this.signers.alice.address);
     input.add64(mintAmount);
-    const encryptedAllowanceAmount = input.encrypt();
+    const encryptedAllowanceAmount = await input.encrypt();
 
     tx = await this.encryptedERC20
       .connect(this.signers.alice)
@@ -314,9 +318,9 @@ describe("EncryptedERC20", function () {
         encryptedAllowanceAmount.inputProof,
       );
 
-    input = this.instances.alice.createEncryptedInput(this.encryptedERC20Address, this.signers.alice.address);
+    input = this.instances.carol.createEncryptedInput(this.encryptedERC20Address, this.signers.carol.address);
     input.add64(transferAmount);
-    const encryptedTransferAmount = input.encrypt();
+    const encryptedTransferAmount = await input.encrypt();
 
     tx = await this.encryptedERC20
       .connect(this.signers.carol)
@@ -339,11 +343,11 @@ describe("EncryptedERC20", function () {
     ).to.be.revertedWithCustomError(this.encryptedERC20, "TFHESenderNotAllowed");
   });
 
-  it("Sender who is not allowed cannot approve using a handle from another account", async function () {
+  it("sender who is not allowed cannot approve using a handle from another account", async function () {
     const amount = 100_000;
     const input = this.instances.alice.createEncryptedInput(this.encryptedERC20Address, this.signers.alice.address);
     input.add64(amount);
-    const encryptedAllowanceAmount = input.encrypt();
+    const encryptedAllowanceAmount = await input.encrypt();
 
     const tx = await this.encryptedERC20
       .connect(this.signers.alice)
