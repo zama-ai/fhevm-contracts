@@ -1,18 +1,18 @@
 import dotenv from "dotenv";
 import fs from "fs";
-import { task } from "hardhat/config";
+import { task, types } from "hardhat/config";
 import type { TaskArguments } from "hardhat/types";
 
 task("task:deployGateway")
   .addParam("privateKey", "The deployer private key")
   .addParam("ownerAddress", "The owner address")
-  .setAction(async function (taskArguments: TaskArguments, { ethers }) {
+  .setAction(async function (taskArguments: TaskArguments, { ethers, upgrades }) {
     const deployer = new ethers.Wallet(taskArguments.privateKey).connect(ethers.provider);
-    const envConfig2 = dotenv.parse(fs.readFileSync("node_modules/fhevm/lib/.env.kmsverifier"));
-    const gatewayFactory = await ethers.getContractFactory("fhevm/gateway/GatewayContract.sol:GatewayContract");
-    const Gateway = await gatewayFactory
-      .connect(deployer)
-      .deploy(taskArguments.ownerAddress, envConfig2.KMS_VERIFIER_CONTRACT_ADDRESS);
+    const factory = await ethers.getContractFactory("GatewayContract", deployer);
+    const Gateway = await upgrades.deployProxy(factory, [taskArguments.ownerAddress], {
+      initializer: "initialize",
+      kind: "uups",
+    });
     await Gateway.waitForDeployment();
     const GatewayContractAddress = await Gateway.getAddress();
     const envConfig = dotenv.parse(fs.readFileSync("node_modules/fhevm/gateway/.env.gateway"));
@@ -24,42 +24,133 @@ task("task:deployGateway")
     console.log("GatewayContract was deployed at address: ", GatewayContractAddress);
   });
 
-task("task:deployACL").setAction(async function (taskArguments: TaskArguments, { ethers }) {
-  const deployer = (await ethers.getSigners())[9];
-  const factory = await ethers.getContractFactory("fhevm/lib/ACL.sol:ACL");
-  const envConfigExec = dotenv.parse(fs.readFileSync("node_modules/fhevm/lib/.env.exec"));
-  const acl = await factory.connect(deployer).deploy(envConfigExec.TFHE_EXECUTOR_CONTRACT_ADDRESS);
-  await acl.waitForDeployment();
-  const address = await acl.getAddress();
-  const envConfigAcl = dotenv.parse(fs.readFileSync("node_modules/fhevm/lib/.env.acl"));
-  if (address !== envConfigAcl.ACL_CONTRACT_ADDRESS) {
-    throw new Error(`The nonce of the deployer account is not corret. Please relaunch a clean instance of the fhEVM`);
-  }
-  console.log("ACL was deployed at address:", address);
-});
+task("task:deployACL")
+  .addParam("privateKey", "The deployer private key")
+  .setAction(async function (taskArguments: TaskArguments, { ethers, upgrades }) {
+    const deployer = new ethers.Wallet(taskArguments.privateKey).connect(ethers.provider);
+    const factory = await ethers.getContractFactory("fhevmTemp/contracts/ACL.sol:ACL", deployer);
+    const acl = await upgrades.deployProxy(factory, [deployer.address], { initializer: "initialize", kind: "uups" });
+    await acl.waitForDeployment();
+    const address = await acl.getAddress();
+    const envConfigAcl = dotenv.parse(fs.readFileSync("node_modules/fhevm-core-contracts/addresses/.env.acl"));
+    if (address !== envConfigAcl.ACL_CONTRACT_ADDRESS) {
+      throw new Error(
+        `The nonce of the deployer account is not correct. Please relaunch a clean instance of the fhEVM`,
+      );
+    }
+    console.log("ACL was deployed at address:", address);
+  });
 
-task("task:deployTFHEExecutor").setAction(async function (taskArguments: TaskArguments, { ethers }) {
-  const deployer = (await ethers.getSigners())[9];
-  const factory = await ethers.getContractFactory("TFHEExecutor");
-  const exec = await factory.connect(deployer).deploy();
-  await exec.waitForDeployment();
-  const address = await exec.getAddress();
-  const envConfig = dotenv.parse(fs.readFileSync("node_modules/fhevm/lib/.env.exec"));
-  if (address !== envConfig.TFHE_EXECUTOR_CONTRACT_ADDRESS) {
-    throw new Error(`The nonce of the deployer account is not corret. Please relaunch a clean instance of the fhEVM`);
-  }
-  console.log("TFHEExecutor was deployed at address:", address);
-});
+task("task:deployTFHEExecutor")
+  .addParam("privateKey", "The deployer private key")
+  .setAction(async function (taskArguments: TaskArguments, { ethers, upgrades }) {
+    const deployer = new ethers.Wallet(taskArguments.privateKey).connect(ethers.provider);
+    const factory = await ethers.getContractFactory(
+      "fhevmTemp/contracts/TFHEExecutor.events.sol:TFHEExecutor",
+      deployer,
+    );
+    const exec = await upgrades.deployProxy(factory, [deployer.address], { initializer: "initialize", kind: "uups" });
+    await exec.waitForDeployment();
+    const address = await exec.getAddress();
+    const envConfig = dotenv.parse(fs.readFileSync("node_modules/fhevm-core-contracts/addresses/.env.exec"));
+    if (address !== envConfig.TFHE_EXECUTOR_CONTRACT_ADDRESS) {
+      throw new Error(
+        `The nonce of the deployer account is not correct. Please relaunch a clean instance of the fhEVM`,
+      );
+    }
+    console.log("TFHEExecutor was deployed at address:", address);
+  });
 
-task("task:deployKMSVerifier").setAction(async function (taskArguments: TaskArguments, { ethers }) {
-  const deployer = (await ethers.getSigners())[9];
-  const factory = await ethers.getContractFactory("fhevm/lib/KMSVerifier.sol:KMSVerifier");
-  const exec = await factory.connect(deployer).deploy();
-  await exec.waitForDeployment();
-  const address = await exec.getAddress();
-  const envConfig = dotenv.parse(fs.readFileSync("node_modules/fhevm/lib/.env.kmsverifier"));
-  if (address !== envConfig.KMS_VERIFIER_CONTRACT_ADDRESS) {
-    throw new Error(`The nonce of the deployer account is not corret. Please relaunch a clean instance of the fhEVM`);
-  }
-  console.log("KMSVerifier was deployed at address:", address);
-});
+task("task:deployKMSVerifier")
+  .addParam("privateKey", "The deployer private key")
+  .setAction(async function (taskArguments: TaskArguments, { ethers, upgrades }) {
+    const deployer = new ethers.Wallet(taskArguments.privateKey).connect(ethers.provider);
+    const factory = await ethers.getContractFactory("fhevmTemp/contracts/KMSVerifier.sol:KMSVerifier", deployer);
+    const kms = await upgrades.deployProxy(factory, [deployer.address], { initializer: "initialize", kind: "uups" });
+    await kms.waitForDeployment();
+    const address = await kms.getAddress();
+    const envConfig = dotenv.parse(fs.readFileSync("node_modules/fhevm-core-contracts/addresses/.env.kmsverifier"));
+    if (address !== envConfig.KMS_VERIFIER_CONTRACT_ADDRESS) {
+      throw new Error(
+        `The nonce of the deployer account is not correct. Please relaunch a clean instance of the fhEVM`,
+      );
+    }
+    console.log("KMSVerifier was deployed at address:", address);
+  });
+
+task("task:deployInputVerifier")
+  .addParam("privateKey", "The deployer private key")
+  .setAction(async function (taskArguments: TaskArguments, { ethers, upgrades }) {
+    const deployer = new ethers.Wallet(taskArguments.privateKey).connect(ethers.provider);
+    let factory;
+    if (process.env.IS_COPROCESSOR === "true") {
+      factory = await ethers.getContractFactory(
+        "fhevmTemp/contracts/InputVerifier.coprocessor.sol:InputVerifier",
+        deployer,
+      );
+    } else {
+      factory = await ethers.getContractFactory("fhevmTemp/contracts/InputVerifier.native.sol:InputVerifier", deployer);
+    }
+    const kms = await upgrades.deployProxy(factory, [deployer.address], { initializer: "initialize", kind: "uups" });
+    await kms.waitForDeployment();
+    const address = await kms.getAddress();
+    const envConfig = dotenv.parse(fs.readFileSync("node_modules/fhevm-core-contracts/addresses/.env.inputverifier"));
+    if (address !== envConfig.INPUT_VERIFIER_CONTRACT_ADDRESS) {
+      throw new Error(
+        `The nonce of the deployer account is not correct. Please relaunch a clean instance of the fhEVM`,
+      );
+    }
+    console.log("InputVerifier was deployed at address:", address);
+  });
+
+task("task:deployFHEPayment")
+  .addParam("privateKey", "The deployer private key")
+  .setAction(async function (taskArguments: TaskArguments, { ethers, upgrades }) {
+    const deployer = new ethers.Wallet(taskArguments.privateKey).connect(ethers.provider);
+    const factory = await ethers.getContractFactory("fhevmTemp/contracts/FHEPayment.sol:FHEPayment", deployer);
+    const payment = await upgrades.deployProxy(factory, [deployer.address], {
+      initializer: "initialize",
+      kind: "uups",
+    });
+    await payment.waitForDeployment();
+    const address = await payment.getAddress();
+    const envConfig = dotenv.parse(fs.readFileSync("node_modules/fhevm-core-contracts/addresses/.env.fhepayment"));
+    if (address !== envConfig.FHE_PAYMENT_CONTRACT_ADDRESS) {
+      throw new Error(
+        `The nonce of the deployer account is not correct. Please relaunch a clean instance of the fhEVM`,
+      );
+    }
+    console.log("FHEPayment was deployed at address:", address);
+  });
+
+task("task:addSigners")
+  .addParam("privateKey", "The deployer private key")
+  .addParam("numSigners", "Number of KMS signers to add")
+  .addOptionalParam(
+    "useAddress",
+    "Use addresses instead of private keys env variables for kms signers",
+    false,
+    types.boolean,
+  )
+  .setAction(async function (taskArguments: TaskArguments, { ethers }) {
+    const deployer = new ethers.Wallet(taskArguments.privateKey).connect(ethers.provider);
+    const factory = await ethers.getContractFactory("fhevmTemp/contracts/KMSVerifier.sol:KMSVerifier", deployer);
+    const kmsAdd = dotenv.parse(
+      fs.readFileSync("node_modules/fhevm-core-contracts/addresses/.env.kmsverifier"),
+    ).KMS_VERIFIER_CONTRACT_ADDRESS;
+    const kmsVerifier = await factory.attach(kmsAdd);
+    for (let idx = 0; idx < taskArguments.numSigners; idx++) {
+      if (!taskArguments.useAddress) {
+        const privKeySigner = process.env[`PRIVATE_KEY_KMS_SIGNER_${idx}`];
+        const kmsSigner = new ethers.Wallet(privKeySigner).connect(ethers.provider);
+        const tx = await kmsVerifier.addSigner(kmsSigner.address);
+        await tx.wait();
+        console.log(`KMS signer no${idx} (${kmsSigner.address}) was added to KMSVerifier contract`);
+      } else {
+        const kmsSignerAddress = process.env[`ADDRESS_KMS_SIGNER_${idx}`];
+        const tx = await kmsVerifier.addSigner(kmsSignerAddress);
+        await tx.wait();
+        console.log(`KMS signer no${idx} (${kmsSignerAddress}) was added to KMSVerifier contract`);
+      }
+    }
+  });

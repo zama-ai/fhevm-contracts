@@ -1,20 +1,34 @@
-import {
-  EBOOL_T,
-  EBYTES64_T,
-  EBYTES128_T,
-  EBYTES256_T,
-  EUINT4_T,
-  EUINT8_T,
-  EUINT16_T,
-  EUINT32_T,
-  EUINT64_T,
-  EUINT128_T,
-  EUINT160_T,
-  EUINT256_T,
-  verifyType,
-} from "./handleTypeCheck";
 import { Signers } from "./signers";
-import { FhevmInstances } from "./types";
+import type { FhevmInstances } from "./types";
+
+const EBOOL_T = 0;
+const EUINT4_T = 1;
+const EUINT8_T = 2;
+const EUINT16_T = 3;
+const EUINT32_T = 4;
+const EUINT64_T = 5;
+const EUINT128_T = 6;
+const EUINT160_T = 7; // @dev It is the one for eaddresses.
+const EUINT256_T = 8;
+const EBYTES64_T = 9;
+const EBYTES128_T = 10;
+const EBYTES256_T = 11;
+
+export function verifyType(handle: bigint, expectedType: number) {
+  if (handle === 0n) {
+    throw "Handle is not initialized";
+  }
+
+  if (handle.toString(2).length > 256) {
+    throw "Handle is not a bytes32";
+  }
+
+  const typeCt = handle >> 8n;
+
+  if (Number(typeCt % 256n) !== expectedType) {
+    throw "Wrong encrypted type for the handle";
+  }
+}
 
 export async function reencryptEbool(
   signers: Signers,
@@ -24,7 +38,7 @@ export async function reencryptEbool(
   contractAddress: string,
 ): Promise<boolean> {
   verifyType(handle, EBOOL_T);
-  return reencryptHandle(signers, instances, user, handle, contractAddress);
+  return (await reencryptHandle(signers, instances, user, handle, contractAddress)) === 1n;
 }
 
 export async function reencryptEuint4(
@@ -93,7 +107,7 @@ export async function reencryptEuint128(
   return reencryptHandle(signers, instances, user, handle, contractAddress);
 }
 
-export async function reencryptEAddress(
+export async function reencryptEaddress(
   signers: Signers,
   instances: FhevmInstances,
   user: string,

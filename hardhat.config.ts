@@ -1,4 +1,5 @@
 import "@nomicfoundation/hardhat-toolbox";
+import "@openzeppelin/hardhat-upgrades";
 import dotenv from "dotenv";
 import * as fs from "fs-extra";
 import "hardhat-deploy";
@@ -44,8 +45,8 @@ if (!mnemonic) {
 const chainIds = {
   zama: 8009,
   local: 9000,
-  localNetwork1: 9000,
-  multipleValidatorTestnet: 8009,
+  localCoprocessor: 12345,
+  sepolia: 11155111,
 };
 
 function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
@@ -54,15 +55,14 @@ function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
     case "local":
       jsonRpcUrl = "http://localhost:8545";
       break;
-    case "localNetwork1":
-      jsonRpcUrl = "http://127.0.0.1:9650/ext/bc/fhevm/rpc";
-      break;
-    case "multipleValidatorTestnet":
-      jsonRpcUrl = "https://rpc.fhe-ethermint.zama.ai";
+    case "localCoprocessor":
+      jsonRpcUrl = "http://localhost:8745";
       break;
     case "zama":
       jsonRpcUrl = "https://devnet.zama.ai";
       break;
+    case "sepolia":
+      jsonRpcUrl = process.env.SEPOLIA_RPC_URL!;
   }
   return {
     accounts: {
@@ -81,38 +81,56 @@ task("coverage").setAction(async (taskArgs, hre, runSuper) => {
   await runSuper(taskArgs);
 });
 
+function replaceImportStatement(filePath: string, oldImport: string, newImport: string): void {
+  try {
+    let fileContent = fs.readFileSync(filePath, "utf-8");
+    fileContent = fileContent.replace(oldImport, newImport);
+    fs.writeFileSync(filePath, fileContent, "utf-8");
+  } catch (error) {
+    console.error(`Error updating file: ${error}`);
+  }
+}
+
 task("test", async (taskArgs, hre, runSuper) => {
   // Run modified test task
   if (hre.network.name === "hardhat") {
     // in fhevm mode all this block is done when launching the node via `pnmp fhevm:start`
-    const privKeyDeployer = process.env.PRIVATE_KEY_GATEWAY_DEPLOYER;
-    await hre.run("task:computePredeployAddress", { privateKey: privKeyDeployer });
-    await hre.run("task:computeACLAddress");
-    await hre.run("task:computeTFHEExecutorAddress");
-    await hre.run("task:computeKMSVerifierAddress");
-
-    await hre.run("compile:specific", { contract: "contracts" });
-    const sourceDir = path.resolve(__dirname, "node_modules/fhevm/");
+    const privKeyGatewayDeployer = process.env.PRIVATE_KEY_GATEWAY_DEPLOYER;
+    const privKeyFhevmDeployer = process.env.PRIVATE_KEY_FHEVM_DEPLOYER;
+    await hre.run("task:computeGatewayAddress", { privateKey: privKeyGatewayDeployer });
+    await hre.run("task:computeACLAddress", { privateKey: privKeyFhevmDeployer });
+    await hre.run("task:computeTFHEExecutorAddress", { privateKey: privKeyFhevmDeployer });
+    await hre.run("task:computeKMSVerifierAddress", { privateKey: privKeyFhevmDeployer });
+    await hre.run("task:computeInputVerifierAddress", { privateKey: privKeyFhevmDeployer, useAddress: false });
+    await hre.run("task:computeFHEPaymentAddress", { privateKey: privKeyFhevmDeployer });
+    await hre.run("compile:specific", { contract: "contracts/" });
+    const sourceDir = path.resolve(__dirname, "node_modules/fhevm-core-contracts/");
     const destinationDir = path.resolve(__dirname, "fhevmTemp/");
     fs.copySync(sourceDir, destinationDir, { dereference: true });
-    await hre.run("compile:specific", { contract: "fhevmTemp/lib" });
-    await hre.run("compile:specific", { contract: "fhevmTemp/gateway" });
-    const abiDir = path.resolve(__dirname, "abi");
-    fs.ensureDirSync(abiDir);
-    const sourceFile = path.resolve(__dirname, "artifacts/fhevmTemp/lib/TFHEExecutor.sol/TFHEExecutor.json");
-    const destinationFile = path.resolve(abiDir, "TFHEExecutor.json");
-    fs.copyFileSync(sourceFile, destinationFile);
 
-    const targetAddress = "0x000000000000000000000000000000000000005d";
-    const MockedPrecompile = await hre.artifacts.readArtifact("MockedPrecompile");
-    const bytecode = MockedPrecompile.deployedBytecode;
-    await hre.network.provider.send("hardhat_setCode", [targetAddress, bytecode]);
-    console.log(`Code of Mocked Pre-compile set at address: ${targetAddress}`);
+    const sourceDir2 = path.resolve("./node_modules/fhevm/gateway/GatewayContract.sol");
+    const destinationFilePath = path.join(destinationDir, "GatewayContract.sol");
+    fs.copySync(sourceDir2, destinationFilePath, { dereference: true });
+    const oldImport = `import "../lib/TFHE.sol";`;
+    const newImport = `import "fhevm/lib/TFHE.sol";`;
+    replaceImportStatement(destinationFilePath, oldImport, newImport);
+    const sourceDir3 = path.resolve("./node_modules/fhevm/gateway/IKMSVerifier.sol");
+    const destinationFilePath3 = path.join(destinationDir, "IKMSVerifier.sol");
+    fs.copySync(sourceDir3, destinationFilePath3, { dereference: true });
 
-    await hre.run("task:deployACL");
-    await hre.run("task:deployTFHEExecutor");
-    await hre.run("task:deployKMSVerifier");
-    await hre.run("task:launchFhevm", { skipGetCoin: false });
+    await hre.run("compile:specific", { contract: "fhevmTemp/" });
+    await hre.run("task:faucetToPrivate", { privateKey: privKeyFhevmDeployer });
+    await hre.run("task:deployACL", { privateKey: privKeyFhevmDeployer });
+    await hre.run("task:deployTFHEExecutor", { privateKey: privKeyFhevmDeployer });
+    await hre.run("task:deployKMSVerifier", { privateKey: privKeyFhevmDeployer });
+    await hre.run("task:deployInputVerifier", { privateKey: privKeyFhevmDeployer });
+    await hre.run("task:deployFHEPayment", { privateKey: privKeyFhevmDeployer });
+    await hre.run("task:addSigners", {
+      numSigners: process.env.NUM_KMS_SIGNERS!,
+      privateKey: privKeyFhevmDeployer,
+      useAddress: false,
+    });
+    await hre.run("task:launchFhevm", { skipGetCoin: false, useAddress: false });
   }
   await runSuper();
 });
@@ -139,11 +157,11 @@ const config: HardhatUserConfig = {
         path: "m/44'/60'/0'/0",
       },
     },
+    sepolia: getChainConfig("sepolia"),
     zama: getChainConfig("zama"),
     localDev: getChainConfig("local"),
     local: getChainConfig("local"),
-    localNetwork1: getChainConfig("localNetwork1"),
-    multipleValidatorTestnet: getChainConfig("multipleValidatorTestnet"),
+    localCoprocessor: getChainConfig("localCoprocessor"),
   },
   paths: {
     artifacts: "./artifacts",

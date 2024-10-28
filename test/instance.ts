@@ -1,5 +1,11 @@
 import dotenv from "dotenv";
-import { clientKeyDecryptor, createInstance as createFhevmInstance, getCiphertextCallParams } from "fhevmjs";
+import {
+  clientKeyDecryptor,
+  createEIP712,
+  createInstance as createFhevmInstance,
+  generateKeypair,
+  getCiphertextCallParams,
+} from "fhevmjs";
 import { readFileSync } from "fs";
 import * as fs from "fs";
 import { ethers, ethers as hethers, network } from "hardhat";
@@ -10,12 +16,17 @@ import { awaitCoprocessor, getClearText } from "./coprocessorUtils";
 import { createEncryptedInputMocked, reencryptRequestMocked } from "./fhevmjsMocked";
 import {
   EBOOL_T,
+  EBYTES64_T,
+  EBYTES128_T,
+  EBYTES256_T,
   EUINT4_T,
   EUINT8_T,
   EUINT16_T,
   EUINT32_T,
   EUINT64_T,
+  EUINT128_T,
   EUINT160_T,
+  EUINT256_T,
   verifyType,
 } from "./handleTypeCheck";
 import type { Signers } from "./signers";
@@ -25,16 +36,23 @@ const FHE_CLIENT_KEY_PATH = process.env.FHE_CLIENT_KEY_PATH;
 
 let clientKey: Uint8Array | undefined;
 
-const parsedEnvACL = dotenv.parse(fs.readFileSync("node_modules/fhevm/lib/.env.acl"));
-const aclAdd = parsedEnvACL.ACL_CONTRACT_ADDRESS;
+const kmsAdd = dotenv.parse(
+  fs.readFileSync("node_modules/fhevm-core-contracts/addresses/.env.kmsverifier"),
+).KMS_VERIFIER_CONTRACT_ADDRESS;
+
+const aclAdd = dotenv.parse(
+  fs.readFileSync("node_modules/fhevm-core-contracts/addresses/.env.acl"),
+).ACL_CONTRACT_ADDRESS;
 
 const createInstanceMocked = async () => {
-  const instance = await createFhevmInstance({
-    chainId: network.config.chainId,
-  });
-  instance.reencrypt = reencryptRequestMocked;
-  instance.createEncryptedInput = createEncryptedInputMocked;
-  instance.getPublicKey = () => "0xFFAA44433";
+  const instance = {
+    reencrypt: reencryptRequestMocked,
+    createEncryptedInput: createEncryptedInputMocked,
+    getPublicKey: () => "0xFFAA44433",
+    generateKeypair: generateKeypair,
+    createEIP712: createEIP712(network.config.chainId),
+  };
+
   return instance;
 };
 
@@ -60,8 +78,9 @@ export const createInstances = async (accounts: Signers): Promise<FhevmInstances
 export const createInstance = async () => {
   const instance = await createFhevmInstance({
     networkUrl: network.config.url,
+    kmsContractAddress: kmsAdd,
+    aclContractAddress: aclAdd,
     gatewayUrl: "http://localhost:7077",
-    aclAddress: aclAdd,
   });
   return instance;
 };
@@ -210,6 +229,47 @@ export const decrypt64 = async (handle: bigint): Promise<bigint> => {
  * In production, decryption is only possible via an asyncronous on-chain call to the Gateway.
  *
  * @param {bigint} handle to decrypt
+ * @returns {bigint}
+ */
+
+export const decrypt128 = async (handle: bigint): Promise<bigint> => {
+  verifyType(handle, EUINT128_T);
+  if (network.name === "hardhat") {
+    await awaitCoprocessor();
+    return BigInt(await getClearText(handle));
+  } else {
+    return getDecryptor().decrypt128(await getCiphertext(handle, ethers));
+  }
+};
+
+/**
+ * @debug
+ * This function is intended for debugging purposes only.
+ * It cannot be used in production code, since it requires the FHE private key for decryption.
+ * In production, decryption is only possible via an asyncronous on-chain call to the Gateway.
+ *
+ * @param {bigint} handle to decrypt
+ * @returns {bigint}
+ */
+
+export const decrypt256 = async (handle: bigint): Promise<bigint> => {
+  verifyType(handle, EUINT256_T);
+  if (network.name === "hardhat") {
+    await awaitCoprocessor();
+
+    return BigInt(await getClearText(handle));
+  } else {
+    return getDecryptor().decrypt256(await getCiphertext(handle, ethers));
+  }
+};
+
+/**
+ * @debug
+ * This function is intended for debugging purposes only.
+ * It cannot be used in production code, since it requires the FHE private key for decryption.
+ * In production, decryption is only possible via an asyncronous on-chain call to the Gateway.
+ *
+ * @param {bigint} handle to decrypt
  * @returns {string}
  */
 export const decryptAddress = async (handle: bigint): Promise<string> => {
@@ -222,5 +282,69 @@ export const decryptAddress = async (handle: bigint): Promise<string> => {
     return handleStr;
   } else {
     return getDecryptor().decryptAddress(await getCiphertext(handle, ethers));
+  }
+};
+
+/**
+ * @debug
+ * This function is intended for debugging purposes only.
+ * It cannot be used in production code, since it requires the FHE private key for decryption.
+ * In production, decryption is only possible via an asyncronous on-chain call to the Gateway.
+ *
+ * @param {bigint} a handle to decrypt
+ * @returns {bigint}
+ */
+
+export const decryptEbytes64 = async (handle: bigint): Promise<bigint> => {
+  verifyType(handle, EBYTES64_T);
+
+  if (network.name === "hardhat") {
+    await awaitCoprocessor();
+
+    return BigInt(await getClearText(handle));
+  } else {
+    return getDecryptor().decryptEbytes64(await getCiphertext(handle, ethers));
+  }
+};
+
+/**
+ * @debug
+ * This function is intended for debugging purposes only.
+ * It cannot be used in production code, since it requires the FHE private key for decryption.
+ * In production, decryption is only possible via an asyncronous on-chain call to the Gateway.
+ *
+ * @param {bigint} handle to decrypt
+ * @returns {bigint}
+ */
+export const decryptEbytes128 = async (handle: bigint): Promise<bigint> => {
+  verifyType(handle, EBYTES128_T);
+
+  if (network.name === "hardhat") {
+    await awaitCoprocessor();
+
+    return BigInt(await getClearText(handle));
+  } else {
+    return getDecryptor().decryptEbytes128(await getCiphertext(handle, ethers));
+  }
+};
+
+/**
+ * @debug
+ * This function is intended for debugging purposes only.
+ * It cannot be used in production code, since it requires the FHE private key for decryption.
+ * In production, decryption is only possible via an asyncronous on-chain call to the Gateway.
+ *
+ * @param {bigint} handle to decrypt
+ * @returns {bigint}
+ */
+export const decryptEbytes256 = async (handle: bigint): Promise<bigint> => {
+  verifyType(handle, EBYTES256_T);
+
+  if (network.name === "hardhat") {
+    await awaitCoprocessor();
+
+    return BigInt(await getClearText(handle));
+  } else {
+    return getDecryptor().decryptEbytes256(await getCiphertext(handle, ethers));
   }
 };

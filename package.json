@@ -3,7 +3,7 @@
   "description": "fhEVM contracts",
   "version": "0.1.0",
   "author": {
-    "name": "Zama",
+    "name": "zama-ai",
     "url": "https://github.com/zama-ai"
   },
   "license": "BSD-3-Clause",
@@ -13,13 +13,14 @@
     "@nomicfoundation/hardhat-network-helpers": "^1.0.10",
     "@nomicfoundation/hardhat-toolbox": "^3.0.0",
     "@nomicfoundation/hardhat-verify": "^1.1.1",
+    "@openzeppelin/hardhat-upgrades": "^3.5.0",
     "@trivago/prettier-plugin-sort-imports": "^4.3.0",
     "@typechain/ethers-v6": "^0.4.3",
     "@typechain/hardhat": "^8.0.3",
     "@types/chai": "^4.3.12",
     "@types/fs-extra": "^9.0.13",
     "@types/mocha": "^10.0.6",
-    "@types/node": "^18.19.23",
+    "@types/node": "^18.19.59",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "chai": "^4.4.1",
@@ -68,8 +69,7 @@
     "access": "public"
   },
   "scripts": {
-    "clean": "rimraf ./artifacts ./cache ./coverage ./types ./coverage.json && npm run typechain",
-    "compile": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat compile",
+    "clean": "rimraf ./fhevmTemp ./artifacts ./cache ./coverage ./types ./coverage.json && pnpm typechain",    "compile": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat compile",
     "deploy:contracts": "hardhat deploy",
     "docgen": "hardhat docgen",
     "lint": "npm run lint:sol && npm run lint:ts && npm run prettier:check",
@@ -94,6 +94,7 @@
     "fhevm:faucet:eve": "docker exec -i fhevm faucet $(npx hardhat task:getEthereumAddressEve)"
   },
   "dependencies": {
+    "@openzeppelin/contracts-upgradeable": "5.0.2",
     "@openzeppelin/contracts": "5.0.2",
     "extra-bigint": "^1.1.18",
     "sqlite3": "^5.1.7"
