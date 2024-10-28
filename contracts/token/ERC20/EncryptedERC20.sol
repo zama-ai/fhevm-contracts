@@ -38,6 +38,7 @@ abstract contract EncryptedERC20 is IEncryptedERC20 {
      * @param symbol_ Symbol.
      */
     constructor(string memory name_, string memory symbol_) {
+        TFHE.setFHEVM(FHEVMConfig.defaultConfig());
         _name = name_;
         _symbol = symbol_;
     }
@@ -149,7 +150,7 @@ abstract contract EncryptedERC20 is IEncryptedERC20 {
 
     function _approve(address owner, address spender, euint64 amount) internal virtual {
         _allowances[owner][spender] = amount;
-        TFHE.allow(amount, address(this));
+        TFHE.allowThis(amount);
         TFHE.allow(amount, owner);
         TFHE.allow(amount, spender);
     }
@@ -159,11 +160,11 @@ abstract contract EncryptedERC20 is IEncryptedERC20 {
         euint64 transferValue = TFHE.select(isTransferable, amount, TFHE.asEuint64(0));
         euint64 newBalanceTo = TFHE.add(_balances[to], transferValue);
         _balances[to] = newBalanceTo;
-        TFHE.allow(newBalanceTo, address(this));
+        TFHE.allowThis(newBalanceTo);
         TFHE.allow(newBalanceTo, to);
         euint64 newBalanceFrom = TFHE.sub(_balances[from], transferValue);
         _balances[from] = newBalanceFrom;
-        TFHE.allow(newBalanceFrom, address(this));
+        TFHE.allowThis(newBalanceFrom);
         TFHE.allow(newBalanceFrom, from);
         emit Transfer(from, to);
     }
