@@ -143,6 +143,7 @@ export const reencryptRequestMocked = async (
   const acl = aclFactory.attach(aclAdd);
   const userAllowed = await acl.persistAllowed(handle, userAddress);
   const contractAllowed = await acl.persistAllowed(handle, contractAddress);
+
   const isAllowed = userAllowed && contractAllowed;
   if (!isAllowed) {
     throw new Error("User is not authorized to reencrypt this handle!");

@@ -2,16 +2,20 @@ import { expect } from "chai";
 
 import { createInstances } from "../instance";
 import { getSigners, initSigners } from "../signers";
-import { deployEncryptedERC20Fixture, reencryptAllowance, reencryptBalance } from "./EncryptedERC20.fixture";
+import { reencryptAllowance, reencryptBalance } from "./EncryptedERC20.fixture";
+import { checkErrorCode, deployEncryptedERC20WithErrorsFixture } from "./EncryptedERC20WithErrors.fixture";
 
-describe("EncryptedERC20", function () {
+describe("EncryptedERC20WithErrors", function () {
+  const DEFAULT_TRANSFER_ID = BigInt(0);
+  const DEFAULT_SECOND_TRANSFER_ID = BigInt(1);
+
   before(async function () {
     await initSigners(2);
     this.signers = await getSigners();
   });
 
   beforeEach(async function () {
-    const contract = await deployEncryptedERC20Fixture(this.signers, "Naraggara", "NARA", "alice");
+    const contract = await deployEncryptedERC20WithErrorsFixture(this.signers, "Naraggara", "NARA", "alice");
     this.encryptedERC20Address = await contract.getAddress();
     this.encryptedERC20 = contract;
     this.instances = await createInstances(this.signers);
@@ -22,6 +26,7 @@ describe("EncryptedERC20", function () {
     expect(await this.encryptedERC20.name()).to.equal("Naraggara");
     expect(await this.encryptedERC20.symbol()).to.equal("NARA");
     expect(await this.encryptedERC20.decimals()).to.be.eq(BigInt(6));
+    expect(await this.encryptedERC20.getTotalNumberErrors()).to.be.eq(BigInt(2));
   });
 
   it("should mint the contract", async function () {
@@ -47,11 +52,13 @@ describe("EncryptedERC20", function () {
     input.add64(transferAmount);
     const encryptedTransferAmount = await input.encrypt();
 
-    tx = await this.encryptedERC20["transfer(address,bytes32,bytes)"](
-      this.signers.bob.address,
-      encryptedTransferAmount.handles[0],
-      encryptedTransferAmount.inputProof,
-    );
+    tx = await this.encryptedERC20
+      .connect(this.signers.alice)
+      ["transfer(address,bytes32,bytes)"](
+        this.signers.bob.address,
+        encryptedTransferAmount.handles[0],
+        encryptedTransferAmount.inputProof,
+      );
 
     await tx.wait();
 
@@ -64,6 +71,30 @@ describe("EncryptedERC20", function () {
     expect(
       await reencryptBalance(this.signers, this.instances, "bob", this.encryptedERC20, this.encryptedERC20Address),
     ).to.equal(transferAmount);
+
+    // Check the error code matches no error
+    expect(
+      await checkErrorCode(
+        this.signers,
+        this.instances,
+        "alice",
+        DEFAULT_TRANSFER_ID,
+        this.encryptedERC20,
+        this.encryptedERC20Address,
+      ),
+    ).to.equal("NO_ERROR");
+
+    // Check that both the from/to address can read the error code
+    expect(
+      await checkErrorCode(
+        this.signers,
+        this.instances,
+        "bob",
+        DEFAULT_TRANSFER_ID,
+        this.encryptedERC20,
+        this.encryptedERC20Address,
+      ),
+    ).to.equal("NO_ERROR");
   });
 
   it("should not transfer tokens between two users if transfer amount is higher than balance", async function () {
@@ -94,6 +125,18 @@ describe("EncryptedERC20", function () {
     expect(
       await reencryptBalance(this.signers, this.instances, "bob", this.encryptedERC20, this.encryptedERC20Address),
     ).to.equal(0);
+
+    // Check that the error code matches if balance is not sufficient
+    expect(
+      await checkErrorCode(
+        this.signers,
+        this.instances,
+        "bob",
+        DEFAULT_TRANSFER_ID,
+        this.encryptedERC20,
+        this.encryptedERC20Address,
+      ),
+    ).to.equal("UNSUFFICIENT_BALANCE");
   });
 
   it("should be able to transferFrom only if allowance is sufficient", async function () {
@@ -154,6 +197,18 @@ describe("EncryptedERC20", function () {
       await reencryptBalance(this.signers, this.instances, "bob", this.encryptedERC20, this.encryptedERC20Address),
     ).to.equal(0); // check that transfer did not happen, as expected
 
+    // Check that the error code matches if balance is not sufficient
+    expect(
+      await checkErrorCode(
+        this.signers,
+        this.instances,
+        "bob",
+        DEFAULT_TRANSFER_ID,
+        this.encryptedERC20,
+        this.encryptedERC20Address,
+      ),
+    ).to.equal("UNSUFFICIENT_BALANCE");
+
     const inputBob2 = this.instances.bob.createEncryptedInput(this.encryptedERC20Address, this.signers.bob.address);
     inputBob2.add64(transferAmount); // below allowance so next tx should send token
     const encryptedTransferAmount2 = await inputBob2.encrypt();
@@ -187,6 +242,18 @@ describe("EncryptedERC20", function () {
         this.encryptedERC20Address,
       ),
     ).to.equal(0);
+
+    // Check that the error code matches if allowance is not sufficient
+    expect(
+      await checkErrorCode(
+        this.signers,
+        this.instances,
+        "bob",
+        DEFAULT_SECOND_TRANSFER_ID,
+        this.encryptedERC20,
+        this.encryptedERC20Address,
+      ),
+    ).to.equal("UNSUFFICIENT_APPROVAL");
   });
 
   it("should not be able to read the allowance if not spender/owner after initialization", async function () {
@@ -339,6 +406,53 @@ describe("EncryptedERC20", function () {
         .connect(this.signers.bob)
         .transferFrom(this.signers.alice.address, this.signers.bob.address, allowanceHandleAlice),
     ).to.be.revertedWithCustomError(this.encryptedERC20, "TFHESenderNotAllowed");
+  });
+
+  it("cannot reencrypt errors if the account is not a participant of the transfer", async function () {
+    const mintAmount = 10_000;
+    const transferAmount = 1337;
+    let tx = await this.encryptedERC20.connect(this.signers.alice).mint(mintAmount);
+    await tx.wait();
+
+    const input = this.instances.alice.createEncryptedInput(this.encryptedERC20Address, this.signers.alice.address);
+    input.add64(transferAmount);
+    const encryptedTransferAmount = await input.encrypt();
+
+    tx = await this.encryptedERC20
+      .connect(this.signers.alice)
+      ["transfer(address,bytes32,bytes)"](
+        this.signers.bob.address,
+        encryptedTransferAmount.handles[0],
+        encryptedTransferAmount.inputProof,
+      );
+
+    const errorCodeHandle = await this.encryptedERC20.getErrorCodeForTransferId(DEFAULT_TRANSFER_ID);
+
+    const { publicKey: publicKeyCarol, privateKey: privateKeyCarol } = this.instances.carol.generateKeypair();
+    const eip712Carol = this.instances.carol.createEIP712(publicKeyCarol, this.encryptedERC20Address);
+    const signatureCarol = await this.signers.carol.signTypedData(
+      eip712Carol.domain,
+      { Reencrypt: eip712Carol.types.Reencrypt },
+      eip712Carol.message,
+    );
+
+    try {
+      await this.instances.bob.reencrypt(
+        errorCodeHandle,
+        privateKeyCarol,
+        publicKeyCarol,
+        signatureCarol.replace("0x", ""),
+        this.encryptedERC20Address,
+        this.signers.carol.address,
+      );
+      expect.fail(
+        "Expected an error to be thrown - Carol should not be able to read the error message from the transaction between Alice and Bob",
+      );
+    } catch (error) {
+      if (error instanceof Error) {
+        expect(error.message).to.equal("User is not authorized to reencrypt this handle!");
+      }
+    }
   });
 
   it("sender who is not allowed cannot approve using a handle from another account", async function () {
