@@ -33,9 +33,7 @@ contract EncryptedERC20WithErrorsMintable is Ownable2Step, EncryptedERC20WithErr
      * @param amount Amount of tokens to mint.
      */
     function mint(uint64 amount) public onlyOwner {
-        _balances[msg.sender] = TFHE.add(_balances[msg.sender], amount);
-        TFHE.allow(_balances[msg.sender], address(this));
-        TFHE.allow(_balances[msg.sender], msg.sender);
+        _unsafeMint(msg.sender, TFHE.asEuint64(amount));
         /// @dev Since _totalSupply is not encrypted and _totalSupply >= balances[msg.sender],
         /// the next line contains an overflow check for the encrypted operation above.
         _totalSupply = _totalSupply + amount;

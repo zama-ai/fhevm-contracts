@@ -155,6 +155,17 @@ abstract contract EncryptedERC20 is IEncryptedERC20 {
         TFHE.allow(amount, spender);
     }
 
+    /**
+     * @dev It does not incorporate any overflow check. It must be implemented
+     *      by the function calling it.
+     */
+    function _unsafeMint(address account, euint64 amount) internal virtual {
+        _balances[msg.sender] = TFHE.add(_balances[account], amount);
+        TFHE.allowThis(_balances[account]);
+        TFHE.allow(_balances[account], account);
+        emit Transfer(address(0), account);
+    }
+
     function _transfer(address from, address to, euint64 amount, ebool isTransferable) internal virtual {
         // Add to the balance of `to` and subract from the balance of `from`.
         euint64 transferValue = TFHE.select(isTransferable, amount, TFHE.asEuint64(0));
