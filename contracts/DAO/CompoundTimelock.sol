@@ -3,6 +3,9 @@ pragma solidity ^0.8.24;
 
 import { ICompoundTimelock } from "./ICompoundTimelock.sol";
 
+/**
+ * @title       CompoundTimelock
+ */
 contract CompoundTimelock is ICompoundTimelock {
     event NewAdmin(address indexed newAdmin);
     event NewPendingAdmin(address indexed newPendingAdmin);

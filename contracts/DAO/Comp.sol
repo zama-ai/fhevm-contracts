@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import "fhevm/lib/TFHE.sol";
 import { Ownable2Step, Ownable } from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import { EncryptedERC20 } from "../token/ERC20/EncryptedERC20.sol";
+import { IComp } from "./IComp.sol";
 
 /**
  * @title       Comp
@@ -13,7 +14,7 @@ import { EncryptedERC20 } from "../token/ERC20/EncryptedERC20.sol";
  *              with an account's balance.
  * @dev         The delegation of votes leaks information about the account's encrypted balance to the delegate.
  */
-contract Comp is EncryptedERC20, Ownable2Step {
+contract Comp is IComp, EncryptedERC20, Ownable2Step {
     /// @notice Emitted when an account changes its delegate.
     event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
 
