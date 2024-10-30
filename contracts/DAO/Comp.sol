@@ -1,259 +1,234 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity ^0.8.24;
 
-import "fhevm/abstracts/Reencrypt.sol";
 import "fhevm/lib/TFHE.sol";
-import "../token/ERC20/EncryptedERC20.sol";
-import "@openzeppelin/contracts/access/Ownable2Step.sol";
+import { Ownable2Step, Ownable } from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import { EncryptedERC20 } from "../token/ERC20/EncryptedERC20.sol";
 
+/**
+ * @title       Comp
+ * @notice      This contract inherits EncryptedERC20.
+ *              This is based on the Comp.sol contract written by Compound Labs.
+ *              It uses encrypted votes to delegate the voting power associated
+ *              with an account's balance.
+ * @dev         The delegation of votes leaks information about the account's encrypted balance to the delegate.
+ */
 contract Comp is EncryptedERC20, Ownable2Step {
-    /// @notice allowed smart contract
-    address public allowedContract;
+    /// @notice Emitted when an account changes its delegate.
+    event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
 
-    /// @notice A record of each accounts delegate
-    mapping(address => address) public delegates;
+    /// @notice Emitted when a delegate account's vote balance changes.
+    event DelegateVotesChanged(address indexed delegate);
 
-    /// @notice A checkpoint for marking number of votes from a given block
+    /// @notice Emitted when the contract that can reencrypt changes.
+    event NewAllowedContract(address indexed allowedContract);
+
+    /// @notice          A checkpoint for marking number of votes from a given block.
+    /// @param fromBlock Block from where the checkpoint applies.
+    /// @param votes     Total number of votes for the account power.
+    /// @dev             In Compound's implementation, `fromBlock` is defined as uint32 to allow tight-packing
+    ///                  However, in this implementations `votes` is uint256-based.
+    ///                  `fromBlock`'s type is set to uint256, which simplifies the codebase.
     struct Checkpoint {
-        uint32 fromBlock;
+        uint256 fromBlock;
         euint64 votes;
     }
 
-    /// @notice A record of votes checkpoints for each account, by index
-    mapping(address => mapping(uint32 => Checkpoint)) internal checkpoints;
-
-    /// @notice The number of checkpoints for each account
-    mapping(address => uint32) public numCheckpoints;
-
-    /// @notice The EIP-712 typehash for the contract's domain
+    /// @notice The EIP-712 typehash for the contract's domain.
     bytes32 public constant DOMAIN_TYPEHASH =
         keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
 
-    /// @notice The EIP-712 typehash for the delegation struct used by the contract
+    /// @notice The EIP-712 typehash for the `Delegation` struct.
     bytes32 public constant DELEGATION_TYPEHASH =
         keccak256("Delegation(address delegatee,uint256 nonce,uint256 expiry)");
 
-    /// @notice A record of states for signing / validating signatures
-    mapping(address => uint256) public nonces;
+    /// @notice The smart contract that can access votes.
+    address public allowedContract;
 
-    /// @notice An event thats emitted when an account changes its delegate
-    event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
+    /// @notice A record of each account's delegate.
+    mapping(address account => address delegate) public delegates;
 
-    /// @notice An event thats emitted when a delegate account's vote balance changes
-    event DelegateVotesChanged(address indexed delegate);
+    /// @notice A record of states for signing/validating signatures.
+    mapping(address account => uint256 nonce) public nonces;
+
+    /// @notice The number of checkpoints for each account.
+    mapping(address account => uint32 checkpoints) public numCheckpoints;
+
+    /// @notice A record of votes checkpoints for an `account` using incremental indices.
+    mapping(address account => mapping(uint32 index => Checkpoint checkpoint)) internal checkpoints;
+
+    /// @notice Constant for zero using TFHE
+    /// @dev    Since it is expensive to compute 0, it is stored instead.
+    ///         However, is not possible to define it as constant due to TFHE constraints.
+    /* solhint-disable var-name-mixedcase*/
+    euint64 private _EUINT_64_ZERO;
 
     /**
-     * @notice Construct a new Comp token
+     * @param owner Owner address
      */
-    constructor(address account) EncryptedERC20("Compound", "COMP") Ownable(account) {
-        _mint(10000000e6, account); // 10 million Comp
+    constructor(address owner) EncryptedERC20("Compound", "COMP") Ownable(owner) {
+        _unsafeMint(owner, TFHE.asEuint64(10000000e6)); // 10 million Comp
+        _totalSupply = 10000000e6;
+
+        // @dev Define the constant in the storage.
+        _EUINT_64_ZERO = TFHE.asEuint64(0);
+
+        TFHE.allowThis(_EUINT_64_ZERO);
     }
 
     /**
-     * @notice Set allowed contract that can access votes
-     * @param contractAddress The address of the smart contract which may access votes
-     */
-    function setAllowedContract(address contractAddress) public onlyOwner {
-        allowedContract = contractAddress;
-    }
-
-    function _moveDelegates(address srcRep, address dstRep, euint64 amount) internal {
-        if (srcRep != dstRep) {
-            if (srcRep != address(0)) {
-                uint32 srcRepNum = numCheckpoints[srcRep];
-                euint64 srcRepOld = srcRepNum > 0 ? checkpoints[srcRep][srcRepNum - 1].votes : TFHE.asEuint64(0);
-                euint64 srcRepNew = srcRepOld - amount;
-                _writeCheckpoint(srcRep, srcRepNum, srcRepNew);
-            }
-
-            if (dstRep != address(0)) {
-                uint32 dstRepNum = numCheckpoints[dstRep];
-                euint64 dstRepOld = dstRepNum > 0 ? checkpoints[dstRep][dstRepNum - 1].votes : TFHE.asEuint64(0);
-                euint64 dstRepNew = dstRepOld + amount;
-                _writeCheckpoint(dstRep, dstRepNum, dstRepNew);
-            }
-        }
-    }
-
-    function _writeCheckpoint(address delegatee, uint32 nCheckpoints, euint64 newVotes) internal {
-        uint32 blockNumber = safe32(block.number, "Comp::_writeCheckpoint: block number exceeds 32 bits");
-
-        if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromBlock == blockNumber) {
-            checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;
-        } else {
-            checkpoints[delegatee][nCheckpoints] = Checkpoint(blockNumber, newVotes);
-            numCheckpoints[delegatee] = nCheckpoints + 1;
-        }
-
-        emit DelegateVotesChanged(delegatee);
-    }
-
-    /**
-     * @notice Delegate votes from `msg.sender` to `delegatee`
-     * @param delegatee The address to delegate votes to
+     * @notice          Delegate votes from `msg.sender` to `delegatee`.
+     * @param delegatee The address to delegate votes to.
      */
     function delegate(address delegatee) public {
         return _delegate(msg.sender, delegatee);
     }
 
-    function _transfer(
-        address from,
-        address to,
-        euint64 amount,
-        ebool isTransferable,
-        euint8 errorCode
-    ) internal override {
-        require(from != address(0), "Comp::_transferTokens: cannot transfer from the zero address");
-        require(to != address(0), "Comp::_transferTokens: cannot transfer to the zero address");
-        // Add to the balance of `to` and subract from the balance of `from`.
-        euint64 amountTransferred = TFHE.select(isTransferable, amount, TFHE.asEuint64(0));
-        balances[to] = balances[to] + amountTransferred;
-        balances[from] = balances[from] - amountTransferred;
-        uint256 transferId = saveError(errorCode);
-        emit Transfer(transferId, from, to);
-        AllowedErrorReencryption memory allowedErrorReencryption = AllowedErrorReencryption(
-            msg.sender,
-            getError(transferId)
-        );
-        allowedErrorReencryptions[transferId] = allowedErrorReencryption;
-        _moveDelegates(delegates[from], delegates[to], amountTransferred);
-    }
-
     /**
-     * @notice Delegates votes from signatory to `delegatee`
-     * @param delegatee The address to delegate votes to
-     * @param nonce The contract state required to match the signature
-     * @param expiry The time at which to expire the signature
-     * @param v The recovery byte of the signature
-     * @param r Half of the ECDSA signature pair
-     * @param s Half of the ECDSA signature pair
+     * @notice          Delegate votes from signatory to `delegatee`.
+     * @param delegatee The address to delegate votes to.
+     * @param nonce     The contract state required to match the signature.
+     * @param expiry    The time at which to expire the signature.
+     * @param v         The recovery byte of the signature.
+     * @param r         Half of the ECDSA signature pair.
+     * @param s         Half of the ECDSA signature pair.
      */
     function delegateBySig(address delegatee, uint256 nonce, uint256 expiry, uint8 v, bytes32 r, bytes32 s) public {
         bytes32 domainSeparator = keccak256(
-            abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name())), getChainId(), address(this))
+            abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name())), block.chainid, address(this))
         );
         bytes32 structHash = keccak256(abi.encode(DELEGATION_TYPEHASH, delegatee, nonce, expiry));
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
         address signatory = ecrecover(digest, v, r, s);
+
         require(signatory != address(0), "Comp::delegateBySig: invalid signature");
         require(nonce == nonces[signatory]++, "Comp::delegateBySig: invalid nonce");
         require(block.timestamp <= expiry, "Comp::delegateBySig: signature expired");
         return _delegate(signatory, delegatee);
     }
 
-    function getMyCurrentVotes(
-        bytes32 publicKey,
-        bytes calldata signature
-    ) external view onlySignedPublicKey(publicKey, signature) returns (bytes memory) {
-        uint32 nCheckpoints = numCheckpoints[msg.sender];
-        euint64 result = nCheckpoints > 0 ? checkpoints[msg.sender][nCheckpoints - 1].votes : TFHE.asEuint64(0);
-        return TFHE.reencrypt(result, publicKey, 0);
+    /**
+     * @notice              Determine the prior number of votes for an account as of a block number.
+     * @dev                 Block number must be a finalized block or else this function will revert.
+     *                      This function can change the state since the allowedContract needs access in the ACL
+     *                      contract.
+     * @param account       Account address.
+     * @param blockNumber   The block number to get the vote balance at.
+     * @return votes        Number of votes the account as of the given block number.
+     */
+    function getPriorVotesForAllowedContract(address account, uint256 blockNumber) external returns (euint64 votes) {
+        require(msg.sender == allowedContract, "Caller not allowed to call this function");
+        require(blockNumber < block.number, "Comp::getPriorVotes: not yet determined");
+        votes = _getPriorVote(account, blockNumber);
+        TFHE.allow(votes, msg.sender);
     }
 
     /**
-     * @notice Determine the prior number of votes for an account as of a block number
-     * @dev Block number must be a finalized block or else this function will revert to prevent misinformation.
-     * @param account The address of the account to check
-     * @param blockNumber The block number to get the vote balance at
-     * @return The number of votes the account had as of the given block
+     * @notice          Get current votes of account.
+     * @param  account  Account address
+     * @return votes    Current votes.
      */
-    function getPriorVotes(address account, uint256 blockNumber) external view onlyAllowedContract returns (euint64) {
-        require(blockNumber < block.number, "Comp::getPriorVotes: not yet determined");
-
+    function getCurrentVotes(address account) external view returns (euint64 votes) {
         uint32 nCheckpoints = numCheckpoints[account];
-        if (nCheckpoints == 0) {
-            return TFHE.asEuint64(0);
-        }
-
-        // First check most recent balance
-        if (checkpoints[account][nCheckpoints - 1].fromBlock <= blockNumber) {
-            return checkpoints[account][nCheckpoints - 1].votes;
-        }
-
-        // Next check implicit zero balance
-        if (checkpoints[account][0].fromBlock > blockNumber) {
-            return TFHE.asEuint64(0);
-        }
-
-        uint32 lower = 0;
-        uint32 upper = nCheckpoints - 1;
-        while (upper > lower) {
-            uint32 center = upper - (upper - lower) / 2; // ceil, avoiding overflow
-            Checkpoint memory cp = checkpoints[account][center];
-            if (cp.fromBlock == blockNumber) {
-                return cp.votes;
-            } else if (cp.fromBlock < blockNumber) {
-                lower = center;
-            } else {
-                upper = center - 1;
-            }
-        }
-        return checkpoints[account][lower].votes;
+        votes = nCheckpoints > 0 ? checkpoints[account][nCheckpoints - 1].votes : _EUINT_64_ZERO;
     }
 
-    function getMyPriorVotes(
-        uint256 blockNumber,
-        bytes32 publicKey,
-        bytes calldata signature
-    ) public view onlySignedPublicKey(publicKey, signature) returns (bytes memory) {
+    /**
+     * @notice              Get the prior number of votes for an account as of a block number.
+     * @dev                 Block number must be a finalized block or else this function will revert.
+     * @param account       Account address.
+     * @param blockNumber   The block number to get the vote balance at.
+     * @return votes        Number of votes the account as of the given block.
+     */
+    function getPriorVotes(address account, uint256 blockNumber) external view returns (euint64 votes) {
         require(blockNumber < block.number, "Comp::getPriorVotes: not yet determined");
+        return _getPriorVote(account, blockNumber);
+    }
 
-        uint32 nCheckpoints = numCheckpoints[msg.sender];
-        euint64 result;
-        if (nCheckpoints == 0) {
-            return TFHE.reencrypt(result, publicKey, 0);
-        }
-
-        // First check most recent balance
-        if (checkpoints[msg.sender][nCheckpoints - 1].fromBlock <= blockNumber) {
-            result = checkpoints[msg.sender][nCheckpoints - 1].votes;
-            return TFHE.reencrypt(result, publicKey, 0);
-        }
-
-        // Next check implicit zero balance
-        if (checkpoints[msg.sender][0].fromBlock > blockNumber) {
-            return TFHE.reencrypt(result, publicKey, 0);
-        }
-
-        uint32 lower = 0;
-        uint32 upper = nCheckpoints - 1;
-        while (upper > lower) {
-            uint32 center = upper - (upper - lower) / 2; // ceil, avoiding overflow
-            Checkpoint memory cp = checkpoints[msg.sender][center];
-            if (cp.fromBlock == blockNumber) {
-                result = cp.votes;
-                return TFHE.reencrypt(result, publicKey, 0);
-            } else if (cp.fromBlock < blockNumber) {
-                lower = center;
-            } else {
-                upper = center - 1;
-            }
-        }
-        result = checkpoints[msg.sender][lower].votes;
-        return TFHE.reencrypt(result, publicKey, 0);
+    /**
+     * @notice                  Set an allowed contract that can access votes.
+     * @param contractAddress   The address of the smart contract that may access votes.
+     */
+    function setAllowedContract(address contractAddress) public onlyOwner {
+        allowedContract = contractAddress;
+        emit NewAllowedContract(contractAddress);
     }
 
     function _delegate(address delegator, address delegatee) internal {
         address currentDelegate = delegates[delegator];
-        euint64 delegatorBalance = balances[delegator];
+        euint64 delegatorBalance = _balances[delegator];
+        TFHE.allowThis(delegatorBalance);
+        TFHE.allow(delegatorBalance, msg.sender);
         delegates[delegator] = delegatee;
 
         emit DelegateChanged(delegator, currentDelegate, delegatee);
-
         _moveDelegates(currentDelegate, delegatee, delegatorBalance);
     }
 
-    function safe32(uint256 n, string memory errorMessage) internal pure returns (uint32) {
-        require(n < 2 ** 32, errorMessage);
-        return uint32(n);
+    function _getPriorVote(address account, uint256 blockNumber) internal view returns (euint64 votes) {
+        uint32 nCheckpoints = numCheckpoints[account];
+
+        if (nCheckpoints == 0) {
+            votes = _EUINT_64_ZERO;
+        } else if (checkpoints[account][nCheckpoints - 1].fromBlock <= blockNumber) {
+            // First check most recent balance
+            votes = checkpoints[account][nCheckpoints - 1].votes;
+        } else if (checkpoints[account][0].fromBlock > blockNumber) {
+            // Next check implicit zero balance
+            votes = _EUINT_64_ZERO;
+        } else {
+            // Search for the voting power at the block number
+            uint32 lower = 0;
+            uint32 upper = nCheckpoints - 1;
+            while (upper > lower) {
+                uint32 center = upper - (upper - lower) / 2; // ceil, avoiding overflow
+                Checkpoint memory cp = checkpoints[account][center];
+                if (cp.fromBlock == blockNumber) {
+                    return cp.votes;
+                } else if (cp.fromBlock < blockNumber) {
+                    lower = center;
+                } else {
+                    upper = center - 1;
+                }
+            }
+            votes = checkpoints[account][lower].votes;
+        }
     }
 
-    function getChainId() internal view returns (uint256) {
-        return block.chainid;
+    function _moveDelegates(address srcRep, address dstRep, euint64 amount) internal {
+        if (srcRep != dstRep) {
+            if (srcRep != address(0)) {
+                uint32 srcRepNum = numCheckpoints[srcRep];
+                euint64 srcRepOld = srcRepNum > 0 ? checkpoints[srcRep][srcRepNum - 1].votes : _EUINT_64_ZERO;
+                euint64 srcRepNew = TFHE.sub(srcRepOld, amount); // srcRepOld - amount;
+                _writeCheckpoint(srcRep, srcRepNum, srcRepNew);
+            }
+
+            if (dstRep != address(0)) {
+                uint32 dstRepNum = numCheckpoints[dstRep];
+                euint64 dstRepOld = dstRepNum > 0 ? checkpoints[dstRep][dstRepNum - 1].votes : _EUINT_64_ZERO;
+                euint64 dstRepNew = TFHE.add(dstRepOld, amount); // dstRepOld + amount;
+                _writeCheckpoint(dstRep, dstRepNum, dstRepNew);
+            }
+        }
     }
 
-    modifier onlyAllowedContract() {
-        require(msg.sender == allowedContract, "Caller not allowed to call this function");
-        _;
+    /// @dev Original restrictions to transfer from/to address(0) are removed
+    function _transfer(address from, address to, euint64 amount, ebool isTransferable) internal override {
+        super._transfer(from, to, amount, isTransferable);
+        _moveDelegates(delegates[from], delegates[to], amount);
+    }
+
+    function _writeCheckpoint(address delegatee, uint32 nCheckpoints, euint64 newVotes) internal {
+        if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromBlock == block.number) {
+            checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;
+        } else {
+            checkpoints[delegatee][nCheckpoints] = Checkpoint(block.number, newVotes);
+            numCheckpoints[delegatee] = nCheckpoints + 1;
+        }
+
+        TFHE.allowThis(newVotes);
+        TFHE.allow(newVotes, delegatee);
+        emit DelegateVotesChanged(delegatee);
     }
 }

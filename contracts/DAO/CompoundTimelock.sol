@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity ^0.8.24;
 
-contract Timelock {
+import { ICompoundTimelock } from "./ICompoundTimelock.sol";
+
+contract CompoundTimelock is ICompoundTimelock {
     event NewAdmin(address indexed newAdmin);
     event NewPendingAdmin(address indexed newPendingAdmin);
     event NewDelay(uint256 indexed newDelay);
