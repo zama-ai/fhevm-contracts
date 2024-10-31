@@ -6,7 +6,7 @@ import { EncryptedERC20 } from "../EncryptedERC20.sol";
 import { EncryptedErrors } from "../../../utils/EncryptedErrors.sol";
 
 /**
- * @title EncryptedERC20WithErrors
+ * @title       EncryptedERC20WithErrors
  * @notice      This contract implements an encrypted ERC20-like token with confidential balances using
  *              Zama's FHE (Fully Homomorphic Encryption) library.
  * @dev         It supports standard ERC20 functions such as transferring tokens, minting,
@@ -95,20 +95,7 @@ abstract contract EncryptedERC20WithErrors is EncryptedERC20, EncryptedErrors {
         ebool isTransferable,
         euint8 errorCode
     ) internal virtual {
-        // Add to the balance of `to` and subract from the balance of `from`.
-        euint64 transferValue = TFHE.select(isTransferable, amount, TFHE.asEuint64(0));
-        euint64 newBalanceTo = TFHE.add(_balances[to], transferValue);
-        _balances[to] = newBalanceTo;
-
-        TFHE.allow(newBalanceTo, address(this));
-        TFHE.allow(newBalanceTo, to);
-
-        euint64 newBalanceFrom = TFHE.sub(_balances[from], transferValue);
-        _balances[from] = newBalanceFrom;
-
-        TFHE.allow(newBalanceFrom, address(this));
-        TFHE.allow(newBalanceFrom, from);
-
+        _transferNoEvent(from, to, amount, isTransferable);
         emit TransferWithErrorHandling(from, to, _transferIdCounter);
 
         // Set error code in the storage and increment

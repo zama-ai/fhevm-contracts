@@ -167,6 +167,19 @@ abstract contract EncryptedERC20 is IEncryptedERC20 {
     }
 
     function _transfer(address from, address to, euint64 amount, ebool isTransferable) internal virtual {
+        _transferNoEvent(from, to, amount, isTransferable);
+        emit Transfer(from, to);
+    }
+
+    function _transferNoEvent(address from, address to, euint64 amount, ebool isTransferable) internal virtual {
+        if (from == address(0)) {
+            revert SenderAddressNull();
+        }
+
+        if (to == address(0)) {
+            revert ReceiverAddressNull();
+        }
+
         // Add to the balance of `to` and subract from the balance of `from`.
         euint64 transferValue = TFHE.select(isTransferable, amount, TFHE.asEuint64(0));
         euint64 newBalanceTo = TFHE.add(_balances[to], transferValue);
@@ -177,7 +190,6 @@ abstract contract EncryptedERC20 is IEncryptedERC20 {
         _balances[from] = newBalanceFrom;
         TFHE.allowThis(newBalanceFrom);
         TFHE.allow(newBalanceFrom, from);
-        emit Transfer(from, to);
     }
 
     function _updateAllowance(address owner, address spender, euint64 amount) internal virtual returns (ebool) {
