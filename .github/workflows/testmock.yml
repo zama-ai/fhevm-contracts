@@ -1,6 +1,6 @@
 name: Pull request tests with mocks
 on:
-  push:
+  pull_request:
     branches:
       - main
 jobs:
