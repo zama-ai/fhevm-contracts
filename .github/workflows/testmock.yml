@@ -1,11 +1,11 @@
 name: Pull request tests with mocks
 on:
-  pull_request:
+  push:
     branches:
       - main
 jobs:
   build:
-    runs-on: large_ubuntu_16
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         node-version:
