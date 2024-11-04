@@ -1,0 +1,614 @@
+// SPDX-License-Identifier: BSD-3-Clause
+pragma solidity ^0.8.24;
+
+import "fhevm/lib/TFHE.sol";
+import "fhevm/gateway/GatewayCaller.sol";
+
+import { Ownable2Step, Ownable } from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import { IComp } from "./IComp.sol";
+import { ICompoundTimelock } from "./ICompoundTimelock.sol";
+
+/**
+ * @title       GovernorAlphaZama
+ * @notice      This is based on the GovernorAlpha.sol contract written by Compound Labs.
+ *              see: compound-finance/compound-protocol/blob/master/contracts/Governance/GovernorAlpha.sol
+ */
+contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
+    /// @notice Emitted when a proposal is now active.
+    event ProposalActive(uint256 id);
+
+    /// @notice Emitted when a proposal has been canceled.
+    event ProposalCanceled(uint256 id);
+
+    /// @notice Emitted when a new proposal is created.
+    event ProposalCreated(
+        uint256 id,
+        address proposer,
+        address[] targets,
+        uint256[] values,
+        string[] signatures,
+        bytes[] calldatas,
+        uint256 startBlock,
+        uint256 endBlock,
+        string description
+    );
+
+    /// @notice Emitted when a proposal is defeated either by lack of votes or by
+    ///         more votes against.
+    event ProposalDefeated(uint256 id);
+
+    /// @notice Emitted when a proposal has been executed in the Timelock.
+    event ProposalExecuted(uint256 id);
+
+    /// @notice Emitted when a proposal has been queued in the Timelock.
+    event ProposalQueued(uint256 id, uint256 eta);
+
+    /// @notice Emitted when a proposal has been rejected since the number of votes is lower
+    ///         than the required threshold.
+    event ProposalRejected(uint256 id);
+
+    /// @notice Emitted when a proposal has been rejected since the number of votes is lower
+    ///         than the required threshold.
+    event ProposalSucceeded(uint256 id);
+
+    /// @notice Emitted when a vote has been cast on a proposal.
+    event VoteCast(address voter, uint256 proposalId);
+
+    /// @notice Possible states that a proposal may be in.
+    enum ProposalState {
+        Pending, /// Proposal does not exist.
+        PendingThresholdVerification, /// Proposal is created but token threshold verification is pending.
+        Rejected, /// Proposal was rejected because the proposer did not match the token threshold required.
+        Active, /// Proposal is active and voters can cast their votes.
+        PendingResults, /// Proposal is active but the decryption of the result is in progress.
+        Canceled, /// Proposal has been canceled by the proposer.
+        Defeated, /// Proposal has been defeated (either by not reaching the quorum or votesAgainst > votesFor).
+        Succeeded, /// Proposal has succeeded.
+        Queued, /// Proposal has been queued in the timelock.
+        Expired, /// Proposal has expired (@dev This state is used for read-only operations).
+        Executed /// Proposal has been executed.
+    }
+
+    /**
+     * @param proposer              Proposal creator.
+     * @param eta                   The timestamp that the proposal will be available for execution,
+     *                              it is set automatically once the vote succeeds.
+     * @param targets               The ordered list of target addresses for calls to be made.
+     * @param values                The ordered list of values (i.e. msg.value) to be passed to the calls to be made.
+     * @param signatures            The ordered list of function signatures to be called.
+     * @param calldatas             The ordered list of calldata to be passed to each call.
+     * @param startBlock            The block at which voting begins: holders must delegate their votes prior
+     *                              to this block.
+     * @param endBlock              The block at which voting ends: votes must be cast prior to this block.
+     * @param forVotes              Current number of votes in opposition to this proposal.
+     * @param againstVotes          Current number of votes in opposition to this proposal.
+     * @param forVotesDecrypted     For votes once decrypted by the gateway.
+     * @param againstVotesDecrypted Against votes once decrypted by the gateway.
+     */
+
+    struct Proposal {
+        address proposer;
+        ProposalState state;
+        uint256 eta;
+        address[] targets;
+        uint256[] values;
+        string[] signatures;
+        bytes[] calldatas;
+        uint256 startBlock;
+        uint256 endBlock;
+        euint64 forVotes;
+        euint64 againstVotes;
+        uint64 forVotesDecrypted;
+        uint64 againstVotesDecrypted;
+    }
+
+    /**
+     * @param proposer      Proposal creator.
+     * @param state         State of the proposal.
+     * @param eta           The timestamp when the proposal will be available for execution, set once the vote succeeds.
+     * @param targets       The ordered list of target addresses for calls to be made.
+     * @param values        The ordered list of values (i.e. msg.value) to be passed to the calls to be made.
+     * @param signatures    The ordered list of function signatures to be called.
+     * @param calldatas     The ordered list of calldata to be passed to each call.
+     * @param startBlock    The block at which voting begins: holders must delegate their votes prior to this block.
+     * @param endBlock      The block at which voting ends: votes must be cast prior to this block.
+     * @param forVotes      Current number of votes in opposition to this proposal.
+     * @param againstVotes  Current number of votes in opposition to this proposal.
+     */
+    struct ProposalInfo {
+        address proposer;
+        ProposalState state;
+        uint256 eta;
+        address[] targets;
+        uint256[] values;
+        string[] signatures;
+        bytes[] calldatas;
+        uint256 startBlock;
+        uint256 endBlock;
+    }
+
+    /**
+     * @notice          Ballot receipt record for a voter.
+     * @param hasVoted  Whether or not a vote has been cast.
+     * @param support   Whether or not the voter supports the proposal.
+     * @param votes     The number of votes cast by the voter.
+     */
+    struct Receipt {
+        bool hasVoted;
+        ebool support;
+        euint64 votes;
+    }
+
+    /// @notice The maximum number of actions that can be included in a proposal.
+    /// @dev    It is 10 actions per proposal.
+    uint256 public constant PROPOSAL_MAX_OPERATIONS = 10;
+
+    /// @notice The number of votes required for a voter to become a proposer.
+    /// @dev    It is set at 100,000, which is 1% of the total supply of the Comp token.
+    uint256 public constant PROPOSAL_THRESHOLD = 100000e6;
+
+    /// @notice The number of votes in support of a proposal required in order for a quorum to be reached
+    ///         and for a vote to succeed.
+    /// @dev    It is set at 400,000, which is 4% of the total supply of the Comp token.
+    uint64 public constant QUORUM_VOTES = 400000e6;
+
+    /// @notice The delay before voting on a proposal may take place once proposed.
+    ///         It is 1 block.
+    uint256 public constant VOTING_DELAY = 1;
+
+    /// @notice The duration of voting on a proposal, in blocks
+    /// @dev    It is recommended to be set at 3 days in blocks
+    ///         (i.e 21,600 for 12-second blocks).
+    uint256 public immutable VOTING_PERIOD;
+
+    /// @notice Comp governance token.
+    IComp public immutable COMP;
+
+    /// @notice Compound Timelock.
+    ICompoundTimelock public immutable TIMELOCK;
+
+    /// @notice Constant for zero using TFHE.
+    /// @dev    Since it is expensive to compute 0, it is stored instead.
+    ///         However, is not possible to define it as constant due to TFHE constraints.
+    /* solhint-disable var-name-mixedcase*/
+    euint64 private _EUINT64_ZERO;
+
+    /// @notice Constant for PROPOSAL_THRESHOLD using TFHE.
+    /// @dev    Since it is expensive to compute 0, it is stored instead.
+    ///         However, is not possible to define it as constant due to TFHE constraints.
+    /* solhint-disable var-name-mixedcase*/
+    euint64 private _EUINT64_PROPOSAL_THRESHOLD;
+
+    /// @notice The total number of proposals made.
+    ///         It includes all proposals, including the ones that
+    ///         were rejected/canceled/defeated.
+    uint256 public proposalCount;
+
+    /// @notice The latest proposal for each proposer.
+    mapping(address proposer => uint256 proposalId) public latestProposalIds;
+
+    /// @notice Ballot receipt for an account for a proposal id.
+    mapping(uint256 proposalId => mapping(address => Receipt)) internal _accountReceiptForProposalId;
+
+    /// @notice The official record of all _proposals ever proposed.
+    mapping(uint256 proposalId => Proposal proposal) internal _proposals;
+
+    /// @notice Returns the proposal id associated with the request id.
+    /// @dev    This mapping is used for decryption.
+    mapping(uint256 requestId => uint256 proposalId) internal _requestIdToProposalId;
+
+    /**
+     * @param owner_            Owner address.
+     * @param timelock_         Timelock contract.
+     * @param comp_             Comp token.
+     * @param votingPeriod_     Voting period.
+     * @dev                     Do not use a small value in production such as 5 or 20 to avoid security issues
+     *                          unless for testing purpose. It should by at least a few days,.
+     *                          For instance, 3 days would have a votingPeriod = 21,600 blocks if 12s per block.
+     */
+    constructor(address owner_, address timelock_, address comp_, uint256 votingPeriod_) Ownable(owner_) {
+        TFHE.setFHEVM(FHEVMConfig.defaultConfig());
+        Gateway.setGateway(Gateway.defaultGatewayAddress());
+
+        TIMELOCK = ICompoundTimelock(timelock_);
+        COMP = IComp(comp_);
+        VOTING_PERIOD = votingPeriod_;
+
+        // @dev Store these constants in the storage.
+        _EUINT64_ZERO = TFHE.asEuint64(0);
+        _EUINT64_PROPOSAL_THRESHOLD = TFHE.asEuint64(PROPOSAL_THRESHOLD);
+
+        TFHE.allowThis(_EUINT64_ZERO);
+        TFHE.allowThis(_EUINT64_PROPOSAL_THRESHOLD);
+    }
+
+    /**
+     * @notice              Cancel the proposal.
+     * @param proposalId    Proposal id.
+     * @dev                 Only the owner address or the proposer can cancel.
+     *                      In the original GovernorAlpha, the proposer can cancel only if the votes are still
+     *                      above the threshold.
+     */
+    function cancel(uint256 proposalId) external {
+        Proposal storage proposal = _proposals[proposalId];
+        require(proposal.state != ProposalState.Executed, "GovernorAlpha::cancel: cannot cancel executed proposal");
+        require(proposal.state != ProposalState.Canceled, "GovernorAlpha::cancel: cannot cancel canceled proposal");
+
+        if (msg.sender != proposal.proposer) {
+            _checkOwner();
+        }
+
+        /// @dev It is not necessary to cancel the transaction in the timelock
+        ///      unless the proposal has been queued.
+        if (proposal.state == ProposalState.Queued) {
+            for (uint256 i = 0; i < proposal.targets.length; i++) {
+                TIMELOCK.cancelTransaction(
+                    proposal.targets[i],
+                    proposal.values[i],
+                    proposal.signatures[i],
+                    proposal.calldatas[i],
+                    proposal.eta
+                );
+            }
+        }
+
+        proposal.state = ProposalState.Canceled;
+
+        emit ProposalCanceled(proposalId);
+    }
+
+    /**
+     * @notice           Cast a vote.
+     * @param proposalId Proposal id.
+     * @param value      Encrypted value.
+     * @param inputProof Input proof.
+     */
+    function castVote(uint256 proposalId, einput value, bytes calldata inputProof) external {
+        return _castVote(msg.sender, proposalId, TFHE.asEbool(value, inputProof));
+    }
+
+    /**
+     * @notice           Cast a vote.
+     * @param proposalId Proposal id.
+     * @param support    Support (true ==> votesFor, false ==> votesAgainst)
+     */
+    function castVote(uint256 proposalId, ebool support) external {
+        return _castVote(msg.sender, proposalId, support);
+    }
+
+    /**
+     * @notice Execute the proposal id.
+     * @dev    Anyone can execute a proposal once it has been queued and the
+     *         delay in the timelock is sufficient.
+     */
+    function execute(uint256 proposalId) external payable {
+        Proposal memory proposal = _proposals[proposalId];
+
+        require(
+            proposal.state == ProposalState.Queued,
+            "GovernorAlpha::execute: proposal can only be executed if it is queued"
+        );
+
+        // proposal.executed = true;
+        for (uint256 i = 0; i < proposal.targets.length; i++) {
+            TIMELOCK.executeTransaction{ value: proposal.values[i] }(
+                proposal.targets[i],
+                proposal.values[i],
+                proposal.signatures[i],
+                proposal.calldatas[i],
+                proposal.eta
+            );
+        }
+
+        emit ProposalExecuted(proposalId);
+    }
+
+    /**
+     * @notice            Start a new proposal.
+     * @param targets     Target addresses.
+     * @param values      Values.
+     * @param signatures  Signatures.
+     * @param calldatas   Calldatas.
+     * @param description Plain text description of the proposal.
+     * @return proposalId Proposal id.
+     */
+    function propose(
+        address[] memory targets,
+        uint256[] memory values,
+        string[] memory signatures,
+        bytes[] memory calldatas,
+        string memory description
+    ) external returns (uint256 proposalId) {
+        {
+            uint256 length = targets.length;
+            require(
+                length == values.length && length == signatures.length && length == calldatas.length,
+                "GovernorAlpha::propose: proposal function information arity mismatch"
+            );
+            require(length != 0, "GovernorAlpha::propose: must provide actions");
+            require(length <= PROPOSAL_MAX_OPERATIONS, "GovernorAlpha::propose: too many actions");
+        }
+
+        uint256 latestProposalId = latestProposalIds[msg.sender];
+
+        if (latestProposalId != 0) {
+            ProposalState proposerLatestProposalState = _proposals[latestProposalId].state;
+
+            // TODO: Fix require statement
+            require(
+                proposerLatestProposalState == ProposalState.Queued ||
+                    proposerLatestProposalState == ProposalState.Rejected ||
+                    proposerLatestProposalState == ProposalState.Defeated ||
+                    proposerLatestProposalState == ProposalState.Canceled ||
+                    proposerLatestProposalState == ProposalState.Executed
+            );
+        }
+
+        uint256 startBlock = block.number + VOTING_DELAY;
+        uint256 endBlock = startBlock + VOTING_PERIOD;
+        uint256 thisProposalId = proposalCount++;
+
+        _proposals[thisProposalId] = Proposal({
+            proposer: msg.sender,
+            state: ProposalState.PendingThresholdVerification,
+            eta: 0,
+            targets: targets,
+            values: values,
+            signatures: signatures,
+            calldatas: calldatas,
+            startBlock: startBlock,
+            endBlock: endBlock,
+            forVotes: _EUINT64_ZERO,
+            againstVotes: _EUINT64_ZERO,
+            forVotesDecrypted: 0,
+            againstVotesDecrypted: 0
+        });
+
+        latestProposalIds[msg.sender] = thisProposalId;
+
+        emit ProposalCreated(
+            thisProposalId,
+            msg.sender,
+            targets,
+            values,
+            signatures,
+            calldatas,
+            startBlock,
+            endBlock,
+            description
+        );
+
+        ebool canPropose = TFHE.lt(
+            _EUINT64_PROPOSAL_THRESHOLD,
+            COMP.getPriorVotesForAllowedContract(msg.sender, block.number - 1)
+        );
+
+        uint256[] memory cts = new uint256[](1);
+        cts[0] = Gateway.toUint256(canPropose);
+
+        uint256 requestId = Gateway.requestDecryption(
+            cts,
+            this.callbackInitiateProposal.selector,
+            0,
+            block.timestamp + 100,
+            false
+        );
+
+        _requestIdToProposalId[requestId] = thisProposalId;
+
+        return thisProposalId;
+    }
+
+    /**
+     * @notice            Queue a new proposal.
+     * @dev               It can be done only if the proposal is adopted.
+     * @param proposalId  Proposal id.
+     */
+    function queue(uint256 proposalId) external {
+        Proposal storage proposal = _proposals[proposalId];
+
+        require(
+            proposal.state == ProposalState.Succeeded,
+            "GovernorAlpha::queue: proposal can only be queued if it is succeeded"
+        );
+
+        uint256 eta = block.timestamp + TIMELOCK.delay();
+
+        for (uint256 i = 0; i < proposal.targets.length; i++) {
+            _queueOrRevert(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], eta);
+        }
+
+        proposal.eta = eta;
+
+        emit ProposalQueued(proposalId, eta);
+    }
+
+    /**
+     * @notice            Request the vote results to be decrypted.
+     * @param proposalId  Proposal id.
+     */
+    function requestVoteDecryption(uint256 proposalId) external {
+        require(_proposals[proposalId].state == ProposalState.Active, "GovernorAlpha::_castVote: voting is closed");
+        require(_proposals[proposalId].endBlock < block.number);
+        uint256[] memory cts = new uint256[](2);
+        cts[0] = Gateway.toUint256(_proposals[proposalId].forVotes);
+        cts[1] = Gateway.toUint256(_proposals[proposalId].againstVotes);
+
+        uint256 requestId = Gateway.requestDecryption(
+            cts,
+            this.callbackVoteDecryption.selector,
+            0,
+            block.timestamp + 100,
+            false
+        );
+
+        _requestIdToProposalId[requestId] = proposalId;
+        _proposals[proposalId].state = ProposalState.PendingResults;
+    }
+
+    /**
+     * @dev Only callable by the gateway.
+     */
+    function callbackInitiateProposal(uint256 requestId, bool canInitiate) public onlyGateway {
+        uint256 proposalId = _requestIdToProposalId[requestId];
+
+        if (canInitiate) {
+            _proposals[proposalId].state = ProposalState.Active;
+            emit ProposalActive(proposalId);
+        } else {
+            _proposals[proposalId].state = ProposalState.Rejected;
+            emit ProposalRejected(proposalId);
+        }
+    }
+
+    /**
+     * @dev                         Only callable by the gateway.
+     * @param forVotesDecrypted     For votes.
+     * @param againstVotesDecrypted Against votes.
+     */
+    function callbackVoteDecryption(
+        uint256 requestId,
+        uint256 forVotesDecrypted,
+        uint256 againstVotesDecrypted
+    ) public onlyGateway {
+        uint256 proposalId = _requestIdToProposalId[requestId];
+
+        /// @dev It is safe to downcast since the original values were euint64.
+        _proposals[proposalId].forVotesDecrypted = uint64(forVotesDecrypted);
+        _proposals[proposalId].againstVotesDecrypted = uint64(againstVotesDecrypted);
+
+        if (forVotesDecrypted > againstVotesDecrypted && forVotesDecrypted >= QUORUM_VOTES) {
+            _proposals[proposalId].state = ProposalState.Succeeded;
+            emit ProposalSucceeded(proposalId);
+        } else {
+            _proposals[proposalId].state = ProposalState.Defeated;
+
+            emit ProposalDefeated(proposalId);
+        }
+    }
+
+    /**
+     * @dev Only callable by owner.
+     */
+    function acceptTimelockAdmin() external onlyOwner {
+        TIMELOCK.acceptAdmin();
+    }
+
+    /**
+     * @dev                   Only callable by owner.
+     * @param newPendingAdmin Address of the new pending admin for the timelock.
+     * @param eta             Eta for executing the transaction in the timelock.
+     */
+    function executeSetTimelockPendingAdmin(address newPendingAdmin, uint256 eta) external onlyOwner {
+        TIMELOCK.executeTransaction(address(TIMELOCK), 0, "setPendingAdmin(address)", abi.encode(newPendingAdmin), eta);
+    }
+
+    /**
+     * @dev                   Only callable by owner.
+     * @param newPendingAdmin Address of the new pending admin for the timelock.
+     * @param eta             Eta for queuing the transaction in the timelock.
+     */
+    function queueSetTimelockPendingAdmin(address newPendingAdmin, uint256 eta) external onlyOwner {
+        TIMELOCK.queueTransaction(address(TIMELOCK), 0, "setPendingAdmin(address)", abi.encode(newPendingAdmin), eta);
+    }
+
+    /**
+     * @dev                   Returns the actions for a proposal id.
+     * @return targets        Target addresses.
+     * @return values         Values.
+     * @return signatures     Signatures.
+     * @return calldatas      Calldatas.
+     */
+    function getActions(
+        uint256 proposalId
+    )
+        external
+        view
+        returns (
+            address[] memory targets,
+            uint256[] memory values,
+            string[] memory signatures,
+            bytes[] memory calldatas
+        )
+    {
+        Proposal storage p = _proposals[proposalId];
+        return (p.targets, p.values, p.signatures, p.calldatas);
+    }
+
+    /**
+     * @notice              Returns proposal information for a proposal id.
+     * @param proposalId    Proposal id.
+     * @return propInfo     Proposal information.
+     */
+    function getProposalInfo(uint256 proposalId) external view returns (ProposalInfo memory propInfo) {
+        Proposal memory proposal = _proposals[proposalId];
+        propInfo.proposer = proposal.proposer;
+        propInfo.state = proposal.state;
+        propInfo.eta = proposal.eta;
+        propInfo.targets = proposal.targets;
+        propInfo.values = proposal.values;
+        propInfo.signatures = proposal.signatures;
+        propInfo.calldatas = proposal.calldatas;
+        propInfo.startBlock = proposal.startBlock;
+        propInfo.endBlock = proposal.endBlock;
+
+        if ((propInfo.state == ProposalState.Queued) && (block.timestamp > propInfo.eta + TIMELOCK.GRACE_PERIOD())) {
+            propInfo.state == ProposalState.Expired;
+        }
+    }
+
+    /**
+     * @notice              Returns the vote receipt information for the account for a proposal id.
+     * @param proposalId    Proposal id.
+     * @param account       Account address.
+     * @return hasVoted     Whether the account has voted.
+     * @return support      The support for the account (true ==> vote for, false ==> vote against).
+     * @return votes        The number of votes cast.
+     */
+    function getReceipt(uint256 proposalId, address account) external view returns (bool, ebool, euint64) {
+        Receipt memory myReceipt = _accountReceiptForProposalId[proposalId][account];
+        return (myReceipt.hasVoted, myReceipt.support, myReceipt.votes);
+    }
+
+    function _queueOrRevert(
+        address target,
+        uint256 value,
+        string memory signature,
+        bytes memory data,
+        uint256 eta
+    ) internal {
+        require(
+            !TIMELOCK.queuedTransactions(keccak256(abi.encode(target, value, signature, data, eta))),
+            "GovernorAlpha::_queueOrRevert: proposal action already queued at eta"
+        );
+        TIMELOCK.queueTransaction(target, value, signature, data, eta);
+    }
+
+    function _castVote(address voter, uint256 proposalId, ebool support) internal {
+        Proposal storage proposal = _proposals[proposalId];
+        // TODO: fix require
+        require(_proposals[proposalId].endBlock <= block.number);
+        require(proposal.state == ProposalState.Active, "GovernorAlpha::_castVote: voting is closed");
+
+        Receipt storage receipt = _accountReceiptForProposalId[proposalId][voter];
+        require(!receipt.hasVoted, "GovernorAlpha::_castVote: voter already voted");
+
+        euint64 votes = COMP.getPriorVotesForAllowedContract(voter, proposal.startBlock);
+        proposal.forVotes = TFHE.select(support, TFHE.add(proposal.forVotes, votes), proposal.forVotes);
+        proposal.againstVotes = TFHE.select(support, proposal.againstVotes, TFHE.add(proposal.againstVotes, votes));
+
+        receipt.hasVoted = true;
+        receipt.support = support;
+        receipt.votes = votes;
+
+        TFHE.allowThis(proposal.forVotes);
+        TFHE.allowThis(proposal.againstVotes);
+        TFHE.allowThis(receipt.support);
+        TFHE.allowThis(receipt.votes);
+        TFHE.allow(receipt.support, msg.sender);
+        TFHE.allow(receipt.votes, msg.sender);
+
+        // `support` and `votes` are encrypted values, no need to include them in the event.
+        emit VoteCast(voter, proposalId);
+    }
+}

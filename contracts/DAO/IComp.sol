@@ -5,7 +5,7 @@ import "fhevm/lib/TFHE.sol";
 
 /**
  * @title       IComp
- * @dev         The GovernorZama relies on this interface.
+ * @dev         The GovernorAlphaZama relies on this interface.
  */
 interface IComp {
     function getPriorVotesForAllowedContract(address account, uint256 blockNumber) external returns (euint64 votes);
