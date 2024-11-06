@@ -21,12 +21,12 @@ interface IEncryptedERC20 {
     event Transfer(address indexed from, address indexed to);
 
     /**
-     * @notice Emitted when receiver is address(0).
+     * @notice Returned when receiver is address(0).
      */
     error ReceiverAddressNull();
 
     /**
-     * @notice Emitted when sender is address(0).
+     * @notice Returned when sender is address(0).
      */
     error SenderAddressNull();
 
