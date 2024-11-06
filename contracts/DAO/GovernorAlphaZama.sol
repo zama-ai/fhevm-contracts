@@ -14,6 +14,33 @@ import { ICompoundTimelock } from "./ICompoundTimelock.sol";
  *              see: compound-finance/compound-protocol/blob/master/contracts/Governance/GovernorAlpha.sol
  */
 contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
+    /// @notice Returned if proposal contains too many changes.
+    error LengthAboveMaxOperations();
+
+    /// @notice Returned if the array length is equal to 0.
+    error LengthIsNull();
+
+    /// @notice Returned if array lengths are not equal.
+    error LengthsDoNotMatch();
+
+    /// @notice Returned if proposal's actions have already been queued.
+    error ProposalActionsAlreadyQueued();
+
+    /// @notice Returned if the proposal state is invalid for this operation.
+    /// @dev    It is returned for any proposal state not matching the expected
+    ///         state to conduct the operation.
+    error ProposalStateInvalid();
+
+    /// @notice Returned if the proposal's state is active but `block.number` > `endBlock`.
+    error ProposalStateNotActive();
+
+    /// @notice Returned if the proposal state is still active.
+    error ProposalStateStillActive();
+
+    /// @notice Returned if the voter has already cast a vote
+    ///         for this proposal.
+    error VoterHasAlreadyVoted();
+
     /// @notice Emitted when a proposal is now active.
     event ProposalActive(uint256 id);
 
@@ -62,7 +89,7 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
         Active, /// Proposal is active and voters can cast their votes.
         PendingResults, /// Proposal is active but the decryption of the result is in progress.
         Canceled, /// Proposal has been canceled by the proposer.
-        Defeated, /// Proposal has been defeated (either by not reaching the quorum or votesAgainst > votesFor).
+        Defeated, /// Proposal has been defeated (either by not reaching the quorum or `votesAgainst` > `votesFor`).
         Succeeded, /// Proposal has succeeded.
         Queued, /// Proposal has been queued in the timelock.
         Expired, /// Proposal has expired (@dev This state is used for read-only operations).
@@ -74,14 +101,14 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
      * @param eta                   The timestamp that the proposal will be available for execution,
      *                              it is set automatically once the vote succeeds.
      * @param targets               The ordered list of target addresses for calls to be made.
-     * @param values                The ordered list of values (i.e. msg.value) to be passed to the calls to be made.
+     * @param values                The ordered list of values (i.e. `msg.value`) to be passed to the calls to be made.
      * @param signatures            The ordered list of function signatures to be called.
      * @param calldatas             The ordered list of calldata to be passed to each call.
      * @param startBlock            The block at which voting begins: holders must delegate their votes prior
      *                              to this block.
      * @param endBlock              The block at which voting ends: votes must be cast prior to this block.
-     * @param forVotes              Current number of votes in opposition to this proposal.
-     * @param againstVotes          Current number of votes in opposition to this proposal.
+     * @param forVotes              Current encrypted number of votes for to this proposal.
+     * @param againstVotes          Current encrypted number of votes in opposition to this proposal.
      * @param forVotesDecrypted     For votes once decrypted by the gateway.
      * @param againstVotesDecrypted Against votes once decrypted by the gateway.
      */
@@ -107,13 +134,13 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
      * @param state         State of the proposal.
      * @param eta           The timestamp when the proposal will be available for execution, set once the vote succeeds.
      * @param targets       The ordered list of target addresses for calls to be made.
-     * @param values        The ordered list of values (i.e. msg.value) to be passed to the calls to be made.
+     * @param values        The ordered list of values (i.e. `msg.value`) to be passed to the calls to be made.
      * @param signatures    The ordered list of function signatures to be called.
      * @param calldatas     The ordered list of calldata to be passed to each call.
      * @param startBlock    The block at which voting begins: holders must delegate their votes prior to this block.
      * @param endBlock      The block at which voting ends: votes must be cast prior to this block.
-     * @param forVotes      Current number of votes in opposition to this proposal.
-     * @param againstVotes  Current number of votes in opposition to this proposal.
+     * @param forVotes      Number of votes for this proposal once decrypted.
+     * @param againstVotes  Number of votes in opposition to this proposal once decrypted.
      */
     struct ProposalInfo {
         address proposer;
@@ -125,6 +152,8 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
         bytes[] calldatas;
         uint256 startBlock;
         uint256 endBlock;
+        uint64 forVotes;
+        uint64 againstVotes;
     }
 
     /**
@@ -190,10 +219,10 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
     /// @notice Ballot receipt for an account for a proposal id.
     mapping(uint256 proposalId => mapping(address => Receipt)) internal _accountReceiptForProposalId;
 
-    /// @notice The official record of all _proposals ever proposed.
+    /// @notice The official record of all proposals that have been created.
     mapping(uint256 proposalId => Proposal proposal) internal _proposals;
 
-    /// @notice Returns the proposal id associated with the request id.
+    /// @notice Returns the proposal id associated with the request id from the Gateway.
     /// @dev    This mapping is used for decryption.
     mapping(uint256 requestId => uint256 proposalId) internal _requestIdToProposalId;
 
@@ -214,7 +243,7 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
         COMP = IComp(comp_);
         VOTING_PERIOD = votingPeriod_;
 
-        // @dev Store these constants in the storage.
+        // @dev Store these constant-like variables in the storage.
         _EUINT64_ZERO = TFHE.asEuint64(0);
         _EUINT64_PROPOSAL_THRESHOLD = TFHE.asEuint64(PROPOSAL_THRESHOLD);
 
@@ -226,13 +255,19 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
      * @notice              Cancel the proposal.
      * @param proposalId    Proposal id.
      * @dev                 Only the owner address or the proposer can cancel.
-     *                      In the original GovernorAlpha, the proposer can cancel only if the votes are still
-     *                      above the threshold.
+     *                      In the original GovernorAlpha, the proposer can cancel only if
+     *                      her votes are still above the threshold.
      */
     function cancel(uint256 proposalId) external {
         Proposal storage proposal = _proposals[proposalId];
-        require(proposal.state != ProposalState.Executed, "GovernorAlpha::cancel: cannot cancel executed proposal");
-        require(proposal.state != ProposalState.Canceled, "GovernorAlpha::cancel: cannot cancel canceled proposal");
+
+        if (
+            proposal.state == ProposalState.Executed ||
+            proposal.state == ProposalState.Canceled ||
+            proposal.state == ProposalState.Defeated
+        ) {
+            revert ProposalStateInvalid();
+        }
 
         if (msg.sender != proposal.proposer) {
             _checkOwner();
@@ -284,10 +319,9 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
     function execute(uint256 proposalId) external payable {
         Proposal memory proposal = _proposals[proposalId];
 
-        require(
-            proposal.state == ProposalState.Queued,
-            "GovernorAlpha::execute: proposal can only be executed if it is queued"
-        );
+        if (proposal.state != ProposalState.Queued) {
+            revert ProposalStateInvalid();
+        }
 
         // proposal.executed = true;
         for (uint256 i = 0; i < proposal.targets.length; i++) {
@@ -321,12 +355,18 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
     ) external returns (uint256 proposalId) {
         {
             uint256 length = targets.length;
-            require(
-                length == values.length && length == signatures.length && length == calldatas.length,
-                "GovernorAlpha::propose: proposal function information arity mismatch"
-            );
-            require(length != 0, "GovernorAlpha::propose: must provide actions");
-            require(length <= PROPOSAL_MAX_OPERATIONS, "GovernorAlpha::propose: too many actions");
+
+            if (length != values.length || length != signatures.length || length != calldatas.length) {
+                revert LengthsDoNotMatch();
+            }
+
+            if (length == 0) {
+                revert LengthIsNull();
+            }
+
+            if (length > PROPOSAL_MAX_OPERATIONS) {
+                revert LengthAboveMaxOperations();
+            }
         }
 
         uint256 latestProposalId = latestProposalIds[msg.sender];
@@ -334,14 +374,15 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
         if (latestProposalId != 0) {
             ProposalState proposerLatestProposalState = _proposals[latestProposalId].state;
 
-            // TODO: Fix require statement
-            require(
-                proposerLatestProposalState == ProposalState.Queued ||
-                    proposerLatestProposalState == ProposalState.Rejected ||
-                    proposerLatestProposalState == ProposalState.Defeated ||
-                    proposerLatestProposalState == ProposalState.Canceled ||
-                    proposerLatestProposalState == ProposalState.Executed
-            );
+            if (
+                proposerLatestProposalState != ProposalState.Queued &&
+                proposerLatestProposalState != ProposalState.Rejected &&
+                proposerLatestProposalState != ProposalState.Defeated &&
+                proposerLatestProposalState != ProposalState.Canceled &&
+                proposerLatestProposalState != ProposalState.Executed
+            ) {
+                revert ProposalStateInvalid();
+            }
         }
 
         uint256 startBlock = block.number + VOTING_DELAY;
@@ -407,10 +448,9 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
     function queue(uint256 proposalId) external {
         Proposal storage proposal = _proposals[proposalId];
 
-        require(
-            proposal.state == ProposalState.Succeeded,
-            "GovernorAlpha::queue: proposal can only be queued if it is succeeded"
-        );
+        if (proposal.state != ProposalState.Succeeded) {
+            revert ProposalStateInvalid();
+        }
 
         uint256 eta = block.timestamp + TIMELOCK.delay();
 
@@ -428,8 +468,14 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
      * @param proposalId  Proposal id.
      */
     function requestVoteDecryption(uint256 proposalId) external {
-        require(_proposals[proposalId].state == ProposalState.Active, "GovernorAlpha::_castVote: voting is closed");
-        require(_proposals[proposalId].endBlock < block.number);
+        if (_proposals[proposalId].state != ProposalState.Active) {
+            revert ProposalStateInvalid();
+        }
+
+        if (_proposals[proposalId].endBlock >= block.number) {
+            revert ProposalStateStillActive();
+        }
+
         uint256[] memory cts = new uint256[](2);
         cts[0] = Gateway.toUint256(_proposals[proposalId].forVotes);
         cts[1] = Gateway.toUint256(_proposals[proposalId].againstVotes);
@@ -447,7 +493,9 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
     }
 
     /**
-     * @dev Only callable by the gateway.
+     * @dev                 Only callable by the gateway.
+     * @param requestId     Request id (from the Gateway)
+     * @param canInitiate   Whether the proposal can be initiated.
      */
     function callbackInitiateProposal(uint256 requestId, bool canInitiate) public onlyGateway {
         uint256 proposalId = _requestIdToProposalId[requestId];
@@ -482,20 +530,19 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
             emit ProposalSucceeded(proposalId);
         } else {
             _proposals[proposalId].state = ProposalState.Defeated;
-
             emit ProposalDefeated(proposalId);
         }
     }
 
     /**
-     * @dev Only callable by owner.
+     * @dev Only callable by `owner`.
      */
     function acceptTimelockAdmin() external onlyOwner {
         TIMELOCK.acceptAdmin();
     }
 
     /**
-     * @dev                   Only callable by owner.
+     * @dev                   Only callable by `owner`.
      * @param newPendingAdmin Address of the new pending admin for the timelock.
      * @param eta             Eta for executing the transaction in the timelock.
      */
@@ -504,7 +551,7 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
     }
 
     /**
-     * @dev                   Only callable by owner.
+     * @dev                   Only callable by `owner`.
      * @param newPendingAdmin Address of the new pending admin for the timelock.
      * @param eta             Eta for queuing the transaction in the timelock.
      */
@@ -514,6 +561,7 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
 
     /**
      * @dev                   Returns the actions for a proposal id.
+     * @param  proposalId     Proposal id.
      * @return targets        Target addresses.
      * @return values         Values.
      * @return signatures     Signatures.
@@ -536,24 +584,32 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
     }
 
     /**
-     * @notice              Returns proposal information for a proposal id.
-     * @param proposalId    Proposal id.
-     * @return propInfo     Proposal information.
+     * @notice                  Returns proposal information for a proposal id.
+     * @dev                     It returns decrypted `forVotes`/`againstVotes`.
+     *                          These are only available after the decryption.
+     * @param proposalId        Proposal id.
+     * @return proposalInfo     Proposal information.
      */
-    function getProposalInfo(uint256 proposalId) external view returns (ProposalInfo memory propInfo) {
+    function getProposalInfo(uint256 proposalId) external view returns (ProposalInfo memory proposalInfo) {
         Proposal memory proposal = _proposals[proposalId];
-        propInfo.proposer = proposal.proposer;
-        propInfo.state = proposal.state;
-        propInfo.eta = proposal.eta;
-        propInfo.targets = proposal.targets;
-        propInfo.values = proposal.values;
-        propInfo.signatures = proposal.signatures;
-        propInfo.calldatas = proposal.calldatas;
-        propInfo.startBlock = proposal.startBlock;
-        propInfo.endBlock = proposal.endBlock;
+        proposalInfo.proposer = proposal.proposer;
+        proposalInfo.state = proposal.state;
+        proposalInfo.eta = proposal.eta;
+        proposalInfo.targets = proposal.targets;
+        proposalInfo.values = proposal.values;
+        proposalInfo.signatures = proposal.signatures;
+        proposalInfo.calldatas = proposal.calldatas;
+        proposalInfo.startBlock = proposal.startBlock;
+        proposalInfo.endBlock = proposal.endBlock;
+        proposalInfo.forVotes = proposal.forVotesDecrypted;
+        proposalInfo.againstVotes = proposal.againstVotesDecrypted;
 
-        if ((propInfo.state == ProposalState.Queued) && (block.timestamp > propInfo.eta + TIMELOCK.GRACE_PERIOD())) {
-            propInfo.state == ProposalState.Expired;
+        // The state is adjusted but not closed.
+        if (
+            (proposalInfo.state == ProposalState.Queued) &&
+            (block.timestamp > proposalInfo.eta + TIMELOCK.GRACE_PERIOD())
+        ) {
+            proposalInfo.state == ProposalState.Expired;
         }
     }
 
@@ -566,8 +622,8 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
      * @return votes        The number of votes cast.
      */
     function getReceipt(uint256 proposalId, address account) external view returns (bool, ebool, euint64) {
-        Receipt memory myReceipt = _accountReceiptForProposalId[proposalId][account];
-        return (myReceipt.hasVoted, myReceipt.support, myReceipt.votes);
+        Receipt memory receipt = _accountReceiptForProposalId[proposalId][account];
+        return (receipt.hasVoted, receipt.support, receipt.votes);
     }
 
     function _queueOrRevert(
@@ -577,21 +633,29 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
         bytes memory data,
         uint256 eta
     ) internal {
-        require(
-            !TIMELOCK.queuedTransactions(keccak256(abi.encode(target, value, signature, data, eta))),
-            "GovernorAlpha::_queueOrRevert: proposal action already queued at eta"
-        );
+        if (TIMELOCK.queuedTransactions(keccak256(abi.encode(target, value, signature, data, eta)))) {
+            revert ProposalActionsAlreadyQueued();
+        }
+
         TIMELOCK.queueTransaction(target, value, signature, data, eta);
     }
 
     function _castVote(address voter, uint256 proposalId, ebool support) internal {
         Proposal storage proposal = _proposals[proposalId];
-        // TODO: fix require
-        require(_proposals[proposalId].endBlock <= block.number);
-        require(proposal.state == ProposalState.Active, "GovernorAlpha::_castVote: voting is closed");
+
+        if (proposal.state != ProposalState.Active) {
+            revert ProposalStateInvalid();
+        }
+
+        if (block.number > _proposals[proposalId].endBlock) {
+            revert ProposalStateNotActive();
+        }
 
         Receipt storage receipt = _accountReceiptForProposalId[proposalId][voter];
-        require(!receipt.hasVoted, "GovernorAlpha::_castVote: voter already voted");
+
+        if (receipt.hasVoted) {
+            revert VoterHasAlreadyVoted();
+        }
 
         euint64 votes = COMP.getPriorVotesForAllowedContract(voter, proposal.startBlock);
         proposal.forVotes = TFHE.select(support, TFHE.add(proposal.forVotes, votes), proposal.forVotes);
