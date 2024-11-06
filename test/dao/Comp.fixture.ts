@@ -15,24 +15,24 @@ export async function deployCompFixture(signers: Signers): Promise<Comp> {
 export async function reencryptCurrentVotes(
   signers: Signers,
   instances: FhevmInstances,
-  user: string,
+  account: string,
   comp: Comp,
   compAddress: string,
 ): Promise<bigint> {
-  const voteHandle = await comp.getCurrentVotes(signers[user as keyof Signers].address);
-  const vote = await reencryptEuint64(signers, instances, user, voteHandle, compAddress);
+  const voteHandle = await comp.getCurrentVotes(signers[account as keyof Signers].address);
+  const vote = await reencryptEuint64(signers, instances, account, voteHandle, compAddress);
   return vote;
 }
 
 export async function reencryptPriorVotes(
   signers: Signers,
   instances: FhevmInstances,
-  user: string,
+  account: string,
   blockNumber: number,
   comp: Comp,
   compAddress: string,
 ): Promise<bigint> {
-  const voteHandle = await comp.getPriorVotes(signers[user as keyof Signers].address, blockNumber);
-  const vote = await reencryptEuint64(signers, instances, user, voteHandle, compAddress);
+  const voteHandle = await comp.getPriorVotes(signers[account as keyof Signers].address, blockNumber);
+  const vote = await reencryptEuint64(signers, instances, account, voteHandle, compAddress);
   return vote;
 }

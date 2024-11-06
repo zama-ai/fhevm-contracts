@@ -8,7 +8,7 @@ import { IComp } from "./IComp.sol";
 
 /**
  * @title       Comp
- * @notice      This contract inherits EncryptedERC20.
+ * @notice      This contract inherits EncryptedERC20 and Ownable2Step.
  *              This is based on the Comp.sol contract written by Compound Labs.
  *              see: compound-finance/compound-protocol/blob/master/contracts/Governance/Comp.sol
  *              It uses encrypted votes to delegate the voting power associated
@@ -169,11 +169,14 @@ contract Comp is IComp, EncryptedERC20, Ownable2Step {
     function _getPriorVote(address account, uint256 blockNumber) internal view returns (euint64 votes) {
         uint32 nCheckpoints = numCheckpoints[account];
 
-        if (nCheckpoints == 0) {} else if (checkpoints[account][nCheckpoints - 1].fromBlock <= blockNumber) {
+        if (nCheckpoints == 0) {
+            return _EUINT64_ZERO;
+        } else if (checkpoints[account][nCheckpoints - 1].fromBlock <= blockNumber) {
             // First check most recent balance
             votes = checkpoints[account][nCheckpoints - 1].votes;
         } else if (checkpoints[account][0].fromBlock > blockNumber) {
             // Next check implicit zero balance
+            return _EUINT64_ZERO;
         } else {
             // Search for the voting power at the block number
             uint32 lower = 0;
