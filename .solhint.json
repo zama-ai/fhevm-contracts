@@ -4,10 +4,16 @@
   "rules": {
     "code-complexity": ["error", 8],
     "compiler-version": ["error", ">=0.8.24"],
-    "func-visibility": ["error", { "ignoreConstructors": true }],
+    "func-visibility": [
+      "error",
+      {
+        "ignoreConstructors": true
+      }
+    ],
     "max-line-length": ["error", 120],
     "named-parameters-mapping": "warn",
     "no-console": "off",
+    "no-global-import": "off",
     "not-rely-on-time": "off",
     "prettier/prettier": [
       "error",
