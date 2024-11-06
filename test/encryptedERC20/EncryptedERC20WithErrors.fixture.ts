@@ -22,13 +22,13 @@ export async function deployEncryptedERC20WithErrorsFixture(
 export async function checkErrorCode(
   signers: Signers,
   instances: FhevmInstances,
-  user: string,
+  account: string,
   transferId: bigint,
   token: EncryptedERC20WithErrorsMintable,
   tokenAddress: string,
 ): Promise<string> {
   const errorCodeHandle = await token.getErrorCodeForTransferId(transferId);
-  const errorCode = await reencryptEuint8(signers, instances, user, errorCodeHandle, tokenAddress);
+  const errorCode = await reencryptEuint8(signers, instances, account, errorCodeHandle, tokenAddress);
   switch (errorCode) {
     case BigInt(0): {
       return "NO_ERROR";

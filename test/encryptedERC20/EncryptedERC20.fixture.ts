@@ -22,24 +22,24 @@ export async function deployEncryptedERC20Fixture(
 export async function reencryptAllowance(
   signers: Signers,
   instances: FhevmInstances,
-  user: string,
+  account: string,
   spender: string,
   token: IEncryptedERC20,
   tokenAddress: string,
 ): Promise<bigint> {
-  const allowanceHandle = await token.allowance(signers[user as keyof Signers], signers[spender as keyof Signers]);
-  const allowance = await reencryptEuint64(signers, instances, user, allowanceHandle, tokenAddress);
+  const allowanceHandle = await token.allowance(signers[account as keyof Signers], signers[spender as keyof Signers]);
+  const allowance = await reencryptEuint64(signers, instances, account, allowanceHandle, tokenAddress);
   return allowance;
 }
 
 export async function reencryptBalance(
   signers: Signers,
   instances: FhevmInstances,
-  user: string,
+  account: string,
   token: IEncryptedERC20,
   tokenAddress: string,
 ): Promise<bigint> {
-  const balanceHandle = await token.balanceOf(signers[user as keyof Signers]);
-  const balance = await reencryptEuint64(signers, instances, user, balanceHandle, tokenAddress);
+  const balanceHandle = await token.balanceOf(signers[account as keyof Signers]);
+  const balance = await reencryptEuint64(signers, instances, account, balanceHandle, tokenAddress);
   return balance;
 }
