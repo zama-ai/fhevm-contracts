@@ -12,6 +12,32 @@ export async function deployCompFixture(signers: Signers): Promise<Comp> {
   return contract;
 }
 
+export async function transferTokensAndDelegate(
+  signers: Signers,
+  instances: FhevmInstances,
+  transferAmount: bigint,
+  account: string,
+  delegate: string,
+  comp: Comp,
+  compAddress: string,
+): Promise<void> {
+  const input = instances.alice.createEncryptedInput(compAddress, signers.alice.address);
+  input.add64(transferAmount);
+  const encryptedTransferAmount = await input.encrypt();
+
+  let tx = await comp
+    .connect(signers.alice)
+    ["transfer(address,bytes32,bytes)"](
+      signers[account as keyof Signers],
+      encryptedTransferAmount.handles[0],
+      encryptedTransferAmount.inputProof,
+    );
+  await tx.wait();
+
+  tx = await comp.connect(signers[account as keyof Signers]).delegate(signers[delegate as keyof Signers].address);
+  await tx.wait();
+}
+
 export async function reencryptCurrentVotes(
   signers: Signers,
   instances: FhevmInstances,
