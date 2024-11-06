@@ -259,7 +259,7 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
      *                      her votes are still above the threshold.
      */
     function cancel(uint256 proposalId) external {
-        Proposal storage proposal = _proposals[proposalId];
+        Proposal memory proposal = _proposals[proposalId];
 
         if (
             proposal.state == ProposalState.Executed ||
@@ -287,7 +287,7 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
             }
         }
 
-        proposal.state = ProposalState.Canceled;
+        _proposals[proposalId].state = ProposalState.Canceled;
 
         emit ProposalCanceled(proposalId);
     }
@@ -334,6 +334,8 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
             );
         }
 
+        _proposals[proposalId].state = ProposalState.Executed;
+
         emit ProposalExecuted(proposalId);
     }
 
@@ -371,7 +373,7 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
 
         uint256 latestProposalId = latestProposalIds[msg.sender];
 
-        if (latestProposalId != 0) {
+        if (latestProposalId != 0 && proposalCount != 0) {
             ProposalState proposerLatestProposalState = _proposals[latestProposalId].state;
 
             if (
@@ -446,7 +448,7 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
      * @param proposalId  Proposal id.
      */
     function queue(uint256 proposalId) external {
-        Proposal storage proposal = _proposals[proposalId];
+        Proposal memory proposal = _proposals[proposalId];
 
         if (proposal.state != ProposalState.Succeeded) {
             revert ProposalStateInvalid();
@@ -458,7 +460,8 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
             _queueOrRevert(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], eta);
         }
 
-        proposal.eta = eta;
+        _proposals[proposalId].eta = eta;
+        _proposals[proposalId].state = ProposalState.Queued;
 
         emit ProposalQueued(proposalId, eta);
     }
@@ -560,30 +563,6 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
     }
 
     /**
-     * @dev                   Returns the actions for a proposal id.
-     * @param  proposalId     Proposal id.
-     * @return targets        Target addresses.
-     * @return values         Values.
-     * @return signatures     Signatures.
-     * @return calldatas      Calldatas.
-     */
-    function getActions(
-        uint256 proposalId
-    )
-        external
-        view
-        returns (
-            address[] memory targets,
-            uint256[] memory values,
-            string[] memory signatures,
-            bytes[] memory calldatas
-        )
-    {
-        Proposal storage p = _proposals[proposalId];
-        return (p.targets, p.values, p.signatures, p.calldatas);
-    }
-
-    /**
      * @notice                  Returns proposal information for a proposal id.
      * @dev                     It returns decrypted `forVotes`/`againstVotes`.
      *                          These are only available after the decryption.
@@ -647,7 +626,7 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
             revert ProposalStateInvalid();
         }
 
-        if (block.number > _proposals[proposalId].endBlock) {
+        if (block.number > proposal.endBlock) {
             revert ProposalStateNotActive();
         }
 
