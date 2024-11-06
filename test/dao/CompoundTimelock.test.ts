@@ -1,28 +1,29 @@
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
 
-import { createInstances } from "../instance";
 import { getSigners, initSigners } from "../signers";
-import { createTransaction, waitNBlocks } from "../utils";
-import { deployCompFixture } from "./Comp.fixture";
-import { deployGovernorZamaFixture, deployTimelockFixture } from "./GovernorZama.fixture";
+import { deployTimelockFixture } from "./GovernorAlphaZama.fixture";
 
-describe("Timelock", function () {
+describe("CompoundTimelock", function () {
   before(async function () {
-    await initSigners();
+    await initSigners(3);
     this.signers = await getSigners();
   });
 
   beforeEach(async function () {
-    this.timelock = await deployTimelockFixture(this.signers.alice);
+    this.timelock = await deployTimelockFixture(this.signers.alice.address);
   });
 
   it("non-timelock account could not call setPendingAdmin", async function () {
-    await expect(this.timelock.setPendingAdmin(this.signers.bob)).to.throw;
+    await expect(this.timelock.setPendingAdmin(this.signers.bob)).to.be.revertedWith(
+      "Timelock::setPendingAdmin: Call must come from Timelock.",
+    );
   });
 
   it("non-timelock account could not call setDelay", async function () {
-    await expect(this.timelock.setDelay(60 * 60 * 24 * 3)).to.throw;
+    await expect(this.timelock.setDelay(60 * 60 * 24 * 3)).to.be.revertedWith(
+      "Timelock::setDelay: Call must come from Timelock.",
+    );
   });
 
   it("setDelay could only be called with a delay between MINIMUM_DELAY and MAXIMUM_DELAY", async function () {
