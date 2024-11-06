@@ -37,6 +37,9 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
     /// @notice Returned if the proposal state is still active.
     error ProposalStateStillActive();
 
+    /// @notice Returned if the proposer has another proposal in progress.
+    error ProposerHasAnotherProposal();
+
     /// @notice Returned if the voter has already cast a vote
     ///         for this proposal.
     error VoterHasAlreadyVoted();
@@ -262,6 +265,7 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
         Proposal memory proposal = _proposals[proposalId];
 
         if (
+            proposal.state == ProposalState.Pending ||
             proposal.state == ProposalState.Executed ||
             proposal.state == ProposalState.Canceled ||
             proposal.state == ProposalState.Defeated
@@ -373,7 +377,7 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
 
         uint256 latestProposalId = latestProposalIds[msg.sender];
 
-        if (latestProposalId != 0 && proposalCount != 0) {
+        if (latestProposalId != 0) {
             ProposalState proposerLatestProposalState = _proposals[latestProposalId].state;
 
             if (
@@ -383,13 +387,13 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
                 proposerLatestProposalState != ProposalState.Canceled &&
                 proposerLatestProposalState != ProposalState.Executed
             ) {
-                revert ProposalStateInvalid();
+                revert ProposerHasAnotherProposal();
             }
         }
 
         uint256 startBlock = block.number + VOTING_DELAY;
         uint256 endBlock = startBlock + VOTING_PERIOD;
-        uint256 thisProposalId = proposalCount++;
+        uint256 thisProposalId = ++proposalCount;
 
         _proposals[thisProposalId] = Proposal({
             proposer: msg.sender,
@@ -588,7 +592,7 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
             (proposalInfo.state == ProposalState.Queued) &&
             (block.timestamp > proposalInfo.eta + TIMELOCK.GRACE_PERIOD())
         ) {
-            proposalInfo.state == ProposalState.Expired;
+            proposalInfo.state = ProposalState.Expired;
         }
     }
 
