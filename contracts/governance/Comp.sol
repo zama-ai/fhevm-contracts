@@ -80,10 +80,10 @@ abstract contract Comp is IComp, EncryptedERC20, Ownable2Step {
      * @param owner Owner address
      */
     constructor(address owner) EncryptedERC20("Compound", "COMP") Ownable(owner) {
-        _unsafeMint(owner, TFHE.asEuint64(10000000e6)); // 10 million Comp
+        _unsafeMint(owner, TFHE.asEuint64(10000000e6)); /// 10 million Comp
         _totalSupply = 10000000e6;
 
-        // @dev Define the constant in the storage.
+        /// @dev Define the constant in the storage.
         _EUINT64_ZERO = TFHE.asEuint64(0);
         TFHE.allowThis(_EUINT64_ZERO);
     }
@@ -201,7 +201,7 @@ abstract contract Comp is IComp, EncryptedERC20, Ownable2Step {
             uint32 lower = 0;
             uint32 upper = nCheckpoints - 1;
             while (upper > lower) {
-                // Ceil to avoid overflow.
+                /// Ceil to avoid overflow.
                 uint32 center = upper - (upper - lower) / 2;
                 Checkpoint memory cp = _checkpoints[account][center];
 
@@ -222,14 +222,14 @@ abstract contract Comp is IComp, EncryptedERC20, Ownable2Step {
             if (srcRep != address(0)) {
                 uint32 srcRepNum = numCheckpoints[srcRep];
                 euint64 srcRepOld = srcRepNum > 0 ? _checkpoints[srcRep][srcRepNum - 1].votes : _EUINT64_ZERO;
-                euint64 srcRepNew = TFHE.sub(srcRepOld, amount); // srcRepOld - amount;
+                euint64 srcRepNew = TFHE.sub(srcRepOld, amount); /// srcRepOld - amount;
                 _writeCheckpoint(srcRep, srcRepNum, srcRepNew);
             }
 
             if (dstRep != address(0)) {
                 uint32 dstRepNum = numCheckpoints[dstRep];
                 euint64 dstRepOld = dstRepNum > 0 ? _checkpoints[dstRep][dstRepNum - 1].votes : _EUINT64_ZERO;
-                euint64 dstRepNew = TFHE.add(dstRepOld, amount); // dstRepOld + amount;
+                euint64 dstRepNew = TFHE.add(dstRepOld, amount); /// dstRepOld + amount;
                 _writeCheckpoint(dstRep, dstRepNum, dstRepNew);
             }
         }

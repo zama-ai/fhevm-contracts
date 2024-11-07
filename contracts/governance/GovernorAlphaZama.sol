@@ -249,7 +249,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
         COMP = IComp(comp_);
         VOTING_PERIOD = votingPeriod_;
 
-        // @dev Store these constant-like variables in the storage.
+        /// @dev Store these constant-like variables in the storage.
         _EUINT64_ZERO = TFHE.asEuint64(0);
         _EUINT64_PROPOSAL_THRESHOLD = TFHE.asEuint64(PROPOSAL_THRESHOLD);
 
@@ -330,7 +330,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
             revert ProposalStateInvalid();
         }
 
-        // proposal.executed = true;
+        /// proposal.executed = true;
         for (uint256 i = 0; i < proposal.targets.length; i++) {
             TIMELOCK.executeTransaction{ value: proposal.values[i] }(
                 proposal.targets[i],
@@ -590,7 +590,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
         proposalInfo.forVotes = proposal.forVotesDecrypted;
         proposalInfo.againstVotes = proposal.againstVotesDecrypted;
 
-        // The state is adjusted but not closed.
+        /// The state is adjusted but not closed.
         if (
             (proposalInfo.state == ProposalState.Queued) &&
             (block.timestamp > proposalInfo.eta + TIMELOCK.GRACE_PERIOD())
@@ -658,7 +658,8 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
         TFHE.allow(receipt.support, msg.sender);
         TFHE.allow(receipt.votes, msg.sender);
 
-        // `support` and `votes` are encrypted values, no need to include them in the event.
+        /// @dev `support` and `votes` are encrypted values.
+        ///       There is no need to include them in the event.
         emit VoteCast(voter, proposalId);
     }
 }

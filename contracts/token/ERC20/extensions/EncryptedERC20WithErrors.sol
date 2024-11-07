@@ -57,7 +57,7 @@ abstract contract EncryptedERC20WithErrors is EncryptedERC20, EncryptedErrors {
     function transfer(address to, euint64 amount) public virtual override returns (bool) {
         _isSenderAllowedForAmount(amount);
 
-        // Make sure the owner has enough tokens
+        /// Check whether the owner has enough tokens.
         ebool canTransfer = TFHE.le(amount, _balances[msg.sender]);
 
         euint8 errorCode = TFHE.select(
@@ -98,7 +98,7 @@ abstract contract EncryptedERC20WithErrors is EncryptedERC20, EncryptedErrors {
         _transferNoEvent(from, to, amount, isTransferable);
         emit TransferWithErrorHandling(from, to, _transferIdCounter);
 
-        // Set error code in the storage and increment
+        /// Set the error code in the storage and increment.
         _errorCodeForTransferId[_transferIdCounter++] = errorCode;
 
         TFHE.allowThis(errorCode);
@@ -113,7 +113,7 @@ abstract contract EncryptedERC20WithErrors is EncryptedERC20, EncryptedErrors {
     ) internal virtual returns (ebool isTransferable, euint8 errorCode) {
         euint64 currentAllowance = _allowance(owner, spender);
 
-        // Make sure sure the allowance suffices
+        /// Make sure sure the allowance suffices.
         ebool allowedTransfer = TFHE.le(amount, currentAllowance);
 
         errorCode = TFHE.select(
@@ -122,7 +122,7 @@ abstract contract EncryptedERC20WithErrors is EncryptedERC20, EncryptedErrors {
             _errorCodes[uint8(ErrorCodes.NO_ERROR)]
         );
 
-        // Make sure the owner has enough tokens
+        /// Make sure the owner has enough tokens.
         ebool canTransfer = TFHE.le(amount, _balances[owner]);
 
         errorCode = TFHE.select(

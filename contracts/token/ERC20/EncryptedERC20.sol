@@ -75,7 +75,7 @@ abstract contract EncryptedERC20 is IEncryptedERC20 {
     function transfer(address to, euint64 amount) public virtual returns (bool) {
         _isSenderAllowedForAmount(amount);
 
-        // Make sure the owner has enough tokens
+        /// Make sure the owner has enough tokens.
         ebool canTransfer = TFHE.le(amount, _balances[msg.sender]);
         _transfer(msg.sender, to, amount, canTransfer);
         return true;
@@ -179,7 +179,7 @@ abstract contract EncryptedERC20 is IEncryptedERC20 {
             revert ReceiverAddressNull();
         }
 
-        // Add to the balance of `to` and subract from the balance of `from`.
+        /// Add to the balance of `to` and subract from the balance of `from`.
         euint64 transferValue = TFHE.select(isTransferable, amount, TFHE.asEuint64(0));
         euint64 newBalanceTo = TFHE.add(_balances[to], transferValue);
         _balances[to] = newBalanceTo;
@@ -193,9 +193,9 @@ abstract contract EncryptedERC20 is IEncryptedERC20 {
 
     function _updateAllowance(address owner, address spender, euint64 amount) internal virtual returns (ebool) {
         euint64 currentAllowance = _allowance(owner, spender);
-        // Make sure sure the allowance suffices
+        /// Make sure sure the allowance suffices.
         ebool allowedTransfer = TFHE.le(amount, currentAllowance);
-        // Make sure the owner has enough tokens
+        /// Make sure the owner has enough tokens.
         ebool canTransfer = TFHE.le(amount, _balances[owner]);
         ebool isTransferable = TFHE.and(canTransfer, allowedTransfer);
         _approve(owner, spender, TFHE.select(isTransferable, TFHE.sub(currentAllowance, amount), currentAllowance));
