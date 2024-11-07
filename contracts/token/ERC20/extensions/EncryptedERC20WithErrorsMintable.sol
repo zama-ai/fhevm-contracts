@@ -11,7 +11,7 @@ import { EncryptedERC20WithErrors } from "./EncryptedERC20WithErrors.sol";
  * @notice      This contract inherits EncryptedERC20WithErrors.
  * @dev         It allows an owner to mint tokens. Mint amounts are public.
  */
-contract EncryptedERC20WithErrorsMintable is Ownable2Step, EncryptedERC20WithErrors {
+abstract contract EncryptedERC20WithErrorsMintable is Ownable2Step, EncryptedERC20WithErrors {
     /**
      * @notice Emitted when `amount` tokens are minted to one account (`to`).
      */

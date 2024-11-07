@@ -19,7 +19,7 @@ import { ICompoundTimelock } from "./ICompoundTimelock.sol";
  *              - Quorum: A minimum number of votes (quorum) must be reached for the proposal to pass.
  *              - Execution: Once a proposal passes, it is executed and takes effect on the protocol.
  */
-contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
+abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
     /// @notice Returned if proposal contains too many changes.
     error LengthAboveMaxOperations();
 

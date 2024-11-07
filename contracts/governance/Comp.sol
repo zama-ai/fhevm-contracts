@@ -17,7 +17,7 @@ import { IComp } from "./IComp.sol";
  *              with an account's balance.
  * @dev         The delegation of votes leaks information about the account's encrypted balance to the `delegatee`.
  */
-contract Comp is IComp, EncryptedERC20, Ownable2Step {
+abstract contract Comp is IComp, EncryptedERC20, Ownable2Step {
     /// @notice Returned if the `blockNumber` is higher or equal to the (current) `block.number`.
     /// @dev    It is returned for requests to access votes.
     error BlockNumberEqualOrHigherThanCurrentBlock();
