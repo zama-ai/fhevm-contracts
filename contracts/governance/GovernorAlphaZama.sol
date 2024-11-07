@@ -17,7 +17,7 @@ import { ICompoundTimelock } from "./ICompoundTimelock.sol";
  *              - Proposal: A new proposal is made to introduce a change.
  *              - Voting: Users can vote on the proposal, either in favor or against it.
  *              - Quorum: A minimum number of votes (quorum) must be reached for the proposal to pass.
- *              - Execution: Once a proposal passes, it is executed and takes effect on the taregt protocol.
+ *              - Execution: Once a proposal passes, it is executed and takes effect on the protocol.
  */
 contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
     /// @notice Returned if proposal contains too many changes.
@@ -245,9 +245,6 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
      *                          For instance, 3 days would have a votingPeriod = 21,600 blocks if 12s per block.
      */
     constructor(address owner_, address timelock_, address comp_, uint256 votingPeriod_) Ownable(owner_) {
-        TFHE.setFHEVM(FHEVMConfig.defaultConfig());
-        Gateway.setGateway(Gateway.defaultGatewayAddress());
-
         TIMELOCK = ICompoundTimelock(timelock_);
         COMP = IComp(comp_);
         VOTING_PERIOD = votingPeriod_;

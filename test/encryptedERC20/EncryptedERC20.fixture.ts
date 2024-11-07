@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 
-import type { EncryptedERC20Mintable, IEncryptedERC20 } from "../../types";
+import type { IEncryptedERC20, TestEncryptedERC20Mintable } from "../../types";
 import { reencryptEuint64 } from "../reencrypt";
 import { Signers } from "../signers";
 import { FhevmInstances } from "../types";
@@ -10,8 +10,8 @@ export async function deployEncryptedERC20Fixture(
   name: string,
   symbol: string,
   owner: string,
-): Promise<EncryptedERC20Mintable> {
-  const contractFactory = await ethers.getContractFactory("EncryptedERC20Mintable");
+): Promise<TestEncryptedERC20Mintable> {
+  const contractFactory = await ethers.getContractFactory("TestEncryptedERC20Mintable");
   const contract = await contractFactory
     .connect(signers[owner as keyof Signers])
     .deploy(name, symbol, signers[owner as keyof Signers].address);

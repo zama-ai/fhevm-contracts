@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 
-import type { EncryptedERC20WithErrorsMintable } from "../../types";
+import type { TestEncryptedERC20WithErrorsMintable } from "../../types";
 import { reencryptEuint8 } from "../reencrypt";
 import { Signers } from "../signers";
 import { FhevmInstances } from "../types";
@@ -10,8 +10,8 @@ export async function deployEncryptedERC20WithErrorsFixture(
   name: string,
   symbol: string,
   owner: string,
-): Promise<EncryptedERC20WithErrorsMintable> {
-  const contractFactory = await ethers.getContractFactory("EncryptedERC20WithErrorsMintable");
+): Promise<TestEncryptedERC20WithErrorsMintable> {
+  const contractFactory = await ethers.getContractFactory("TestEncryptedERC20WithErrorsMintable");
   const contract = await contractFactory
     .connect(signers[owner as keyof Signers])
     .deploy(name, symbol, signers[owner as keyof Signers].address);
@@ -24,7 +24,7 @@ export async function checkErrorCode(
   instances: FhevmInstances,
   account: string,
   transferId: bigint,
-  token: EncryptedERC20WithErrorsMintable,
+  token: TestEncryptedERC20WithErrorsMintable,
   tokenAddress: string,
 ): Promise<string> {
   const errorCodeHandle = await token.getErrorCodeForTransferId(transferId);

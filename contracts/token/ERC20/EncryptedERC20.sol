@@ -38,7 +38,6 @@ abstract contract EncryptedERC20 is IEncryptedERC20 {
      * @param symbol_ Symbol.
      */
     constructor(string memory name_, string memory symbol_) {
-        TFHE.setFHEVM(FHEVMConfig.defaultConfig());
         _name = name_;
         _symbol = symbol_;
     }
