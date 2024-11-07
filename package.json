@@ -1,6 +1,6 @@
 {
-  "name": "fhevm-contracts",
-  "description": "fhEVM contracts",
+  "name": "@zama-ai/fhevm-contracts",
+  "description": "fhEVM contracts is a Solidity library for secure smart-contract development using fhEVM and TFHE.",
   "version": "0.1.0",
   "author": {
     "name": "zama-ai",
@@ -52,7 +52,9 @@
     "typescript": "^5.4.2"
   },
   "files": [
-    "contracts"
+    "contracts/governance/",
+    "contracts/token/",
+    "contracts/utils/"
   ],
   "keywords": [
     "blockchain",
@@ -63,7 +65,8 @@
     "solidity",
     "template",
     "typescript",
-    "typechain"
+    "typechain",
+    "tfhe"
   ],
   "publishConfig": {
     "access": "public"

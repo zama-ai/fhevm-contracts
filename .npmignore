@@ -1,6 +1,4 @@
 *
-!contracts/**
-contracts/mocks/**
 !package.json
 !README.md
 !LICENSE
