@@ -139,19 +139,21 @@ describe("Comp", function () {
   it("cannot request votes if blocktime is equal to current blocktime", async function () {
     let blockNumber = await ethers.provider.getBlockNumber();
 
-    await expect(this.comp.getPriorVotes(this.signers.alice, blockNumber + 1)).to.be.revertedWith(
-      "Comp::getPriorVotes: not yet determined",
+    await expect(this.comp.getPriorVotes(this.signers.alice, blockNumber + 1)).to.be.revertedWithCustomError(
+      this.comp,
+      "BlockNumberEqualOrHigherThanCurrentBlock",
     );
+
     const newAllowedContract = "0x9d3e06a2952dc49EDCc73e41C76645797fC53967";
 
-    const tx = await this.comp.connect(this.signers.alice).setAllowedContract(this.signers.bob);
+    const tx = await this.comp.connect(this.signers.alice).setGovernor(this.signers.bob);
     await tx.wait();
 
     blockNumber = await ethers.provider.getBlockNumber();
 
     await expect(
-      this.comp.connect(this.signers.bob).getPriorVotesForAllowedContract(this.signers.alice, blockNumber + 1),
-    ).to.be.revertedWith("Comp::getPriorVotes: not yet determined");
+      this.comp.connect(this.signers.bob).getPriorVotesForGovernor(this.signers.alice, blockNumber + 1),
+    ).to.be.revertedWithCustomError(this.comp, "BlockNumberEqualOrHigherThanCurrentBlock");
   });
 
   it("users can request past votes getPriorVotes", async function () {
@@ -221,23 +223,23 @@ describe("Comp", function () {
     ).to.be.equal(parseUnits(String(2_000_000), 6));
   });
 
-  it("only allowed contract can call getPriorVotes", async function () {
+  it("only governor contract can call getPriorVotes", async function () {
     await expect(
-      this.comp.getPriorVotesForAllowedContract("0xE359a77c3bFE58792FB167D05720e37032A1e520", 0),
-    ).to.be.revertedWith("Caller not allowed to call this function");
+      this.comp.getPriorVotesForGovernor("0xE359a77c3bFE58792FB167D05720e37032A1e520", 0),
+    ).to.be.revertedWithCustomError(this.comp, "GovernorInvalid");
   });
 
-  it("only owner could set allowed contract", async function () {
+  it("only owner can set governor contract", async function () {
     const newAllowedContract = "0x9d3e06a2952dc49EDCc73e41C76645797fC53967";
 
-    await expect(this.comp.connect(this.signers.bob).setAllowedContract(newAllowedContract))
+    await expect(this.comp.connect(this.signers.bob).setGovernor(newAllowedContract))
       .to.be.revertedWithCustomError(this.comp, "OwnableUnauthorizedAccount")
       .withArgs(this.signers.bob.address);
   });
 
-  it("allowed address can access votes for any account", async function () {
-    // Bob becomes the allowed address.
-    let tx = await this.comp.connect(this.signers.alice).setAllowedContract(this.signers.bob.address);
+  it("governor address can access votes for any account", async function () {
+    // Bob becomes the governor address.
+    let tx = await this.comp.connect(this.signers.alice).setGovernor(this.signers.bob.address);
     await tx.wait();
 
     // Alice delegates her votes to Carol.
@@ -248,13 +250,12 @@ describe("Comp", function () {
     await waitNBlocks(1);
     await waitNBlocks(1);
 
-    // Bob, the allowed address, get the prior votes for allowed contract.
-    const voteHandle = await this.comp
+    // Bob, the governor address, gets the prior votes of Carol.
+    // @dev It is not possible to catch the return value since it is not a view function.
+    // GovernorAlpha.test.ts contains tests that use this function.
+    await this.comp
       .connect(this.signers.bob)
-      .getPriorVotesForAllowedContract(this.signers.carol.address, latestBlockNumber + 1);
-
-    // It is not possible to catch the return value.
-    // TODO: Create a test helper contract to implement this.
+      .getPriorVotesForGovernor(this.signers.carol.address, latestBlockNumber + 1);
   });
 
   it("different voters can delegate to same delegatee", async function () {

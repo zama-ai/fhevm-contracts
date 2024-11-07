@@ -38,7 +38,7 @@ describe("GovernorAlphaZama", function () {
     this.governor = governor;
     this.governorAddress = await governor.getAddress();
 
-    const tx = await this.comp.setAllowedContract(this.governorAddress);
+    const tx = await this.comp.setGovernor(this.governorAddress);
     await tx.wait();
   });
 
