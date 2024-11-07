@@ -12,6 +12,12 @@ import { ICompoundTimelock } from "./ICompoundTimelock.sol";
  * @title       GovernorAlphaZama
  * @notice      This is based on the GovernorAlpha.sol contract written by Compound Labs.
  *              see: compound-finance/compound-protocol/blob/master/contracts/Governance/GovernorAlpha.sol
+ *              This decentralized governance system allows users to propose and vote on changes to the protocol.
+ *              The contract is responsible for:
+ *              - Proposal: A new proposal is made to introduce a change.
+ *              - Voting: Users can vote on the proposal, either in favor or against it.
+ *              - Quorum: A minimum number of votes (quorum) must be reached for the proposal to pass.
+ *              - Execution: Once a proposal passes, it is executed and takes effect on the Compound protocol.
  */
 contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
     /// @notice Returned if proposal contains too many changes.
@@ -427,7 +433,7 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
 
         ebool canPropose = TFHE.lt(
             _EUINT64_PROPOSAL_THRESHOLD,
-            COMP.getPriorVotesForAllowedContract(msg.sender, block.number - 1)
+            COMP.getPriorVotesForGovernor(msg.sender, block.number - 1)
         );
 
         uint256[] memory cts = new uint256[](1);
@@ -640,7 +646,7 @@ contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
             revert VoterHasAlreadyVoted();
         }
 
-        euint64 votes = COMP.getPriorVotesForAllowedContract(voter, proposal.startBlock);
+        euint64 votes = COMP.getPriorVotesForGovernor(voter, proposal.startBlock);
         proposal.forVotes = TFHE.select(support, TFHE.add(proposal.forVotes, votes), proposal.forVotes);
         proposal.againstVotes = TFHE.select(support, proposal.againstVotes, TFHE.add(proposal.againstVotes, votes));
 

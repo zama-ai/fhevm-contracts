@@ -5,36 +5,13 @@ import { ICompoundTimelock } from "./ICompoundTimelock.sol";
 
 /**
  * @title       CompoundTimelock
+ * @notice      This contract allows the admin to set a delay period before executing transactions.
+ *              Transactions must be queued before execution. No transaction can be executed during this period,
+ *              which offers time to verify the validity of pending transactions.
+ *              It also has a grace period to allow for transactions
+ *              not to be executed after a specific period following the queuing.
  */
 contract CompoundTimelock is ICompoundTimelock {
-    event NewAdmin(address indexed newAdmin);
-    event NewPendingAdmin(address indexed newPendingAdmin);
-    event NewDelay(uint256 indexed newDelay);
-    event CancelTransaction(
-        bytes32 indexed txHash,
-        address indexed target,
-        uint256 value,
-        string signature,
-        bytes data,
-        uint256 eta
-    );
-    event ExecuteTransaction(
-        bytes32 indexed txHash,
-        address indexed target,
-        uint256 value,
-        string signature,
-        bytes data,
-        uint256 eta
-    );
-    event QueueTransaction(
-        bytes32 indexed txHash,
-        address indexed target,
-        uint256 value,
-        string signature,
-        bytes data,
-        uint256 eta
-    );
-
     uint256 public constant GRACE_PERIOD = 14 days;
     uint256 public constant MINIMUM_DELAY = 2 days;
     uint256 public constant MAXIMUM_DELAY = 30 days;

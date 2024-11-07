@@ -11,24 +11,34 @@ import { IComp } from "./IComp.sol";
  * @notice      This contract inherits EncryptedERC20 and Ownable2Step.
  *              This is based on the Comp.sol contract written by Compound Labs.
  *              see: compound-finance/compound-protocol/blob/master/contracts/Governance/Comp.sol
+ *              It is a governance token used to delegate votes, which can be used by contracts such as
+ *              GovernorAlphaZama.sol.
  *              It uses encrypted votes to delegate the voting power associated
  *              with an account's balance.
  * @dev         The delegation of votes leaks information about the account's encrypted balance to the delegate.
  */
 contract Comp is IComp, EncryptedERC20, Ownable2Step {
+    /// @notice Returned if the `blockNumber` is higher or equal to the (current) `block.number`.
+    /// @dev    It is returned for requests to access votes.
+    error BlockNumberEqualOrHigherThanCurrentBlock();
+
+    /// @notice Returned if the `msg.sender` is not the `governor` contract.
+    error GovernorInvalid();
+
     /// @notice Emitted when an account changes its delegate.
     event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
 
     /// @notice Emitted when a delegate account's vote balance changes.
     event DelegateVotesChanged(address indexed delegate);
 
-    /// @notice Emitted when the contract that can reencrypt changes.
-    event NewAllowedContract(address indexed allowedContract);
+    /// @notice Emitted when the governor contract that can reencrypt votes changes.
+    /// @dev    It can be set to a malicious contract, which could reencrypt all user votes.
+    event NewGovernor(address indexed governor);
 
     /// @notice          A checkpoint for marking number of votes from a given block.
     /// @param fromBlock Block from where the checkpoint applies.
     /// @param votes     Total number of votes for the account power.
-    /// @dev             In Compound's implementation, `fromBlock` is defined as uint32 to allow tight-packing
+    /// @dev             In Compound's implementation, `fromBlock` is defined as uint32 to allow tight-packing.
     ///                  However, in this implementations `votes` is uint256-based.
     ///                  `fromBlock`'s type is set to uint256, which simplifies the codebase.
     struct Checkpoint {
@@ -44,8 +54,9 @@ contract Comp is IComp, EncryptedERC20, Ownable2Step {
     bytes32 public constant DELEGATION_TYPEHASH =
         keccak256("Delegation(address delegatee,uint256 nonce,uint256 expiry)");
 
-    /// @notice The smart contract that can access votes.
-    address public allowedContract;
+    /// @notice The smart contract that can access encrypted votes.
+    /// @dev    The contract is expected to be a governor contract.
+    address public governor;
 
     /// @notice A record of each account's delegate.
     mapping(address account => address delegate) public delegates;
@@ -111,15 +122,21 @@ contract Comp is IComp, EncryptedERC20, Ownable2Step {
     /**
      * @notice              Determine the prior number of votes for an account as of a block number.
      * @dev                 Block number must be a finalized block or else this function will revert.
-     *                      This function can change the state since the allowedContract needs access in the ACL
+     *                      This function can change the state since the governor needs access in the ACL
      *                      contract.
      * @param account       Account address.
      * @param blockNumber   The block number to get the vote balance at.
      * @return votes        Number of votes the account as of the given block number.
      */
-    function getPriorVotesForAllowedContract(address account, uint256 blockNumber) external returns (euint64 votes) {
-        require(msg.sender == allowedContract, "Caller not allowed to call this function");
-        require(blockNumber < block.number, "Comp::getPriorVotes: not yet determined");
+    function getPriorVotesForGovernor(address account, uint256 blockNumber) external returns (euint64 votes) {
+        if (msg.sender != governor) {
+            revert GovernorInvalid();
+        }
+
+        if (blockNumber >= block.number) {
+            revert BlockNumberEqualOrHigherThanCurrentBlock();
+        }
+
         votes = _getPriorVote(account, blockNumber);
         TFHE.allow(votes, msg.sender);
     }
@@ -142,17 +159,20 @@ contract Comp is IComp, EncryptedERC20, Ownable2Step {
      * @return votes        Number of votes the account as of the given block.
      */
     function getPriorVotes(address account, uint256 blockNumber) external view returns (euint64 votes) {
-        require(blockNumber < block.number, "Comp::getPriorVotes: not yet determined");
+        if (blockNumber >= block.number) {
+            revert BlockNumberEqualOrHigherThanCurrentBlock();
+        }
+
         return _getPriorVote(account, blockNumber);
     }
 
     /**
      * @notice                  Set an allowed contract that can access votes.
-     * @param contractAddress   The address of the smart contract that may access votes.
+     * @param newGovernor       New governor contract that can reencrypt/access votes.
      */
-    function setAllowedContract(address contractAddress) public onlyOwner {
-        allowedContract = contractAddress;
-        emit NewAllowedContract(contractAddress);
+    function setGovernor(address newGovernor) public onlyOwner {
+        governor = newGovernor;
+        emit NewGovernor(newGovernor);
     }
 
     function _delegate(address delegator, address delegatee) internal {
