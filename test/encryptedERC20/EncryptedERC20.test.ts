@@ -388,4 +388,11 @@ describe("EncryptedERC20", function () {
       this.encryptedERC20.connect(this.signers.bob).approve(this.signers.carol.address, allowanceHandleAlice),
     ).to.be.revertedWithCustomError(this.encryptedERC20, "TFHESenderNotAllowed");
   });
+
+  it("EncryptedERC20Mintable - only owner can mint", async function () {
+    await expect(this.encryptedERC20.connect(this.signers.bob).mint(1)).to.be.revertedWithCustomError(
+      this.encryptedERC20,
+      "OwnableUnauthorizedAccount",
+    );
+  });
 });
