@@ -122,7 +122,7 @@ abstract contract Comp is IComp, EncryptedERC20, Ownable2Step {
     /**
      * @notice See {IComp-getPriorVotesForGovernor}.
      */
-    function getPriorVotesForGovernor(address account, uint256 blockNumber) external returns (euint64 votes) {
+    function getPriorVotesForGovernor(address account, uint256 blockNumber) public returns (euint64 votes) {
         if (msg.sender != governor) {
             revert GovernorInvalid();
         }
@@ -140,7 +140,7 @@ abstract contract Comp is IComp, EncryptedERC20, Ownable2Step {
      * @param  account  Account address
      * @return votes    Current (encrypted) votes.
      */
-    function getCurrentVotes(address account) external view returns (euint64 votes) {
+    function getCurrentVotes(address account) public view returns (euint64 votes) {
         uint32 nCheckpoints = numCheckpoints[account];
         if (nCheckpoints > 0) {
             votes = _checkpoints[account][nCheckpoints - 1].votes;
@@ -154,7 +154,7 @@ abstract contract Comp is IComp, EncryptedERC20, Ownable2Step {
      * @param blockNumber   The block number to get the vote balance at.
      * @return votes        Number of votes the account as of the given block.
      */
-    function getPriorVotes(address account, uint256 blockNumber) external view returns (euint64 votes) {
+    function getPriorVotes(address account, uint256 blockNumber) public view returns (euint64 votes) {
         if (blockNumber >= block.number) {
             revert BlockNumberEqualOrHigherThanCurrentBlock();
         }

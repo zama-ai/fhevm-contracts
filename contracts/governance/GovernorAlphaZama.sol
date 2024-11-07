@@ -264,7 +264,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
      *                      In the original GovernorAlpha, the proposer can cancel only if
      *                      her votes are still above the threshold.
      */
-    function cancel(uint256 proposalId) external {
+    function cancel(uint256 proposalId) public {
         Proposal memory proposal = _proposals[proposalId];
 
         if (
@@ -305,8 +305,8 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
      * @param value      Encrypted value.
      * @param inputProof Input proof.
      */
-    function castVote(uint256 proposalId, einput value, bytes calldata inputProof) external {
-        return _castVote(msg.sender, proposalId, TFHE.asEbool(value, inputProof));
+    function castVote(uint256 proposalId, einput value, bytes calldata inputProof) public {
+        return castVote(proposalId, TFHE.asEbool(value, inputProof));
     }
 
     /**
@@ -314,7 +314,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
      * @param proposalId Proposal id.
      * @param support    Support (true ==> votesFor, false ==> votesAgainst)
      */
-    function castVote(uint256 proposalId, ebool support) external {
+    function castVote(uint256 proposalId, ebool support) public {
         return _castVote(msg.sender, proposalId, support);
     }
 
@@ -323,7 +323,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
      * @dev    Anyone can execute a proposal once it has been queued and the
      *         delay in the timelock is sufficient.
      */
-    function execute(uint256 proposalId) external payable {
+    function execute(uint256 proposalId) public payable {
         Proposal memory proposal = _proposals[proposalId];
 
         if (proposal.state != ProposalState.Queued) {
@@ -361,7 +361,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
         string[] memory signatures,
         bytes[] memory calldatas,
         string memory description
-    ) external returns (uint256 proposalId) {
+    ) public returns (uint256 proposalId) {
         {
             uint256 length = targets.length;
 
@@ -454,7 +454,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
      * @dev               It can be done only if the proposal is adopted.
      * @param proposalId  Proposal id.
      */
-    function queue(uint256 proposalId) external {
+    function queue(uint256 proposalId) public {
         Proposal memory proposal = _proposals[proposalId];
 
         if (proposal.state != ProposalState.Succeeded) {
@@ -477,7 +477,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
      * @notice            Request the vote results to be decrypted.
      * @param proposalId  Proposal id.
      */
-    function requestVoteDecryption(uint256 proposalId) external {
+    function requestVoteDecryption(uint256 proposalId) public {
         if (_proposals[proposalId].state != ProposalState.Active) {
             revert ProposalStateInvalid();
         }
@@ -547,7 +547,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
     /**
      * @dev Only callable by `owner`.
      */
-    function acceptTimelockAdmin() external onlyOwner {
+    function acceptTimelockAdmin() public onlyOwner {
         TIMELOCK.acceptAdmin();
     }
 
@@ -556,7 +556,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
      * @param newPendingAdmin Address of the new pending admin for the timelock.
      * @param eta             Eta for executing the transaction in the timelock.
      */
-    function executeSetTimelockPendingAdmin(address newPendingAdmin, uint256 eta) external onlyOwner {
+    function executeSetTimelockPendingAdmin(address newPendingAdmin, uint256 eta) public onlyOwner {
         TIMELOCK.executeTransaction(address(TIMELOCK), 0, "setPendingAdmin(address)", abi.encode(newPendingAdmin), eta);
     }
 
@@ -565,7 +565,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
      * @param newPendingAdmin Address of the new pending admin for the timelock.
      * @param eta             Eta for queuing the transaction in the timelock.
      */
-    function queueSetTimelockPendingAdmin(address newPendingAdmin, uint256 eta) external onlyOwner {
+    function queueSetTimelockPendingAdmin(address newPendingAdmin, uint256 eta) public onlyOwner {
         TIMELOCK.queueTransaction(address(TIMELOCK), 0, "setPendingAdmin(address)", abi.encode(newPendingAdmin), eta);
     }
 
@@ -576,7 +576,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
      * @param proposalId        Proposal id.
      * @return proposalInfo     Proposal information.
      */
-    function getProposalInfo(uint256 proposalId) external view returns (ProposalInfo memory proposalInfo) {
+    function getProposalInfo(uint256 proposalId) public view returns (ProposalInfo memory proposalInfo) {
         Proposal memory proposal = _proposals[proposalId];
         proposalInfo.proposer = proposal.proposer;
         proposalInfo.state = proposal.state;
@@ -607,7 +607,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
      * @return support      The support for the account (true ==> vote for, false ==> vote against).
      * @return votes        The number of votes cast.
      */
-    function getReceipt(uint256 proposalId, address account) external view returns (bool, ebool, euint64) {
+    function getReceipt(uint256 proposalId, address account) public view returns (bool, ebool, euint64) {
         Receipt memory receipt = _accountReceiptForProposalId[proposalId][account];
         return (receipt.hasVoted, receipt.support, receipt.votes);
     }
@@ -626,7 +626,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
         TIMELOCK.queueTransaction(target, value, signature, data, eta);
     }
 
-    function _castVote(address voter, uint256 proposalId, ebool support) internal {
+    function _castVote(address voter, uint256 proposalId, ebool support) private {
         Proposal storage proposal = _proposals[proposalId];
 
         if (proposal.state != ProposalState.Active) {
