@@ -2,9 +2,9 @@ import { expect } from "chai";
 import { parseUnits } from "ethers";
 import { ethers, network } from "hardhat";
 
-import type { Comp } from "../../types";
 import { reencryptBalance } from "../encryptedERC20/EncryptedERC20.fixture";
 import { createInstances } from "../instance";
+import { reencryptEuint64 } from "../reencrypt";
 import { getSigners, initSigners } from "../signers";
 import { waitNBlocks } from "../utils";
 import { deployCompFixture, reencryptCurrentVotes, reencryptPriorVotes } from "./Comp.fixture";
@@ -19,7 +19,7 @@ describe("Comp", function () {
   beforeEach(async function () {
     const contract = await deployCompFixture(this.signers);
     this.compAddress = await contract.getAddress();
-    (this.comp as Comp) = contract;
+    this.comp = contract;
     this.instances = await createInstances(this.signers);
   });
 
@@ -88,6 +88,40 @@ describe("Comp", function () {
     expect(
       await reencryptPriorVotes(this.signers, this.instances, "bob", latestBlockNumber, this.comp, this.compAddress),
     ).to.equal(await reencryptCurrentVotes(this.signers, this.instances, "bob", this.comp, this.compAddress));
+  });
+
+  it("cannot delegate votes to self but it gets removed once the tokens are transferred", async function () {
+    let tx = await this.comp.connect(this.signers.alice).delegate(this.signers.alice.address);
+    await tx.wait();
+
+    let latestBlockNumber = await ethers.provider.getBlockNumber();
+    await waitNBlocks(1);
+
+    expect(
+      await reencryptPriorVotes(this.signers, this.instances, "alice", latestBlockNumber, this.comp, this.compAddress),
+    ).to.equal(parseUnits(String(10_000_000), 6));
+
+    const transferAmount = parseUnits(String(10_000_000), 6);
+    const input = this.instances.alice.createEncryptedInput(this.compAddress, this.signers.alice.address);
+    input.add64(transferAmount);
+    const encryptedTransferAmount = await input.encrypt();
+
+    tx = await this.comp
+      .connect(this.signers.alice)
+      ["transfer(address,bytes32,bytes)"](
+        this.signers.bob.address,
+        encryptedTransferAmount.handles[0],
+        encryptedTransferAmount.inputProof,
+      );
+
+    await tx.wait();
+
+    latestBlockNumber = await ethers.provider.getBlockNumber();
+    await waitNBlocks(1);
+
+    expect(
+      await reencryptPriorVotes(this.signers, this.instances, "alice", latestBlockNumber, this.comp, this.compAddress),
+    ).to.equal(0);
   });
 
   it("cannot delegate votes if nonce is invalid", async function () {
@@ -235,6 +269,49 @@ describe("Comp", function () {
     await expect(this.comp.connect(this.signers.bob).setGovernor(newAllowedContract))
       .to.be.revertedWithCustomError(this.comp, "OwnableUnauthorizedAccount")
       .withArgs(this.signers.bob.address);
+  });
+
+  it("getCurrentVote/getPriorVotes without any vote cannot be decrypted", async function () {
+    // 1. If no checkpoint exists using getCurrentVotes
+    let currentVoteHandle = await this.comp.connect(this.signers.bob).getCurrentVotes(this.signers.bob.address);
+    expect(currentVoteHandle).to.be.eq(BigInt(0));
+
+    await expect(
+      reencryptEuint64(this.signers, this.instances, "bob", currentVoteHandle, this.comp),
+    ).to.be.rejectedWith("Handle is not initialized");
+
+    // 2. If no checkpoint exists using getPriorVotes
+    let latestBlockNumber = await ethers.provider.getBlockNumber();
+    await waitNBlocks(1);
+
+    currentVoteHandle = await this.comp
+      .connect(this.signers.bob)
+      .getPriorVotes(this.signers.bob.address, latestBlockNumber);
+
+    // It is an encrypted constant that is not reencryptable by Bob.
+    expect(currentVoteHandle).not.to.be.eq(BigInt(0));
+
+    await expect(
+      reencryptEuint64(this.signers, this.instances, "bob", currentVoteHandle, this.comp),
+    ).to.be.rejectedWith("Invalid contract address.");
+
+    // 3. If a checkpoint exists using getPriorVotes but block.number < block of first checkpoint
+    latestBlockNumber = await ethers.provider.getBlockNumber();
+    await waitNBlocks(1);
+
+    const tx = await this.comp.connect(this.signers.alice).delegate(this.signers.bob.address);
+    await tx.wait();
+
+    currentVoteHandle = await this.comp
+      .connect(this.signers.bob)
+      .getPriorVotes(this.signers.bob.address, latestBlockNumber);
+
+    // It is an encrypted constant that is not reencryptable by Bob.
+    expect(currentVoteHandle).not.to.be.eq(BigInt(0));
+
+    await expect(
+      reencryptEuint64(this.signers, this.instances, "bob", currentVoteHandle, this.comp),
+    ).to.be.rejectedWith("Invalid contract address.");
   });
 
   it("governor address can access votes for any account", async function () {
