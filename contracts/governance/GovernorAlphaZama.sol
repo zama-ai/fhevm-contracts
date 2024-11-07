@@ -17,7 +17,7 @@ import { ICompoundTimelock } from "./ICompoundTimelock.sol";
  *              - Proposal: A new proposal is made to introduce a change.
  *              - Voting: Users can vote on the proposal, either in favor or against it.
  *              - Quorum: A minimum number of votes (quorum) must be reached for the proposal to pass.
- *              - Execution: Once a proposal passes, it is executed and takes effect on the Compound protocol.
+ *              - Execution: Once a proposal passes, it is executed and takes effect on the taregt protocol.
  */
 contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
     /// @notice Returned if proposal contains too many changes.

@@ -15,7 +15,7 @@ import { IComp } from "./IComp.sol";
  *              GovernorAlphaZama.sol.
  *              It uses encrypted votes to delegate the voting power associated
  *              with an account's balance.
- * @dev         The delegation of votes leaks information about the account's encrypted balance to the delegate.
+ * @dev         The delegation of votes leaks information about the account's encrypted balance to the `delegatee`.
  */
 contract Comp is IComp, EncryptedERC20, Ownable2Step {
     /// @notice Returned if the `blockNumber` is higher or equal to the (current) `block.number`.
@@ -25,14 +25,14 @@ contract Comp is IComp, EncryptedERC20, Ownable2Step {
     /// @notice Returned if the `msg.sender` is not the `governor` contract.
     error GovernorInvalid();
 
-    /// @notice Emitted when an account changes its delegate.
+    /// @notice Emitted when an `account` (i.e. `delegator`) changes its delegate.
     event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
 
-    /// @notice Emitted when a delegate account's vote balance changes.
+    /// @notice Emitted when a `delegate` account's vote balance changes.
     event DelegateVotesChanged(address indexed delegate);
 
     /// @notice Emitted when the governor contract that can reencrypt votes changes.
-    /// @dev    It can be set to a malicious contract, which could reencrypt all user votes.
+    /// @dev    WARNING: it can be set to a malicious contract, which could reencrypt all user votes.
     event NewGovernor(address indexed governor);
 
     /// @notice          A checkpoint for marking number of votes from a given block.
@@ -58,17 +58,17 @@ contract Comp is IComp, EncryptedERC20, Ownable2Step {
     /// @dev    The contract is expected to be a governor contract.
     address public governor;
 
-    /// @notice A record of each account's delegate.
+    /// @notice A record of each account's `delegate`.
     mapping(address account => address delegate) public delegates;
 
     /// @notice A record of states for signing/validating signatures.
     mapping(address account => uint256 nonce) public nonces;
 
-    /// @notice The number of checkpoints for each account.
-    mapping(address account => uint32 checkpoints) public numCheckpoints;
+    /// @notice The number of checkpoints for an `account`.
+    mapping(address account => uint32 _checkpoints) public numCheckpoints;
 
-    /// @notice A record of votes checkpoints for an `account` using incremental indices.
-    mapping(address account => mapping(uint32 index => Checkpoint checkpoint)) internal checkpoints;
+    /// @notice A record of votes _checkpoints for an `account` using incremental indices.
+    mapping(address account => mapping(uint32 index => Checkpoint checkpoint)) internal _checkpoints;
 
     /// @notice Constant for zero using TFHE.
     /// @dev    Since it is expensive to compute 0, it is stored instead.
@@ -120,13 +120,7 @@ contract Comp is IComp, EncryptedERC20, Ownable2Step {
     }
 
     /**
-     * @notice              Determine the prior number of votes for an account as of a block number.
-     * @dev                 Block number must be a finalized block or else this function will revert.
-     *                      This function can change the state since the governor needs access in the ACL
-     *                      contract.
-     * @param account       Account address.
-     * @param blockNumber   The block number to get the vote balance at.
-     * @return votes        Number of votes the account as of the given block number.
+     * @notice See {IComp-getPriorVotesForGovernor}.
      */
     function getPriorVotesForGovernor(address account, uint256 blockNumber) external returns (euint64 votes) {
         if (msg.sender != governor) {
@@ -144,11 +138,13 @@ contract Comp is IComp, EncryptedERC20, Ownable2Step {
     /**
      * @notice          Get current votes of account.
      * @param  account  Account address
-     * @return votes    Current votes.
+     * @return votes    Current (encrypted) votes.
      */
     function getCurrentVotes(address account) external view returns (euint64 votes) {
         uint32 nCheckpoints = numCheckpoints[account];
-        votes = nCheckpoints > 0 ? checkpoints[account][nCheckpoints - 1].votes : votes;
+        if (nCheckpoints > 0) {
+            votes = _checkpoints[account][nCheckpoints - 1].votes;
+        }
     }
 
     /**
@@ -167,7 +163,7 @@ contract Comp is IComp, EncryptedERC20, Ownable2Step {
     }
 
     /**
-     * @notice                  Set an allowed contract that can access votes.
+     * @notice                  Set a governor contract.
      * @param newGovernor       New governor contract that can reencrypt/access votes.
      */
     function setGovernor(address newGovernor) public onlyOwner {
@@ -191,10 +187,10 @@ contract Comp is IComp, EncryptedERC20, Ownable2Step {
 
         if (nCheckpoints == 0) {
             return _EUINT64_ZERO;
-        } else if (checkpoints[account][nCheckpoints - 1].fromBlock <= blockNumber) {
+        } else if (_checkpoints[account][nCheckpoints - 1].fromBlock <= blockNumber) {
             // First check most recent balance
-            votes = checkpoints[account][nCheckpoints - 1].votes;
-        } else if (checkpoints[account][0].fromBlock > blockNumber) {
+            votes = _checkpoints[account][nCheckpoints - 1].votes;
+        } else if (_checkpoints[account][0].fromBlock > blockNumber) {
             // Next check implicit zero balance
             return _EUINT64_ZERO;
         } else {
@@ -203,7 +199,7 @@ contract Comp is IComp, EncryptedERC20, Ownable2Step {
             uint32 upper = nCheckpoints - 1;
             while (upper > lower) {
                 uint32 center = upper - (upper - lower) / 2; // ceil, avoiding overflow
-                Checkpoint memory cp = checkpoints[account][center];
+                Checkpoint memory cp = _checkpoints[account][center];
                 if (cp.fromBlock == blockNumber) {
                     return cp.votes;
                 } else if (cp.fromBlock < blockNumber) {
@@ -212,7 +208,7 @@ contract Comp is IComp, EncryptedERC20, Ownable2Step {
                     upper = center - 1;
                 }
             }
-            votes = checkpoints[account][lower].votes;
+            votes = _checkpoints[account][lower].votes;
         }
     }
 
@@ -220,14 +216,14 @@ contract Comp is IComp, EncryptedERC20, Ownable2Step {
         if (srcRep != dstRep) {
             if (srcRep != address(0)) {
                 uint32 srcRepNum = numCheckpoints[srcRep];
-                euint64 srcRepOld = srcRepNum > 0 ? checkpoints[srcRep][srcRepNum - 1].votes : _EUINT64_ZERO;
+                euint64 srcRepOld = srcRepNum > 0 ? _checkpoints[srcRep][srcRepNum - 1].votes : _EUINT64_ZERO;
                 euint64 srcRepNew = TFHE.sub(srcRepOld, amount); // srcRepOld - amount;
                 _writeCheckpoint(srcRep, srcRepNum, srcRepNew);
             }
 
             if (dstRep != address(0)) {
                 uint32 dstRepNum = numCheckpoints[dstRep];
-                euint64 dstRepOld = dstRepNum > 0 ? checkpoints[dstRep][dstRepNum - 1].votes : _EUINT64_ZERO;
+                euint64 dstRepOld = dstRepNum > 0 ? _checkpoints[dstRep][dstRepNum - 1].votes : _EUINT64_ZERO;
                 euint64 dstRepNew = TFHE.add(dstRepOld, amount); // dstRepOld + amount;
                 _writeCheckpoint(dstRep, dstRepNum, dstRepNew);
             }
@@ -242,10 +238,10 @@ contract Comp is IComp, EncryptedERC20, Ownable2Step {
     }
 
     function _writeCheckpoint(address delegatee, uint32 nCheckpoints, euint64 newVotes) internal {
-        if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromBlock == block.number) {
-            checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;
+        if (nCheckpoints > 0 && _checkpoints[delegatee][nCheckpoints - 1].fromBlock == block.number) {
+            _checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;
         } else {
-            checkpoints[delegatee][nCheckpoints] = Checkpoint(block.number, newVotes);
+            _checkpoints[delegatee][nCheckpoints] = Checkpoint(block.number, newVotes);
             numCheckpoints[delegatee] = nCheckpoints + 1;
         }
 
