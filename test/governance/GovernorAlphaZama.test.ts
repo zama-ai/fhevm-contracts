@@ -242,7 +242,7 @@ describe("GovernorAlphaZama", function () {
     expect(proposalInfo.state).to.equal(10);
   });
 
-  it("the vote is defeated if forVotes < quorum", async function () {
+  it("vote is defeated if forVotes < quorum", async function () {
     const targets = [this.signers.bob.address];
     const values = ["0"];
     const signatures = ["getBalanceOf(address)"];
@@ -314,14 +314,14 @@ describe("GovernorAlphaZama", function () {
     expect(proposalInfo.state).to.equal(6);
   });
 
-  it("the vote is rejected if forVotes < againstVotes", async function () {
+  it("vote is rejected if forVotes < againstVotes", async function () {
     const targets = [this.signers.bob.address];
     const values = ["0"];
     const signatures = ["getBalanceOf(address)"];
     const calldatas = [ethers.AbiCoder.defaultAbiCoder().encode(["address"], [this.signers.bob.address])];
     const description = "description";
-    const transferAmountFor = parseUnits(String(200_000), 6);
-    const transferAmountAgainst = parseUnits(String(200_000), 6) + BigInt(1);
+    const transferAmountFor = parseUnits(String(500_000), 6);
+    const transferAmountAgainst = parseUnits(String(500_000), 6) + BigInt(1);
 
     // Bob and Carol receive 200k tokens and delegate to themselves.
     await transferTokensAndDelegate(
@@ -428,12 +428,6 @@ describe("GovernorAlphaZama", function () {
       await expect(
         timelockFactory.connect(this.signers.alice).deploy(this.signers.alice.address, 60 * 60 * 24 * 31),
       ).to.be.revertedWith("Timelock::setDelay: Delay must not exceed maximum delay."); // 31 days > 30 days
-    } else {
-      // fhevm-mode
-      await expect(timelockFactory.connect(this.signers.alice).deploy(this.signers.alice.address, 60 * 60 * 24 * 1)).to
-        .throw;
-      await expect(timelockFactory.connect(this.signers.alice).deploy(this.signers.alice.address, 60 * 60 * 24 * 31)).to
-        .throw;
     }
   });
 
@@ -626,7 +620,7 @@ describe("GovernorAlphaZama", function () {
     const signatures = ["getBalanceOf(address)"];
     const calldatas = [ethers.AbiCoder.defaultAbiCoder().encode(["address"], [this.signers.bob.address])];
     const description = "description";
-    const transferAmount = parseUnits(String(400_000), 6);
+    const transferAmount = await this.governor.QUORUM_VOTES();
 
     // Bob receives 400k tokens and delegates to himself.
     await transferTokensAndDelegate(
@@ -681,13 +675,349 @@ describe("GovernorAlphaZama", function () {
     await expect(this.governor.queue(proposalId)).to.be.revertedWithCustomError(this.governor, "ProposalStateInvalid");
   });
 
+  it("cannot cancel if state is Rejected/Defeated/Executed/Canceled", async function () {
+    let transferAmount = (await this.governor.PROPOSAL_THRESHOLD()) - BigInt(1);
+    const targets = [this.signers.bob.address];
+    const values = ["0"];
+    const signatures = ["getBalanceOf(address)"];
+    const calldatas = [ethers.AbiCoder.defaultAbiCoder().encode(["address"], [this.signers.bob.address])];
+    const description = "description";
+
+    // CANNOT CANCEL IF REJECTED
+    await transferTokensAndDelegate(
+      this.signers,
+      this.instances,
+      transferAmount,
+      "bob",
+      "bob",
+      this.comp,
+      this.compAddress,
+    );
+
+    let tx = await this.governor.connect(this.signers.bob).propose(targets, values, signatures, calldatas, description);
+    await tx.wait();
+    await awaitAllDecryptionResults();
+
+    let proposalId = await this.governor.latestProposalIds(this.signers.bob.address);
+
+    await expect(this.governor.connect(this.signers.bob).cancel(proposalId)).to.be.revertedWithCustomError(
+      this.governor,
+      "ProposalStateInvalid",
+    );
+
+    // CANNOT CANCEL IF DEFEATED
+    transferAmount = (await this.governor.QUORUM_VOTES()) - BigInt(1);
+
+    await transferTokensAndDelegate(
+      this.signers,
+      this.instances,
+      transferAmount,
+      "carol",
+      "carol",
+      this.comp,
+      this.compAddress,
+    );
+
+    tx = await this.governor.connect(this.signers.carol).propose(targets, values, signatures, calldatas, description);
+    await tx.wait();
+    await awaitAllDecryptionResults();
+
+    proposalId = await this.governor.latestProposalIds(this.signers.carol.address);
+
+    let input = this.instances.carol.createEncryptedInput(this.governorAddress, this.signers.carol.address);
+    input.addBool(true);
+    let encryptedVote = await input.encrypt();
+    tx = await this.governor
+      .connect(this.signers.carol)
+      ["castVote(uint256,bytes32,bytes)"](proposalId, encryptedVote.handles[0], encryptedVote.inputProof);
+    await tx.wait();
+
+    // Mine blocks
+    await mineNBlocks(4);
+
+    // REQUEST DECRYPTION
+    tx = await this.governor.requestVoteDecryption(proposalId);
+    await tx.wait();
+    await awaitAllDecryptionResults();
+    await expect(this.governor.connect(this.signers.carol).cancel(proposalId)).to.be.revertedWithCustomError(
+      this.governor,
+      "ProposalStateInvalid",
+    );
+
+    // CANNOT CANCEL IF EXECUTED
+    transferAmount = await this.governor.QUORUM_VOTES();
+
+    await transferTokensAndDelegate(
+      this.signers,
+      this.instances,
+      transferAmount,
+      "dave",
+      "dave",
+      this.comp,
+      this.compAddress,
+    );
+
+    tx = await this.governor.connect(this.signers.dave).propose(targets, values, signatures, calldatas, description);
+    await tx.wait();
+    await awaitAllDecryptionResults();
+
+    proposalId = await this.governor.latestProposalIds(this.signers.dave.address);
+
+    input = this.instances.dave.createEncryptedInput(this.governorAddress, this.signers.dave.address);
+    input.addBool(true);
+    encryptedVote = await input.encrypt();
+    tx = await this.governor
+      .connect(this.signers.dave)
+      ["castVote(uint256,bytes32,bytes)"](proposalId, encryptedVote.handles[0], encryptedVote.inputProof);
+    await tx.wait();
+
+    // Mine blocks
+    await mineNBlocks(4);
+
+    // REQUEST DECRYPTION
+    tx = await this.governor.requestVoteDecryption(proposalId);
+    await tx.wait();
+    await awaitAllDecryptionResults();
+
+    tx = await this.governor.queue(proposalId);
+    await tx.wait();
+
+    const eta = (await this.governor.getProposalInfo(proposalId)).eta;
+
+    // EXECUTE
+    await ethers.provider.send("evm_setNextBlockTimestamp", [eta.toString()]);
+    tx = await this.governor.execute(proposalId);
+    await tx.wait();
+
+    await expect(this.governor.connect(this.signers.dave).cancel(proposalId)).to.be.revertedWithCustomError(
+      this.governor,
+      "ProposalStateInvalid",
+    );
+
+    // CANNOT CANCEL TWICE
+    tx = await this.governor.connect(this.signers.carol).propose(targets, values, signatures, calldatas, description);
+    await tx.wait();
+
+    proposalId = await this.governor.latestProposalIds(this.signers.carol.address);
+
+    tx = await this.governor.connect(this.signers.carol).cancel(proposalId);
+    await tx.wait();
+    await expect(this.governor.connect(this.signers.carol).cancel(proposalId)).to.be.revertedWithCustomError(
+      this.governor,
+      "ProposalStateInvalid",
+    );
+  });
+
+  it("cancel function clears the timelock if the proposal is queued", async function () {
+    const targets = [this.signers.bob.address];
+    const values = ["0"];
+    const signatures = ["getBalanceOf(address)"];
+    const calldatas = [ethers.AbiCoder.defaultAbiCoder().encode(["address"], [this.signers.bob.address])];
+    const description = "description";
+    const transferAmount = await this.governor.QUORUM_VOTES();
+
+    await transferTokensAndDelegate(
+      this.signers,
+      this.instances,
+      transferAmount,
+      "bob",
+      "bob",
+      this.comp,
+      this.compAddress,
+    );
+
+    // INITIATE A PROPOSAL
+    let tx = await this.governor.connect(this.signers.bob).propose(targets, values, signatures, calldatas, description);
+    await tx.wait();
+
+    // DECRYPTION FOR THE TOKEN THRESHOLD
+    await awaitAllDecryptionResults();
+    const proposalId = await this.governor.latestProposalIds(this.signers.bob.address);
+
+    // VOTE
+    // Bob votes for
+    let input = this.instances.bob.createEncryptedInput(this.governorAddress, this.signers.bob.address);
+    input.addBool(true);
+    let encryptedVote = await input.encrypt();
+    tx = await this.governor
+      .connect(this.signers.bob)
+      ["castVote(uint256,bytes32,bytes)"](proposalId, encryptedVote.handles[0], encryptedVote.inputProof);
+    await tx.wait();
+
+    // Mine blocks
+    await mineNBlocks(4);
+
+    // REQUEST DECRYPTION
+    tx = await this.governor.requestVoteDecryption(proposalId);
+    await tx.wait();
+
+    // POST-DECRYPTION RESULTS
+    await awaitAllDecryptionResults();
+
+    // QUEUING
+    tx = await this.governor.queue(proposalId);
+    await tx.wait();
+
+    // @dev Alice is the governor's owner.
+    tx = await this.governor.connect(this.signers.alice).cancel(proposalId);
+    await tx.wait();
+
+    // 5 ==> Canceled
+    expect((await this.governor.getProposalInfo(proposalId)).state).to.equal(5);
+  });
+
+  it("cannot request vote decryption if state is not Active or if endBlock >= block.number", async function () {
+    await expect(this.governor.connect(this.signers.dave).requestVoteDecryption(0)).to.be.revertedWithCustomError(
+      this.governor,
+      "ProposalStateInvalid",
+    );
+
+    const targets = [this.signers.bob.address];
+    const values = ["0"];
+    const signatures = ["getBalanceOf(address)"];
+    const calldatas = [ethers.AbiCoder.defaultAbiCoder().encode(["address"], [this.signers.bob.address])];
+    const description = "description";
+    const transferAmount = await this.governor.QUORUM_VOTES();
+
+    await transferTokensAndDelegate(
+      this.signers,
+      this.instances,
+      transferAmount,
+      "bob",
+      "bob",
+      this.comp,
+      this.compAddress,
+    );
+
+    // INITIATE A PROPOSAL
+    let tx = await this.governor.connect(this.signers.bob).propose(targets, values, signatures, calldatas, description);
+    await tx.wait();
+
+    // DECRYPTION FOR THE TOKEN THRESHOLD
+    await awaitAllDecryptionResults();
+    const proposalId = await this.governor.latestProposalIds(this.signers.bob.address);
+
+    // VOTE
+    // Bob votes for
+    let input = this.instances.bob.createEncryptedInput(this.governorAddress, this.signers.bob.address);
+    input.addBool(true);
+    let encryptedVote = await input.encrypt();
+    tx = await this.governor
+      .connect(this.signers.bob)
+      ["castVote(uint256,bytes32,bytes)"](proposalId, encryptedVote.handles[0], encryptedVote.inputProof);
+    await tx.wait();
+
+    // Mine blocks but not enough
+    await mineNBlocks(3);
+
+    await expect(
+      this.governor.connect(this.signers.dave).requestVoteDecryption(proposalId),
+    ).to.be.revertedWithCustomError(this.governor, "ProposalStateStillActive");
+  });
+
+  it("cannot cast a vote if state is not Active or if endBlock > block.number", async function () {
+    const targets = [this.signers.bob.address];
+    const values = ["0"];
+    const signatures = ["getBalanceOf(address)"];
+    const calldatas = [ethers.AbiCoder.defaultAbiCoder().encode(["address"], [this.signers.bob.address])];
+    const description = "description";
+    const transferAmount = await this.governor.QUORUM_VOTES();
+
+    await transferTokensAndDelegate(
+      this.signers,
+      this.instances,
+      transferAmount,
+      "bob",
+      "bob",
+      this.comp,
+      this.compAddress,
+    );
+
+    let tx = await this.governor.connect(this.signers.bob).propose(targets, values, signatures, calldatas, description);
+    const proposalId = await this.governor.latestProposalIds(this.signers.bob.address);
+
+    let input = this.instances.bob.createEncryptedInput(this.governorAddress, this.signers.bob.address);
+    input.addBool(true);
+    let encryptedVote = await input.encrypt();
+
+    await expect(
+      this.governor
+        .connect(this.signers.bob)
+        ["castVote(uint256,bytes32,bytes)"](proposalId, encryptedVote.handles[0], encryptedVote.inputProof),
+    ).to.be.revertedWithCustomError(this.governor, "ProposalStateInvalid");
+
+    tx = await this.governor.connect(this.signers.bob).cancel(proposalId);
+    await tx.wait();
+
+    tx = await this.governor.connect(this.signers.bob).propose(targets, values, signatures, calldatas, description);
+    await tx.wait();
+    await awaitAllDecryptionResults();
+
+    const newProposalId = await this.governor.latestProposalIds(this.signers.bob.address);
+    // 3 --> Active
+    expect((await this.governor.getProposalInfo(newProposalId)).state).to.equal(3);
+
+    // Mine too many blocks so that it becomes too late to cast vote
+    await mineNBlocks(5);
+
+    await expect(
+      this.governor
+        .connect(this.signers.bob)
+        ["castVote(uint256,bytes32,bytes)"](newProposalId, encryptedVote.handles[0], encryptedVote.inputProof),
+    ).to.be.revertedWithCustomError(this.governor, "ProposalStateNotActive");
+  });
+
+  it("cannot cast a vote twice", async function () {
+    const targets = [this.signers.bob.address];
+    const values = ["0"];
+    const signatures = ["getBalanceOf(address)"];
+    const calldatas = [ethers.AbiCoder.defaultAbiCoder().encode(["address"], [this.signers.bob.address])];
+    const description = "description";
+    const transferAmount = await this.governor.QUORUM_VOTES();
+
+    // Bob receives 400k tokens and delegates to himself.
+    await transferTokensAndDelegate(
+      this.signers,
+      this.instances,
+      transferAmount,
+      "bob",
+      "bob",
+      this.comp,
+      this.compAddress,
+    );
+
+    // INITIATE A PROPOSAL
+    let tx = await this.governor.connect(this.signers.bob).propose(targets, values, signatures, calldatas, description);
+    await tx.wait();
+
+    // DECRYPTION FOR THE TOKEN THRESHOLD
+    await awaitAllDecryptionResults();
+    const proposalId = await this.governor.latestProposalIds(this.signers.bob.address);
+
+    // VOTE
+    // Bob casts a vote
+    let input = this.instances.bob.createEncryptedInput(this.governorAddress, this.signers.bob.address);
+    input.addBool(true);
+    let encryptedVote = await input.encrypt();
+    tx = await this.governor
+      .connect(this.signers.bob)
+      ["castVote(uint256,bytes32,bytes)"](proposalId, encryptedVote.handles[0], encryptedVote.inputProof);
+    await tx.wait();
+
+    await expect(
+      this.governor
+        .connect(this.signers.bob)
+        ["castVote(uint256,bytes32,bytes)"](proposalId, encryptedVote.handles[0], encryptedVote.inputProof),
+    ).to.be.revertedWithCustomError(this.governor, "VoterHasAlreadyVoted");
+  });
+
   it("proposal expires after grace period", async function () {
     const targets = [this.signers.bob.address];
     const values = ["0"];
     const signatures = ["getBalanceOf(address)"];
     const calldatas = [ethers.AbiCoder.defaultAbiCoder().encode(["address"], [this.signers.bob.address])];
     const description = "description";
-    const transferAmount = parseUnits(String(400_000), 6);
+    const transferAmount = await this.governor.QUORUM_VOTES();
 
     // Bob receives 400k tokens and delegates to himself.
     await transferTokensAndDelegate(
