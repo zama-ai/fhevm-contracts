@@ -268,10 +268,10 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
         Proposal memory proposal = _proposals[proposalId];
 
         if (
-            proposal.state == ProposalState.Pending ||
-            proposal.state == ProposalState.Executed ||
+            proposal.state == ProposalState.Rejected ||
             proposal.state == ProposalState.Canceled ||
-            proposal.state == ProposalState.Defeated
+            proposal.state == ProposalState.Defeated ||
+            proposal.state == ProposalState.Executed
         ) {
             revert ProposalStateInvalid();
         }
@@ -330,7 +330,6 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
             revert ProposalStateInvalid();
         }
 
-        /// proposal.executed = true;
         for (uint256 i = 0; i < proposal.targets.length; i++) {
             TIMELOCK.executeTransaction{ value: proposal.values[i] }(
                 proposal.targets[i],
@@ -384,7 +383,6 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
             ProposalState proposerLatestProposalState = _proposals[latestProposalId].state;
 
             if (
-                proposerLatestProposalState != ProposalState.Queued &&
                 proposerLatestProposalState != ProposalState.Rejected &&
                 proposerLatestProposalState != ProposalState.Defeated &&
                 proposerLatestProposalState != ProposalState.Canceled &&
