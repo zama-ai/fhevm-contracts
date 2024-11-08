@@ -92,7 +92,7 @@ abstract contract Comp is IComp, EncryptedERC20, Ownable2Step {
      * @notice          Delegate votes from `msg.sender` to `delegatee`.
      * @param delegatee The address to delegate votes to.
      */
-    function delegate(address delegatee) public {
+    function delegate(address delegatee) public virtual {
         return _delegate(msg.sender, delegatee);
     }
 
@@ -105,7 +105,14 @@ abstract contract Comp is IComp, EncryptedERC20, Ownable2Step {
      * @param r         Half of the ECDSA signature pair.
      * @param s         Half of the ECDSA signature pair.
      */
-    function delegateBySig(address delegatee, uint256 nonce, uint256 expiry, uint8 v, bytes32 r, bytes32 s) public {
+    function delegateBySig(
+        address delegatee,
+        uint256 nonce,
+        uint256 expiry,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) public virtual {
         bytes32 domainSeparator = keccak256(
             abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name())), block.chainid, address(this))
         );
@@ -122,7 +129,7 @@ abstract contract Comp is IComp, EncryptedERC20, Ownable2Step {
     /**
      * @notice See {IComp-getPriorVotesForGovernor}.
      */
-    function getPriorVotesForGovernor(address account, uint256 blockNumber) public returns (euint64 votes) {
+    function getPriorVotesForGovernor(address account, uint256 blockNumber) public virtual returns (euint64 votes) {
         if (msg.sender != governor) {
             revert GovernorInvalid();
         }
@@ -140,7 +147,7 @@ abstract contract Comp is IComp, EncryptedERC20, Ownable2Step {
      * @param  account  Account address
      * @return votes    Current (encrypted) votes.
      */
-    function getCurrentVotes(address account) public view returns (euint64 votes) {
+    function getCurrentVotes(address account) public view virtual returns (euint64 votes) {
         uint32 nCheckpoints = numCheckpoints[account];
         if (nCheckpoints > 0) {
             votes = _checkpoints[account][nCheckpoints - 1].votes;
@@ -154,7 +161,7 @@ abstract contract Comp is IComp, EncryptedERC20, Ownable2Step {
      * @param blockNumber   The block number to get the vote balance at.
      * @return votes        Number of votes the account as of the given block.
      */
-    function getPriorVotes(address account, uint256 blockNumber) public view returns (euint64 votes) {
+    function getPriorVotes(address account, uint256 blockNumber) public view virtual returns (euint64 votes) {
         if (blockNumber >= block.number) {
             revert BlockNumberEqualOrHigherThanCurrentBlock();
         }
@@ -166,12 +173,12 @@ abstract contract Comp is IComp, EncryptedERC20, Ownable2Step {
      * @notice                  Set a governor contract.
      * @param newGovernor       New governor contract that can reencrypt/access votes.
      */
-    function setGovernor(address newGovernor) public onlyOwner {
+    function setGovernor(address newGovernor) public virtual onlyOwner {
         governor = newGovernor;
         emit NewGovernor(newGovernor);
     }
 
-    function _delegate(address delegator, address delegatee) internal {
+    function _delegate(address delegator, address delegatee) internal virtual {
         address currentDelegate = delegates[delegator];
         euint64 delegatorBalance = _balances[delegator];
         TFHE.allowThis(delegatorBalance);
@@ -217,7 +224,7 @@ abstract contract Comp is IComp, EncryptedERC20, Ownable2Step {
         }
     }
 
-    function _moveDelegates(address srcRep, address dstRep, euint64 amount) internal {
+    function _moveDelegates(address srcRep, address dstRep, euint64 amount) internal virtual {
         if (srcRep != dstRep) {
             if (srcRep != address(0)) {
                 uint32 srcRepNum = numCheckpoints[srcRep];
@@ -237,12 +244,12 @@ abstract contract Comp is IComp, EncryptedERC20, Ownable2Step {
 
     /// @dev Original restrictions to transfer from/to address(0) are removed since they
     ///      are inherited.
-    function _transfer(address from, address to, euint64 amount, ebool isTransferable) internal override {
+    function _transfer(address from, address to, euint64 amount, ebool isTransferable) internal virtual override {
         super._transfer(from, to, amount, isTransferable);
         _moveDelegates(delegates[from], delegates[to], amount);
     }
 
-    function _writeCheckpoint(address delegatee, uint32 nCheckpoints, euint64 newVotes) internal {
+    function _writeCheckpoint(address delegatee, uint32 nCheckpoints, euint64 newVotes) internal virtual {
         if (nCheckpoints > 0 && _checkpoints[delegatee][nCheckpoints - 1].fromBlock == block.number) {
             _checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;
         } else {

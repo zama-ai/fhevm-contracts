@@ -264,7 +264,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
      *                      In the original GovernorAlpha, the proposer can cancel only if
      *                      her votes are still above the threshold.
      */
-    function cancel(uint256 proposalId) public {
+    function cancel(uint256 proposalId) public virtual {
         Proposal memory proposal = _proposals[proposalId];
 
         if (
@@ -305,7 +305,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
      * @param value      Encrypted value.
      * @param inputProof Input proof.
      */
-    function castVote(uint256 proposalId, einput value, bytes calldata inputProof) public {
+    function castVote(uint256 proposalId, einput value, bytes calldata inputProof) public virtual {
         return castVote(proposalId, TFHE.asEbool(value, inputProof));
     }
 
@@ -314,7 +314,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
      * @param proposalId Proposal id.
      * @param support    Support (true ==> votesFor, false ==> votesAgainst)
      */
-    function castVote(uint256 proposalId, ebool support) public {
+    function castVote(uint256 proposalId, ebool support) public virtual {
         return _castVote(msg.sender, proposalId, support);
     }
 
@@ -323,7 +323,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
      * @dev    Anyone can execute a proposal once it has been queued and the
      *         delay in the timelock is sufficient.
      */
-    function execute(uint256 proposalId) public payable {
+    function execute(uint256 proposalId) public payable virtual {
         Proposal memory proposal = _proposals[proposalId];
 
         if (proposal.state != ProposalState.Queued) {
@@ -360,7 +360,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
         string[] memory signatures,
         bytes[] memory calldatas,
         string memory description
-    ) public returns (uint256 proposalId) {
+    ) public virtual returns (uint256 proposalId) {
         {
             uint256 length = targets.length;
 
@@ -449,10 +449,11 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
 
     /**
      * @notice            Queue a new proposal.
-     * @dev               It can be done only if the proposal is adopted.
+     * @dev               It can be done only if the proposal has succeeded.
+     *                    Anyone can queue a proposal.
      * @param proposalId  Proposal id.
      */
-    function queue(uint256 proposalId) public {
+    function queue(uint256 proposalId) public virtual {
         Proposal memory proposal = _proposals[proposalId];
 
         if (proposal.state != ProposalState.Succeeded) {
@@ -473,9 +474,10 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
 
     /**
      * @notice            Request the vote results to be decrypted.
+     * @dev               Anyone can request the decryption of the vote.
      * @param proposalId  Proposal id.
      */
-    function requestVoteDecryption(uint256 proposalId) public {
+    function requestVoteDecryption(uint256 proposalId) public virtual {
         if (_proposals[proposalId].state != ProposalState.Active) {
             revert ProposalStateInvalid();
         }
@@ -505,7 +507,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
      * @param requestId     Request id (from the Gateway)
      * @param canInitiate   Whether the proposal can be initiated.
      */
-    function callbackInitiateProposal(uint256 requestId, bool canInitiate) public onlyGateway {
+    function callbackInitiateProposal(uint256 requestId, bool canInitiate) public virtual onlyGateway {
         uint256 proposalId = _requestIdToProposalId[requestId];
 
         if (canInitiate) {
@@ -526,7 +528,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
         uint256 requestId,
         uint256 forVotesDecrypted,
         uint256 againstVotesDecrypted
-    ) public onlyGateway {
+    ) public virtual onlyGateway {
         uint256 proposalId = _requestIdToProposalId[requestId];
 
         /// @dev It is safe to downcast since the original values were euint64.
@@ -545,7 +547,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
     /**
      * @dev Only callable by `owner`.
      */
-    function acceptTimelockAdmin() public onlyOwner {
+    function acceptTimelockAdmin() public virtual onlyOwner {
         TIMELOCK.acceptAdmin();
     }
 
@@ -554,7 +556,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
      * @param newPendingAdmin Address of the new pending admin for the timelock.
      * @param eta             Eta for executing the transaction in the timelock.
      */
-    function executeSetTimelockPendingAdmin(address newPendingAdmin, uint256 eta) public onlyOwner {
+    function executeSetTimelockPendingAdmin(address newPendingAdmin, uint256 eta) public virtual onlyOwner {
         TIMELOCK.executeTransaction(address(TIMELOCK), 0, "setPendingAdmin(address)", abi.encode(newPendingAdmin), eta);
     }
 
@@ -563,7 +565,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
      * @param newPendingAdmin Address of the new pending admin for the timelock.
      * @param eta             Eta for queuing the transaction in the timelock.
      */
-    function queueSetTimelockPendingAdmin(address newPendingAdmin, uint256 eta) public onlyOwner {
+    function queueSetTimelockPendingAdmin(address newPendingAdmin, uint256 eta) public virtual onlyOwner {
         TIMELOCK.queueTransaction(address(TIMELOCK), 0, "setPendingAdmin(address)", abi.encode(newPendingAdmin), eta);
     }
 
@@ -574,7 +576,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
      * @param proposalId        Proposal id.
      * @return proposalInfo     Proposal information.
      */
-    function getProposalInfo(uint256 proposalId) public view returns (ProposalInfo memory proposalInfo) {
+    function getProposalInfo(uint256 proposalId) public view virtual returns (ProposalInfo memory proposalInfo) {
         Proposal memory proposal = _proposals[proposalId];
         proposalInfo.proposer = proposal.proposer;
         proposalInfo.state = proposal.state;
@@ -605,26 +607,12 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
      * @return support      The support for the account (true ==> vote for, false ==> vote against).
      * @return votes        The number of votes cast.
      */
-    function getReceipt(uint256 proposalId, address account) public view returns (bool, ebool, euint64) {
+    function getReceipt(uint256 proposalId, address account) public view virtual returns (bool, ebool, euint64) {
         Receipt memory receipt = _accountReceiptForProposalId[proposalId][account];
         return (receipt.hasVoted, receipt.support, receipt.votes);
     }
 
-    function _queueOrRevert(
-        address target,
-        uint256 value,
-        string memory signature,
-        bytes memory data,
-        uint256 eta
-    ) internal {
-        if (TIMELOCK.queuedTransactions(keccak256(abi.encode(target, value, signature, data, eta)))) {
-            revert ProposalActionsAlreadyQueued();
-        }
-
-        TIMELOCK.queueTransaction(target, value, signature, data, eta);
-    }
-
-    function _castVote(address voter, uint256 proposalId, ebool support) private {
+    function _castVote(address voter, uint256 proposalId, ebool support) internal virtual {
         Proposal storage proposal = _proposals[proposalId];
 
         if (proposal.state != ProposalState.Active) {
@@ -659,5 +647,19 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
         /// @dev `support` and `votes` are encrypted values.
         ///       There is no need to include them in the event.
         emit VoteCast(voter, proposalId);
+    }
+
+    function _queueOrRevert(
+        address target,
+        uint256 value,
+        string memory signature,
+        bytes memory data,
+        uint256 eta
+    ) internal virtual {
+        if (TIMELOCK.queuedTransactions(keccak256(abi.encode(target, value, signature, data, eta)))) {
+            revert ProposalActionsAlreadyQueued();
+        }
+
+        TIMELOCK.queueTransaction(target, value, signature, data, eta);
     }
 }

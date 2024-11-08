@@ -84,7 +84,7 @@ abstract contract EncryptedERC20WithErrors is EncryptedERC20, EncryptedErrors {
     /**
      * @notice Returns the error code corresponding to `transferId`.
      */
-    function getErrorCodeForTransferId(uint256 transferId) external view virtual returns (euint8 errorCode) {
+    function getErrorCodeForTransferId(uint256 transferId) public view virtual returns (euint8 errorCode) {
         return _errorCodeForTransferId[transferId];
     }
 
