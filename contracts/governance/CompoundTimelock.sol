@@ -12,36 +12,6 @@ import { ICompoundTimelock } from "./ICompoundTimelock.sol";
  *              not to be executed after a specific period following the queuing.
  */
 contract CompoundTimelock is ICompoundTimelock {
-    /// @notice Returned if the delay is below the minimum delay.
-    error DelayBelowMinimumDelay();
-
-    /// @notice Returned if the delay exceeds the maximum delay.
-    error DelayAboveMaximumDelay();
-
-    /// @notice Returned if the transaction's execution reverted.
-    error ExecutionReverted();
-
-    /// @notice Returned if the `msg.sender` is not the admin.
-    error SenderIsNotAdmin();
-
-    /// @notice Returned if the `msg.sender` is not this contract (`CompoundTimelock`).
-    error SenderIsNotTimelock();
-
-    /// @notice Returned if the `msg.sender` is not `pendingAdmin`.
-    error SenderIsNotPendingAdmin();
-
-    /// @notice Returned if the transaction has not been queued.
-    error TransactionNotQueued();
-
-    /// @notice Returned if the transaction has not surpassed the time lock.
-    error TransactionTooEarlyForExecution();
-
-    /// @notice Returned if the estimated execution block does not satisfay the delay.
-    error TransactionTooEarlyForQueuing();
-
-    /// @notice Returned if the transaction is stale (too late for execution).
-    error TransactionTooLateForExecution();
-
     /**
      * @notice See {ICompoundTimelock-GRACE_PERIOD}.
      */
