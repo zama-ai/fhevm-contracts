@@ -1,11 +1,11 @@
+import { toBufferBE } from "bigint-buffer";
 import { ContractMethodArgs, Typed } from "ethers";
-import { ethers } from "hardhat";
+import { ethers, network } from "hardhat";
 
 import { TypedContractMethod } from "../types/common";
-import { getSigners } from "./signers";
 
 export const waitForBlock = (blockNumber: bigint | number) => {
-  if (process.env.HARDHAT_NETWORK === "hardhat") {
+  if (network.name === "hardhat") {
     return new Promise((resolve, reject) => {
       const intervalId = setInterval(async () => {
         try {
@@ -37,7 +37,7 @@ export const waitForBlock = (blockNumber: bigint | number) => {
 
 export const waitNBlocks = async (Nblocks: number) => {
   const currentBlock = await ethers.provider.getBlockNumber();
-  if (process.env.HARDHAT_NETWORK === "hardhat") {
+  if (network.name === "hardhat") {
     await produceDummyTransactions(Nblocks);
   }
   await waitForBlock(currentBlock + Nblocks);
@@ -71,19 +71,39 @@ export const createTransaction = async <A extends [...{ [I in keyof A]-?: A[I] |
 };
 
 export const produceDummyTransactions = async (blockCount: number) => {
-  const nullAddress = "0x0000000000000000000000000000000000000000";
-  const signers = await getSigners();
-  while (blockCount > 0) {
-    blockCount--;
-    // Sending 0 ETH to the null address
-    const tx = await signers.dave.sendTransaction({
+  let counter = blockCount;
+  while (counter >= 0) {
+    counter--;
+    const [signer] = await ethers.getSigners();
+    const nullAddress = "0x0000000000000000000000000000000000000000";
+    const tx = {
       to: nullAddress,
-      value: ethers.parseEther("0"),
-    });
+      value: 0n,
+    };
+    const receipt = await signer.sendTransaction(tx);
+    await receipt.wait();
   }
 };
 
 export const mineNBlocks = async (n: number) => {
-  // this only works in mocked mode
-  await ethers.provider.send("hardhat_mine", ["0x" + n.toString(16)]);
+  for (let index = 0; index < n; index++) {
+    await ethers.provider.send("evm_mine");
+  }
+};
+
+export const bigIntToBytes64 = (value: bigint) => {
+  return new Uint8Array(toBufferBE(value, 64));
+};
+
+export const bigIntToBytes128 = (value: bigint) => {
+  return new Uint8Array(toBufferBE(value, 128));
+};
+
+export const bigIntToBytes256 = (value: bigint) => {
+  return new Uint8Array(toBufferBE(value, 256));
+};
+
+export const bigIntToBytes = (value: bigint) => {
+  const byteArrayLength = Math.ceil(value.toString(2).length / 8);
+  return new Uint8Array(toBufferLE(value, byteArrayLength));
 };

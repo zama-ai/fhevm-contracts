@@ -5,7 +5,7 @@ on:
       - main
 jobs:
   build:
-    runs-on: large_ubuntu_16
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         node-version:

@@ -1,9 +1,9 @@
 {
-  "name": "fhevm-contracts",
-  "description": "fhEVM contracts",
+  "name": "@zama-ai/fhevm-contracts",
+  "description": "fhEVM contracts is a Solidity library for secure smart-contract development using fhEVM and TFHE.",
   "version": "0.1.0",
   "author": {
-    "name": "Zama",
+    "name": "zama-ai",
     "url": "https://github.com/zama-ai"
   },
   "license": "BSD-3-Clause",
@@ -13,13 +13,14 @@
     "@nomicfoundation/hardhat-network-helpers": "^1.0.10",
     "@nomicfoundation/hardhat-toolbox": "^3.0.0",
     "@nomicfoundation/hardhat-verify": "^1.1.1",
+    "@openzeppelin/hardhat-upgrades": "^3.5.0",
     "@trivago/prettier-plugin-sort-imports": "^4.3.0",
     "@typechain/ethers-v6": "^0.4.3",
     "@typechain/hardhat": "^8.0.3",
     "@types/chai": "^4.3.12",
     "@types/fs-extra": "^9.0.13",
     "@types/mocha": "^10.0.6",
-    "@types/node": "^18.19.23",
+    "@types/node": "^18.19.59",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "chai": "^4.4.1",
@@ -28,12 +29,14 @@
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^8.10.0",
     "ethers": "^6.11.1",
-    "fhevm": "^0.4.0",
-    "fhevmjs": "^0.4.0-7",
+    "fhevm": "^0.6.0-0",
+    "fhevm-core-contracts": "0.1.0-2",
+    "fhevmjs": "^0.6.0-4",
     "fs-extra": "^10.1.0",
-    "hardhat": "2.21.0",
+    "hardhat": "2.22.14",
     "hardhat-deploy": "^0.11.45",
     "hardhat-gas-reporter": "^1.0.10",
+    "hardhat-ignore-warnings": "^0.2.11",
     "hardhat-preprocessor": "^0.1.5",
     "lodash": "^4.17.21",
     "mocha": "^10.3.0",
@@ -42,15 +45,16 @@
     "rimraf": "^4.4.1",
     "solhint": "^3.6.2",
     "solhint-plugin-prettier": "^0.0.5",
-    "solidity-coverage": "0.8.6",
-    "solidity-docgen": "0.6.0-beta.36",
+    "solidity-coverage": "0.8.12",
     "ts-generator": "^0.1.1",
     "ts-node": "^10.9.2",
     "typechain": "^8.3.2",
     "typescript": "^5.4.2"
   },
   "files": [
-    "contracts"
+    "contracts/governance/",
+    "contracts/token/",
+    "contracts/utils/"
   ],
   "keywords": [
     "blockchain",
@@ -61,13 +65,14 @@
     "solidity",
     "template",
     "typescript",
-    "typechain"
+    "typechain",
+    "tfhe"
   ],
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
-    "clean": "rimraf ./artifacts ./cache ./coverage ./types ./coverage.json && npm run typechain",
+    "clean": "rimraf ./fhevmTemp ./artifacts ./cache ./coverage ./types ./coverage.json && pnpm typechain",
     "compile": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat compile",
     "deploy:contracts": "hardhat deploy",
     "docgen": "hardhat docgen",
@@ -79,7 +84,7 @@
     "typechain": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat typechain",
     "test": "hardhat test",
     "test:mock": "HARDHAT_NETWORK=hardhat npx hardhat test --network hardhat",
-    "coverage:mock": "HARDHAT_NETWORK=hardhat npx hardhat coverage-mock --network hardhat",
+    "coverage:mock": "npx hardhat coverage",
     "task:getEthereumAddress": "hardhat task:getEthereumAddress",
     "task:accounts": "hardhat task:accounts",
     "fhevm:start": "./launch-fhevm.sh",
@@ -93,6 +98,9 @@
     "fhevm:faucet:eve": "docker exec -i fhevm faucet $(npx hardhat task:getEthereumAddressEve)"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^5.0.2"
+    "@openzeppelin/contracts-upgradeable": "5.0.2",
+    "@openzeppelin/contracts": "5.0.2",
+    "extra-bigint": "^1.1.18",
+    "sqlite3": "^5.1.7"
   }
 }

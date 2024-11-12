@@ -4,7 +4,7 @@ import { Address } from "hardhat-deploy/types";
 
 import type { Comp } from "../../types";
 
-export const delegateBySigSignature = async (
+export const delegateBySig = async (
   _signer: HardhatEthersSigner,
   _delegatee: Address,
   _comp: Comp,

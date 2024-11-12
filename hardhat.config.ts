@@ -1,73 +1,52 @@
 import "@nomicfoundation/hardhat-toolbox";
+import "@openzeppelin/hardhat-upgrades";
 import dotenv from "dotenv";
-import * as fs from "fs";
+import * as fs from "fs-extra";
 import "hardhat-deploy";
-import "hardhat-preprocessor";
-import { TASK_PREPROCESS } from "hardhat-preprocessor";
+import "hardhat-ignore-warnings";
 import type { HardhatUserConfig } from "hardhat/config";
+import { extendProvider } from "hardhat/config";
 import { task } from "hardhat/config";
 import type { NetworkUserConfig } from "hardhat/types";
 import { resolve } from "path";
 import * as path from "path";
 
+import CustomProvider from "./CustomProvider";
+// Adjust the import path as needed
 import "./tasks/accounts";
 import "./tasks/getEthereumAddress";
-import "./tasks/taskOracleRelayer";
+import "./tasks/taskDeploy";
+import "./tasks/taskGatewayRelayer";
+import "./tasks/taskTFHE";
 
-function getAllSolidityFiles(dir: string, fileList: string[] = []): string[] {
-  fs.readdirSync(dir).forEach((file) => {
-    const filePath = path.join(dir, file);
-    if (fs.statSync(filePath).isDirectory()) {
-      getAllSolidityFiles(filePath, fileList);
-    } else if (filePath.endsWith(".sol")) {
-      fileList.push(filePath);
-    }
-  });
-  return fileList;
-}
-
-task("coverage-mock", "Run coverage after running pre-process task").setAction(async function (args, env) {
-  const contractsPath = path.join(env.config.paths.root, "contracts/");
-  const solidityFiles = getAllSolidityFiles(contractsPath);
-  const originalContents: Record<string, string> = {};
-  solidityFiles.forEach((filePath) => {
-    originalContents[filePath] = fs.readFileSync(filePath, { encoding: "utf8" });
-  });
-
-  try {
-    await env.run(TASK_PREPROCESS);
-    await env.run("coverage");
-  } finally {
-    // Restore original files
-    for (const filePath in originalContents) {
-      fs.writeFileSync(filePath, originalContents[filePath], { encoding: "utf8" });
-    }
-  }
+extendProvider(async (provider) => {
+  const newProvider = new CustomProvider(provider);
+  return newProvider;
 });
+
+task("compile:specific", "Compiles only the specified contract")
+  .addParam("contract", "The contract's path")
+  .setAction(async ({ contract }, hre) => {
+    // Adjust the configuration to include only the specified contract
+    hre.config.paths.sources = contract;
+
+    await hre.run("compile");
+  });
 
 const dotenvConfigPath: string = process.env.DOTENV_CONFIG_PATH || "./.env";
 dotenv.config({ path: resolve(__dirname, dotenvConfigPath) });
 
+// Ensure that we have all the environment variables we need.
 const mnemonic: string | undefined = process.env.MNEMONIC;
 if (!mnemonic) {
   throw new Error("Please set your MNEMONIC in a .env file");
 }
 
-const network = process.env.HARDHAT_NETWORK;
-
-function getRemappings() {
-  return fs
-    .readFileSync("remappings.txt", "utf8")
-    .split("\n")
-    .filter(Boolean) // remove empty lines
-    .map((line: string) => line.trim().split("="));
-}
-
 const chainIds = {
   zama: 8009,
   local: 9000,
-  localNetwork1: 9000,
-  multipleValidatorTestnet: 8009,
+  localCoprocessor: 12345,
+  sepolia: 11155111,
 };
 
 function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
@@ -76,15 +55,14 @@ function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
     case "local":
       jsonRpcUrl = "http://localhost:8545";
       break;
-    case "localNetwork1":
-      jsonRpcUrl = "http://127.0.0.1:9650/ext/bc/fhevm/rpc";
-      break;
-    case "multipleValidatorTestnet":
-      jsonRpcUrl = "https://rpc.fhe-ethermint.zama.ai";
+    case "localCoprocessor":
+      jsonRpcUrl = "http://localhost:8745";
       break;
     case "zama":
       jsonRpcUrl = "https://devnet.zama.ai";
       break;
+    case "sepolia":
+      jsonRpcUrl = process.env.SEPOLIA_RPC_URL!;
   }
   return {
     accounts: {
@@ -97,59 +75,67 @@ function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
   };
 }
 
+task("coverage").setAction(async (taskArgs, hre, runSuper) => {
+  hre.config.networks.hardhat.allowUnlimitedContractSize = true;
+  hre.config.networks.hardhat.blockGasLimit = 1099511627775;
+  await runSuper(taskArgs);
+});
+
+function replaceImportStatement(filePath: string, oldImport: string, newImport: string): void {
+  try {
+    let fileContent = fs.readFileSync(filePath, "utf-8");
+    fileContent = fileContent.replace(oldImport, newImport);
+    fs.writeFileSync(filePath, fileContent, "utf-8");
+  } catch (error) {
+    console.error(`Error updating file: ${error}`);
+  }
+}
+
 task("test", async (taskArgs, hre, runSuper) => {
   // Run modified test task
-
-  if (network === "hardhat") {
+  if (hre.network.name === "hardhat") {
     // in fhevm mode all this block is done when launching the node via `pnmp fhevm:start`
-    const privKeyDeployer = process.env.PRIVATE_KEY_ORACLE_DEPLOYER;
-    const privKeyOwner = process.env.PRIVATE_KEY_ORACLE_OWNER;
-    const privKeyRelayer = process.env.PRIVATE_KEY_ORACLE_RELAYER;
-    const deployerAddress = new hre.ethers.Wallet(privKeyDeployer!).address;
-    const ownerAddress = new hre.ethers.Wallet(privKeyOwner!).address;
-    const relayerAddress = new hre.ethers.Wallet(privKeyRelayer!).address;
+    const privKeyGatewayDeployer = process.env.PRIVATE_KEY_GATEWAY_DEPLOYER;
+    const privKeyFhevmDeployer = process.env.PRIVATE_KEY_FHEVM_DEPLOYER;
+    await hre.run("task:computeGatewayAddress", { privateKey: privKeyGatewayDeployer });
+    await hre.run("task:computeACLAddress", { privateKey: privKeyFhevmDeployer });
+    await hre.run("task:computeTFHEExecutorAddress", { privateKey: privKeyFhevmDeployer });
+    await hre.run("task:computeKMSVerifierAddress", { privateKey: privKeyFhevmDeployer });
+    await hre.run("task:computeInputVerifierAddress", { privateKey: privKeyFhevmDeployer, useAddress: false });
+    await hre.run("task:computeFHEPaymentAddress", { privateKey: privKeyFhevmDeployer });
+    await hre.run("compile:specific", { contract: "contracts/" });
+    const sourceDir = path.resolve(__dirname, "node_modules/fhevm-core-contracts/");
+    const destinationDir = path.resolve(__dirname, "fhevmTemp/");
+    fs.copySync(sourceDir, destinationDir, { dereference: true });
 
-    await hre.run("task:computePredeployAddress", { privateKey: privKeyDeployer });
+    const sourceDir2 = path.resolve("./node_modules/fhevm/gateway/GatewayContract.sol");
+    const destinationFilePath = path.join(destinationDir, "GatewayContract.sol");
+    fs.copySync(sourceDir2, destinationFilePath, { dereference: true });
+    const oldImport = `import "../lib/TFHE.sol";`;
+    const newImport = `import "fhevm/lib/TFHE.sol";`;
+    replaceImportStatement(destinationFilePath, oldImport, newImport);
+    const sourceDir3 = path.resolve("./node_modules/fhevm/gateway/IKMSVerifier.sol");
+    const destinationFilePath3 = path.join(destinationDir, "IKMSVerifier.sol");
+    fs.copySync(sourceDir3, destinationFilePath3, { dereference: true });
 
-    const bal = "0x1000000000000000000000000000000000000000";
-    const p1 = hre.network.provider.send("hardhat_setBalance", [deployerAddress, bal]);
-    const p2 = hre.network.provider.send("hardhat_setBalance", [ownerAddress, bal]);
-    const p3 = hre.network.provider.send("hardhat_setBalance", [relayerAddress, bal]);
-    await Promise.all([p1, p2, p3]);
-    await hre.run("compile");
-    await hre.run("task:deployOracle", { privateKey: privKeyDeployer, ownerAddress: ownerAddress });
-
-    const parsedEnv = dotenv.parse(fs.readFileSync("node_modules/fhevm/oracle/.env.oracle"));
-    const oraclePredeployAddress = parsedEnv.ORACLE_CONTRACT_PREDEPLOY_ADDRESS;
-
-    await hre.run("task:addRelayer", {
-      privateKey: privKeyOwner,
-      oracleAddress: oraclePredeployAddress,
-      relayerAddress: relayerAddress,
+    await hre.run("compile:specific", { contract: "fhevmTemp/" });
+    await hre.run("task:faucetToPrivate", { privateKey: privKeyFhevmDeployer });
+    await hre.run("task:deployACL", { privateKey: privKeyFhevmDeployer });
+    await hre.run("task:deployTFHEExecutor", { privateKey: privKeyFhevmDeployer });
+    await hre.run("task:deployKMSVerifier", { privateKey: privKeyFhevmDeployer });
+    await hre.run("task:deployInputVerifier", { privateKey: privKeyFhevmDeployer });
+    await hre.run("task:deployFHEPayment", { privateKey: privKeyFhevmDeployer });
+    await hre.run("task:addSigners", {
+      numSigners: process.env.NUM_KMS_SIGNERS!,
+      privateKey: privKeyFhevmDeployer,
+      useAddress: false,
     });
+    await hre.run("task:launchFhevm", { skipGetCoin: false, useAddress: false });
   }
-
   await runSuper();
 });
 
 const config: HardhatUserConfig = {
-  preprocess: {
-    eachLine: () => ({
-      transform: (line: string) => {
-        if (network === "hardhat") {
-          if (line.match(/".*.sol";$/)) {
-            for (const [from, to] of getRemappings()) {
-              if (line.includes(from)) {
-                line = line.replace(from, to);
-                break;
-              }
-            }
-          }
-        }
-        return line;
-      },
-    }),
-  },
   defaultNetwork: "local",
   namedAccounts: {
     deployer: 0,
@@ -165,18 +151,17 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      gas: "auto",
       accounts: {
         count: 10,
         mnemonic,
         path: "m/44'/60'/0'/0",
       },
     },
+    sepolia: getChainConfig("sepolia"),
     zama: getChainConfig("zama"),
     localDev: getChainConfig("local"),
     local: getChainConfig("local"),
-    localNetwork1: getChainConfig("localNetwork1"),
-    multipleValidatorTestnet: getChainConfig("multipleValidatorTestnet"),
+    localCoprocessor: getChainConfig("localCoprocessor"),
   },
   paths: {
     artifacts: "./artifacts",
@@ -185,7 +170,7 @@ const config: HardhatUserConfig = {
     tests: "./test",
   },
   solidity: {
-    version: "0.8.22",
+    version: "0.8.24",
     settings: {
       metadata: {
         // Not including the metadata hash
@@ -198,7 +183,12 @@ const config: HardhatUserConfig = {
         enabled: true,
         runs: 800,
       },
-      evmVersion: "shanghai",
+      evmVersion: "cancun",
+    },
+  },
+  warnings: {
+    "*": {
+      "transient-storage": false,
     },
   },
   typechain: {
