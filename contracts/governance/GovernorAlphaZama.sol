@@ -90,19 +90,33 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
     /// @notice Emitted when a vote has been cast on a proposal.
     event VoteCast(address voter, uint256 proposalId);
 
-    /// @notice Possible states that a proposal may be in.
+    /**
+     * @notice                             Possible states that a proposal may be in.
+     * @param Pending                      Proposal does not exist.
+     * @param PendingThresholdVerification Proposal is created but token threshold verification is pending.
+     * @param Rejected                     Proposal was rejected as the proposer did not meet the token threshold.
+     * @param Active                       Proposal is active and voters can cast their votes.
+     * @param PendingResults               Proposal is not active and the result decryption is in progress.
+     * @param Canceled                     Proposal has been canceled by the proposer or by this contract's owner.
+     * @param Defeated                     Proposal has been defeated
+     *                                     (either not reaching the quorum or `againstVotes` > `forVotes`).
+     * @param Succeeded                    Proposal has succeeded (`forVotes` > `againstVotes`).
+     * @param Queued                       Proposal has been queued in the `Timelock`.
+     * @param Expired                      Proposal has expired (@dev This state exists only in read-only functions).
+     * @param Executed                     Proposal has been executed in the `Timelock`.
+     */
     enum ProposalState {
-        Pending, /// Proposal does not exist.
-        PendingThresholdVerification, /// Proposal is created but token threshold verification is pending.
-        Rejected, /// Proposal was rejected because the proposer did not match the token threshold required.
-        Active, /// Proposal is active and voters can cast their votes.
-        PendingResults, /// Proposal is active but the decryption of the result is in progress.
-        Canceled, /// Proposal has been canceled by the proposer.
-        Defeated, /// Proposal has been defeated (either by not reaching the quorum or `votesAgainst` > `votesFor`).
-        Succeeded, /// Proposal has succeeded.
-        Queued, /// Proposal has been queued in the timelock.
-        Expired, /// Proposal has expired (@dev This state is used for read-only operations).
-        Executed /// Proposal has been executed.
+        Pending,
+        PendingThresholdVerification,
+        Rejected,
+        Active,
+        PendingResults,
+        Canceled,
+        Defeated,
+        Succeeded,
+        Queued,
+        Expired,
+        Executed
     }
 
     /**
@@ -260,7 +274,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
     /**
      * @notice              Cancel the proposal.
      * @param proposalId    Proposal id.
-     * @dev                 Only the owner address or the proposer can cancel.
+     * @dev                 Only this contract's owner or the proposer can cancel.
      *                      In the original GovernorAlpha, the proposer can cancel only if
      *                      her votes are still above the threshold.
      */
@@ -312,7 +326,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
     /**
      * @notice           Cast a vote.
      * @param proposalId Proposal id.
-     * @param support    Support (true ==> votesFor, false ==> votesAgainst)
+     * @param support    Support (true ==> `forVotes`, false ==> `againstVotes`)
      */
     function castVote(uint256 proposalId, ebool support) public virtual {
         return _castVote(msg.sender, proposalId, support);
@@ -521,6 +535,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
 
     /**
      * @dev                         Only callable by the gateway.
+     *                              If `forVotesDecrypted` == `againstVotesDecrypted`, proposal is defeated.
      * @param forVotesDecrypted     For votes.
      * @param againstVotesDecrypted Against votes.
      */
