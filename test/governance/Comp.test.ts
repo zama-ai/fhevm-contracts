@@ -148,6 +148,25 @@ describe("Comp", function () {
     );
   });
 
+  it("cannot delegate votes if nonce is invalid due to the delegator incrementing her nonce", async function () {
+    const delegator = this.signers.alice;
+    const delegatee = this.signers.bob;
+    const nonce = 0;
+    let latestBlockNumber = await ethers.provider.getBlockNumber();
+    const block = await ethers.provider.getBlock(latestBlockNumber);
+    const expiry = block!.timestamp + 100;
+    const signature = await delegateBySig(delegator, delegatee.address, this.comp, nonce, expiry);
+
+    const tx = await this.comp.connect(delegator).incrementNonce();
+    await tx.wait();
+
+    // Cannot reuse same nonce when delegating by sig
+    await expect(this.comp.delegateBySig(delegator, delegatee, nonce, expiry, signature)).to.be.revertedWithCustomError(
+      this.comp,
+      "SignatureNonceInvalid",
+    );
+  });
+
   it("cannot delegate votes if signer is invalid", async function () {
     const delegator = this.signers.alice;
     const delegatee = this.signers.bob;
@@ -353,7 +372,7 @@ describe("Comp", function () {
           await reencryptPriorVotes(
             this.signers,
             this.instances,
-            "alice",
+            "carol",
             blockNumbers[i],
             this.comp,
             this.compAddress,
@@ -364,7 +383,7 @@ describe("Comp", function () {
           await reencryptPriorVotes(
             this.signers,
             this.instances,
-            "carol",
+            "alice",
             blockNumbers[i],
             this.comp,
             this.compAddress,

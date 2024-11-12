@@ -47,6 +47,9 @@ abstract contract Comp is IComp, EncryptedERC20, EIP712, Ownable2Step {
     /// @dev    WARNING: it can be set to a malicious contract, which could reencrypt all user votes.
     event NewGovernor(address indexed governor);
 
+    /// @notice Emitted when the account cancels a signature.
+    event NonceIncremented(address account, uint256 newNonce);
+
     /// @notice          A checkpoint for marking number of votes from a given block.
     /// @param fromBlock Block from where the checkpoint applies.
     /// @param votes     Total number of votes for the account power.
@@ -147,6 +150,17 @@ abstract contract Comp is IComp, EncryptedERC20, EIP712, Ownable2Step {
         }
 
         return _delegate(delegator, delegatee);
+    }
+
+    /**
+     * @notice          Increment the nonce.
+     * @dev             This function enables the sender to cancel a signature.
+     */
+    function incrementNonce() public virtual {
+        uint256 currentNonce = nonces[msg.sender];
+        nonces[msg.sender] = ++currentNonce;
+
+        emit NonceIncremented(msg.sender, currentNonce);
     }
 
     /**
