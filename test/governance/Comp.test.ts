@@ -67,14 +67,17 @@ describe("Comp", function () {
   });
 
   it("can delegate votes via delegateBySig if signature is valid", async function () {
+    const delegator = this.signers.alice;
     const delegatee = this.signers.bob;
     const nonce = 0;
     let latestBlockNumber = await ethers.provider.getBlockNumber();
     const block = await ethers.provider.getBlock(latestBlockNumber);
     const expiry = block!.timestamp + 100;
-    const [v, r, s] = await delegateBySig(this.signers.alice, delegatee.address, this.comp, nonce, expiry);
+    const signature = await delegateBySig(delegator, delegatee.address, this.comp, nonce, expiry, false);
 
-    const tx = await this.comp.connect(this.signers.alice).delegateBySig(delegatee, nonce, expiry, v, r, s);
+    const tx = await this.comp
+      .connect(this.signers.alice)
+      .delegateBySig(delegator, delegatee, nonce, expiry, signature);
     await tx.wait();
 
     latestBlockNumber = await ethers.provider.getBlockNumber();
@@ -125,49 +128,75 @@ describe("Comp", function () {
   });
 
   it("cannot delegate votes if nonce is invalid", async function () {
+    const delegator = this.signers.alice;
     const delegatee = this.signers.bob;
     const nonce = 0;
     let latestBlockNumber = await ethers.provider.getBlockNumber();
     const block = await ethers.provider.getBlock(latestBlockNumber);
     const expiry = block!.timestamp + 100;
-    const [v, r, s] = await delegateBySig(this.signers.alice, delegatee.address, this.comp, nonce, expiry);
+    const signature = await delegateBySig(delegator, delegatee.address, this.comp, nonce, expiry);
 
-    const tx = await this.comp.connect(this.signers.alice).delegateBySig(delegatee, nonce, expiry, v, r, s);
+    const tx = await this.comp
+      .connect(this.signers.alice)
+      .delegateBySig(delegator, delegatee, nonce, expiry, signature);
     await tx.wait();
 
     // Cannot reuse same nonce when delegating by sig
-    await expect(this.comp.delegateBySig(delegatee, nonce, expiry, v, r, s)).to.be.revertedWith(
-      "Comp::delegateBySig: invalid nonce",
+    await expect(this.comp.delegateBySig(delegator, delegatee, nonce, expiry, signature)).to.be.revertedWithCustomError(
+      this.comp,
+      "SignatureNonceInvalid",
+    );
+  });
+
+  it("cannot delegate votes if nonce is invalid due to the delegator incrementing her nonce", async function () {
+    const delegator = this.signers.alice;
+    const delegatee = this.signers.bob;
+    const nonce = 0;
+    let latestBlockNumber = await ethers.provider.getBlockNumber();
+    const block = await ethers.provider.getBlock(latestBlockNumber);
+    const expiry = block!.timestamp + 100;
+    const signature = await delegateBySig(delegator, delegatee.address, this.comp, nonce, expiry);
+
+    const tx = await this.comp.connect(delegator).incrementNonce();
+    await tx.wait();
+
+    // Cannot reuse same nonce when delegating by sig
+    await expect(this.comp.delegateBySig(delegator, delegatee, nonce, expiry, signature)).to.be.revertedWithCustomError(
+      this.comp,
+      "SignatureNonceInvalid",
     );
   });
 
   it("cannot delegate votes if signer is invalid", async function () {
+    const delegator = this.signers.alice;
     const delegatee = this.signers.bob;
     const nonce = 0;
     let latestBlockNumber = await ethers.provider.getBlockNumber();
     const block = await ethers.provider.getBlock(latestBlockNumber);
     const expiry = block!.timestamp + 100;
-    const [v, r, s] = await delegateBySig(this.signers.alice, delegatee.address, this.comp, nonce, expiry);
 
-    // Cannot use invalid signature when delegating by sig
-    await expect(this.comp.delegateBySig(delegatee, nonce, expiry, 30, r, s)).to.be.revertedWith(
-      "Comp::delegateBySig: invalid signature",
+    // Signer is not the delegator
+    const signature = await delegateBySig(this.signers.carol, delegatee.address, this.comp, nonce, expiry);
+    await expect(this.comp.delegateBySig(delegator, delegatee, nonce, expiry, signature)).to.be.revertedWithCustomError(
+      this.comp,
+      "SignatureVerificationFail",
     );
   });
 
   it("cannot delegate votes if signature has expired", async function () {
+    const delegator = this.signers.alice;
     const delegatee = this.signers.bob;
     const nonce = 0;
     let latestBlockNumber = await ethers.provider.getBlockNumber();
     const block = await ethers.provider.getBlock(latestBlockNumber);
     const expiry = block!.timestamp + 100;
-    const [v, r, s] = await delegateBySig(this.signers.alice, delegatee.address, this.comp, nonce, expiry);
+    const signature = await delegateBySig(delegator, delegatee.address, this.comp, nonce, expiry);
 
     ethers.provider.send("evm_increaseTime", ["0xffff"]);
 
-    await expect(this.comp.connect(delegatee).delegateBySig(delegatee, nonce, expiry, v, r, s)).to.be.revertedWith(
-      "Comp::delegateBySig: signature expired",
-    );
+    await expect(
+      this.comp.connect(delegatee).delegateBySig(delegator, delegatee, nonce, expiry, signature),
+    ).to.be.revertedWithCustomError(this.comp, "SignatureExpired");
   });
 
   it("cannot request votes if blocktime is equal to current blocktime", async function () {
@@ -343,7 +372,7 @@ describe("Comp", function () {
           await reencryptPriorVotes(
             this.signers,
             this.instances,
-            "alice",
+            "carol",
             blockNumbers[i],
             this.comp,
             this.compAddress,
@@ -354,7 +383,7 @@ describe("Comp", function () {
           await reencryptPriorVotes(
             this.signers,
             this.instances,
-            "carol",
+            "alice",
             blockNumbers[i],
             this.comp,
             this.compAddress,

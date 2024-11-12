@@ -1,3 +1,4 @@
+import { parseUnits } from "ethers";
 import { ethers } from "hardhat";
 
 import type { TestComp } from "../../types";
@@ -7,7 +8,9 @@ import { FhevmInstances } from "../types";
 
 export async function deployCompFixture(signers: Signers): Promise<TestComp> {
   const contractFactory = await ethers.getContractFactory("TestComp");
-  const contract = await contractFactory.connect(signers.alice).deploy(signers.alice.address);
+  const contract = await contractFactory
+    .connect(signers.alice)
+    .deploy(signers.alice.address, "CompoundZama", "COMP", "1.0", parseUnits("10000000", 6));
   await contract.waitForDeployment();
   return contract;
 }

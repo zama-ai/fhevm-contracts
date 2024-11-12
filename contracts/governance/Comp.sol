@@ -3,12 +3,14 @@ pragma solidity ^0.8.24;
 
 import "fhevm/lib/TFHE.sol";
 import { Ownable2Step, Ownable } from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
+import { SignatureChecker } from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import { EncryptedERC20 } from "../token/ERC20/EncryptedERC20.sol";
 import { IComp } from "./IComp.sol";
 
 /**
  * @title       Comp
- * @notice      This contract inherits EncryptedERC20 and Ownable2Step.
+ * @notice      This contract inherits EncryptedERC20, EIP712, and Ownable2Step.
  *              This is based on the Comp.sol contract written by Compound Labs.
  *              see: compound-finance/compound-protocol/blob/master/contracts/Governance/Comp.sol
  *              It is a governance token used to delegate votes, which can be used by contracts such as
@@ -17,13 +19,23 @@ import { IComp } from "./IComp.sol";
  *              with an account's balance.
  * @dev         The delegation of votes leaks information about the account's encrypted balance to the `delegatee`.
  */
-abstract contract Comp is IComp, EncryptedERC20, Ownable2Step {
+abstract contract Comp is IComp, EncryptedERC20, EIP712, Ownable2Step {
     /// @notice Returned if the `blockNumber` is higher or equal to the (current) `block.number`.
     /// @dev    It is returned in requests to access votes.
     error BlockNumberEqualOrHigherThanCurrentBlock();
 
     /// @notice Returned if the `msg.sender` is not the `governor` contract.
     error GovernorInvalid();
+
+    /// @notice Returned if the signature has expired.
+    error SignatureExpired();
+
+    /// @notice Returned if the signature's nonce is invalid.
+    error SignatureNonceInvalid();
+
+    /// @notice Returned if the signature's verification has failed.
+    /// @dev    See {SignatureChecker} for potential reasons.
+    error SignatureVerificationFail();
 
     /// @notice Emitted when an `account` (i.e. `delegator`) changes its delegate.
     event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
@@ -35,6 +47,9 @@ abstract contract Comp is IComp, EncryptedERC20, Ownable2Step {
     /// @dev    WARNING: it can be set to a malicious contract, which could reencrypt all user votes.
     event NewGovernor(address indexed governor);
 
+    /// @notice Emitted when the account cancels a signature.
+    event NonceIncremented(address account, uint256 newNonce);
+
     /// @notice          A checkpoint for marking number of votes from a given block.
     /// @param fromBlock Block from where the checkpoint applies.
     /// @param votes     Total number of votes for the account power.
@@ -45,10 +60,6 @@ abstract contract Comp is IComp, EncryptedERC20, Ownable2Step {
         uint256 fromBlock;
         euint64 votes;
     }
-
-    /// @notice The EIP-712 typehash for the contract's domain.
-    bytes32 public constant DOMAIN_TYPEHASH =
-        keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
 
     /// @notice The EIP-712 typehash for the `Delegation` struct.
     bytes32 public constant DELEGATION_TYPEHASH =
@@ -77,11 +88,21 @@ abstract contract Comp is IComp, EncryptedERC20, Ownable2Step {
     euint64 private _EUINT64_ZERO;
 
     /**
-     * @param owner Owner address
+     * @param owner_        Owner address.
+     * @param name_         Token name.
+     * @param symbol_       Token symbol.
+     * @param version_      Version (e.g. "0.1", "1.0").
+     * @param totalSupply_  Total supply to mint.
      */
-    constructor(address owner) EncryptedERC20("Compound", "COMP") Ownable(owner) {
-        _unsafeMint(owner, TFHE.asEuint64(10000000e6)); /// 10 million Comp
-        _totalSupply = 10000000e6;
+    constructor(
+        address owner_,
+        string memory name_,
+        string memory symbol_,
+        string memory version_,
+        uint64 totalSupply_
+    ) EncryptedERC20(name_, symbol_) EIP712(name_, version_) Ownable(owner_) {
+        _unsafeMint(owner_, TFHE.asEuint64(totalSupply_));
+        _totalSupply = totalSupply_;
 
         /// @dev Define the constant in the storage.
         _EUINT64_ZERO = TFHE.asEuint64(0);
@@ -98,32 +119,48 @@ abstract contract Comp is IComp, EncryptedERC20, Ownable2Step {
 
     /**
      * @notice          Delegate votes from signatory to `delegatee`.
+     * @param delegator The account that delegates its votes. It must be the signer.
      * @param delegatee The address to delegate votes to.
      * @param nonce     The contract state required to match the signature.
      * @param expiry    The time at which to expire the signature.
-     * @param v         The recovery byte of the signature.
-     * @param r         Half of the ECDSA signature pair.
-     * @param s         Half of the ECDSA signature pair.
+     * @param signature The signature.
+     * @dev             Signature can be either 64-byte or 65-byte long if it is from an EOA.
+     *                  Else, it must adhere to ERC1271. See {https://eips.ethereum.org/EIPS/eip-1271}
      */
     function delegateBySig(
+        address delegator,
         address delegatee,
         uint256 nonce,
         uint256 expiry,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
+        bytes memory signature
     ) public virtual {
-        bytes32 domainSeparator = keccak256(
-            abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name())), block.chainid, address(this))
-        );
         bytes32 structHash = keccak256(abi.encode(DELEGATION_TYPEHASH, delegatee, nonce, expiry));
-        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
-        address signatory = ecrecover(digest, v, r, s);
+        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", _domainSeparatorV4(), structHash));
 
-        require(signatory != address(0), "Comp::delegateBySig: invalid signature");
-        require(nonce == nonces[signatory]++, "Comp::delegateBySig: invalid nonce");
-        require(block.timestamp <= expiry, "Comp::delegateBySig: signature expired");
-        return _delegate(signatory, delegatee);
+        if (!SignatureChecker.isValidSignatureNow(delegator, digest, signature)) {
+            revert SignatureVerificationFail();
+        }
+
+        if (nonce != nonces[delegator]++) {
+            revert SignatureNonceInvalid();
+        }
+
+        if (block.timestamp > expiry) {
+            revert SignatureExpired();
+        }
+
+        return _delegate(delegator, delegatee);
+    }
+
+    /**
+     * @notice          Increment the nonce.
+     * @dev             This function enables the sender to cancel a signature.
+     */
+    function incrementNonce() public virtual {
+        uint256 currentNonce = nonces[msg.sender];
+        nonces[msg.sender] = ++currentNonce;
+
+        emit NonceIncremented(msg.sender, currentNonce);
     }
 
     /**

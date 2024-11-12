@@ -4,26 +4,38 @@ import { Address } from "hardhat-deploy/types";
 
 import type { Comp } from "../../types";
 
+/**
+ *
+ * @param _signer     Signer from ethers.
+ * @param _delegatee  Delegatee address.
+ * @param _comp       Comp token.
+ * @param _nonce      Nonce to sign.
+ * @param _expiry     Expiry timestamp.
+ * @returns           The signature.
+ */
 export const delegateBySig = async (
   _signer: HardhatEthersSigner,
   _delegatee: Address,
   _comp: Comp,
   _nonce: number,
   _expiry: number,
-): Promise<[BigInt, string, string]> => {
+): Promise<string> => {
   const compAddress_ = await _comp.getAddress();
   const delegatee_ = _delegatee;
   const nonce_ = _nonce;
   const expiry_ = _expiry;
-
   const network = await ethers.provider.getNetwork();
   const chainId = network.chainId;
+
   const domain = {
     name: await _comp.name(),
+    version: "1.0",
     chainId: chainId,
     verifyingContract: compAddress_,
   };
+
   // Delegation(address delegatee,uint256 nonce,uint256 expiry)
+
   const types = {
     Delegation: [
       {
@@ -48,9 +60,5 @@ export const delegateBySig = async (
   };
 
   const signature = await _signer.signTypedData(domain, types, message);
-  const sigRSV = ethers.Signature.from(signature);
-  const v = 27 + sigRSV.yParity;
-  const r = sigRSV.r;
-  const s = sigRSV.s;
-  return [BigInt(v), r, s];
+  return signature;
 };

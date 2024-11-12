@@ -5,7 +5,13 @@ import { Comp } from "../../governance/Comp.sol";
 import { DefaultFHEVMConfig } from "../DefaultFHEVMConfig.sol";
 
 contract TestComp is DefaultFHEVMConfig, Comp {
-    constructor(address owner_) Comp(owner_) {
+    constructor(
+        address owner_,
+        string memory name_,
+        string memory symbol_,
+        string memory version_,
+        uint64 totalSupply_
+    ) Comp(owner_, name_, symbol_, version_, totalSupply_) {
         //
     }
 }
