@@ -15,14 +15,16 @@ describe("CompoundTimelock", function () {
   });
 
   it("non-timelock account could not call setPendingAdmin", async function () {
-    await expect(this.timelock.setPendingAdmin(this.signers.bob)).to.be.revertedWith(
-      "Timelock::setPendingAdmin: Call must come from Timelock.",
+    await expect(this.timelock.setPendingAdmin(this.signers.bob)).to.be.revertedWithCustomError(
+      this.timelock,
+      "SenderIsNotTimelock",
     );
   });
 
   it("non-timelock account could not call setDelay", async function () {
-    await expect(this.timelock.setDelay(60 * 60 * 24 * 3)).to.be.revertedWith(
-      "Timelock::setDelay: Call must come from Timelock.",
+    await expect(this.timelock.setDelay(60 * 60 * 24 * 3)).to.be.revertedWithCustomError(
+      this.timelock,
+      "SenderIsNotTimelock",
     );
   });
 
@@ -47,10 +49,10 @@ describe("CompoundTimelock", function () {
       await ethers.provider.send("evm_increaseTime", ["0x2a33c"]);
       await expect(
         this.timelock.executeTransaction(timeLockAdd, 0, "setDelay(uint256)", callData1, expiry),
-      ).to.be.revertedWith("Timelock::executeTransaction: Transaction execution reverted.");
+      ).to.be.revertedWithCustomError(this.timelock, "ExecutionReverted");
       await expect(
         this.timelock.executeTransaction(timeLockAdd, 0, "setDelay(uint256)", callData2, expiry),
-      ).to.be.revertedWith("Timelock::executeTransaction: Transaction execution reverted.");
+      ).to.be.revertedWithCustomError(this.timelock, "ExecutionReverted");
       await this.timelock.executeTransaction(timeLockAdd, 0, "setDelay(uint256)", callData3, expiry);
       expect(await this.timelock.delay()).to.equal(60 * 60 * 24 * 20);
     }
@@ -63,22 +65,22 @@ describe("CompoundTimelock", function () {
     const timeLockAdd = await this.timelock.getAddress();
     const callData = ethers.AbiCoder.defaultAbiCoder().encode(["uint256"], [60 * 60 * 24 * 20]); // OK
 
-    const tx = await this.timelock.queueTransaction(timeLockAdd, 0, "setDelay(uint256)", callData, expiry);
+    let tx = await this.timelock.queueTransaction(timeLockAdd, 0, "setDelay(uint256)", callData, expiry);
     await tx.wait();
 
     await expect(
       this.timelock.connect(this.signers.bob).cancelTransaction(timeLockAdd, 0, "setDelay(uint256)", callData, expiry),
-    ).to.throw;
+    ).to.be.revertedWithCustomError(this.timelock, "SenderIsNotAdmin");
 
-    const tx2 = await this.timelock.cancelTransaction(timeLockAdd, 0, "setDelay(uint256)", callData, expiry);
-    await tx2.wait();
+    tx = await this.timelock.cancelTransaction(timeLockAdd, 0, "setDelay(uint256)", callData, expiry);
+    await tx.wait();
 
     if (network.name === "hardhat") {
       // hardhat cheatcodes are available only in mocked mode
       await ethers.provider.send("evm_increaseTime", ["0x2a33c"]);
       await expect(
         this.timelock.executeTransaction(timeLockAdd, 0, "setDelay(uint256)", callData, expiry),
-      ).to.be.revertedWith("Timelock::executeTransaction: Transaction hasn't been queued.");
+      ).to.be.revertedWithCustomError(this.timelock, "TransactionNotQueued");
     }
   });
 
@@ -90,14 +92,21 @@ describe("CompoundTimelock", function () {
     const timeLockAdd = await this.timelock.getAddress();
     const callData = ethers.AbiCoder.defaultAbiCoder().encode(["uint256"], [60 * 60 * 24 * 20]); // OK
 
+    // Bob is not the admin.
     await expect(
       this.timelock.connect(this.signers.bob).queueTransaction(timeLockAdd, 0, "setDelay(uint256)", callData, expiry),
-    ).to.throw;
+    ).to.be.revertedWithCustomError(this.timelock, "SenderIsNotTimelock");
 
-    await expect(this.timelock.queueTransaction(timeLockAdd, 0, "setDelay(uint256)", callData, expiryTooShort)).to
-      .throw;
+    // The expiry is too short.
+    await expect(
+      this.timelock
+        .connect(this.signers.alice)
+        .queueTransaction(timeLockAdd, 0, "setDelay(uint256)", callData, expiryTooShort),
+    ).to.be.revertedWithCustomError(this.timelock, "TransactionTooEarlyForQueuing");
 
-    const tx = await this.timelock.queueTransaction(timeLockAdd, 0, "setDelay(uint256)", callData, expiry);
+    const tx = await this.timelock
+      .connect(this.signers.alice)
+      .queueTransaction(timeLockAdd, 0, "setDelay(uint256)", callData, expiry);
     await tx.wait();
   });
 
@@ -117,13 +126,13 @@ describe("CompoundTimelock", function () {
         this.timelock
           .connect(this.signers.bob)
           .executeTransaction(timeLockAdd, 0, "setDelay(uint256)", callData, expiry),
-      ).to.be.revertedWith("Timelock::executeTransaction: Call must come from admin.");
+      ).to.be.revertedWithCustomError(this.timelock, "SenderIsNotAdmin");
 
       const idSnapshot = await ethers.provider.send("evm_snapshot");
       await ethers.provider.send("evm_increaseTime", ["0xffffff"]);
       await expect(
         this.timelock.executeTransaction(timeLockAdd, 0, "setDelay(uint256)", callData, expiry),
-      ).to.be.revertedWith("Timelock::executeTransaction: Transaction is stale.");
+      ).to.be.revertedWithCustomError(this.timelock, "TransactionTooLateForExecution");
 
       await ethers.provider.send("evm_revert", [idSnapshot]); // roll back time to previous snapshot, before the grace period
       const tx2 = await this.timelock.executeTransaction(timeLockAdd, 0, "setDelay(uint256)", callData, expiry);
@@ -149,6 +158,20 @@ describe("CompoundTimelock", function () {
       const tx2 = await this.timelock.executeTransaction(timeLockAdd, 0, "", functionSig + callData.slice(2), expiry);
       await tx2.wait();
       expect(await this.timelock.delay()).to.equal(60 * 60 * 24 * 20);
+    }
+  });
+
+  it("could not deploy timelock contract if delay is below 2 days or above 31 days", async function () {
+    const timelockFactory = await ethers.getContractFactory("CompoundTimelock");
+
+    if (network.name === "hardhat") {
+      await expect(
+        timelockFactory.connect(this.signers.alice).deploy(this.signers.alice.address, 60 * 60 * 24 * 1),
+      ).to.be.revertedWithCustomError(this.timelock, "DelayBelowMinimumDelay");
+
+      await expect(
+        timelockFactory.connect(this.signers.alice).deploy(this.signers.alice.address, 60 * 60 * 24 * 31),
+      ).to.be.revertedWithCustomError(this.timelock, "DelayAboveMaximumDelay");
     }
   });
 });
