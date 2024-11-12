@@ -7,7 +7,9 @@ import { FhevmInstances } from "../types";
 
 export async function deployCompFixture(signers: Signers): Promise<TestComp> {
   const contractFactory = await ethers.getContractFactory("TestComp");
-  const contract = await contractFactory.connect(signers.alice).deploy(signers.alice.address);
+  const contract = await contractFactory
+    .connect(signers.alice)
+    .deploy(signers.alice.address, "CompoundZama", "COMP", "1.0");
   await contract.waitForDeployment();
   return contract;
 }
