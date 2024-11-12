@@ -9,8 +9,9 @@ contract TestComp is DefaultFHEVMConfig, Comp {
         address owner_,
         string memory name_,
         string memory symbol_,
-        string memory version_
-    ) Comp(owner_, name_, symbol_, version_) {
+        string memory version_,
+        uint64 totalSupply_
+    ) Comp(owner_, name_, symbol_, version_, totalSupply_) {
         //
     }
 }

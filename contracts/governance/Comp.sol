@@ -85,19 +85,21 @@ abstract contract Comp is IComp, EncryptedERC20, EIP712, Ownable2Step {
     euint64 private _EUINT64_ZERO;
 
     /**
-     * @param owner_    Owner address.
-     * @param name_     Token name.
-     * @param symbol_   Token symbol.
-     * @param version_  Version (e.g. "0.1", "1.0").
+     * @param owner_        Owner address.
+     * @param name_         Token name.
+     * @param symbol_       Token symbol.
+     * @param version_      Version (e.g. "0.1", "1.0").
+     * @param totalSupply_  Total supply to mint.
      */
     constructor(
         address owner_,
         string memory name_,
         string memory symbol_,
-        string memory version_
+        string memory version_,
+        uint64 totalSupply_
     ) EncryptedERC20(name_, symbol_) EIP712(name_, version_) Ownable(owner_) {
-        _unsafeMint(owner_, TFHE.asEuint64(10000000e6)); /// 10 million Comp
-        _totalSupply = 10000000e6;
+        _unsafeMint(owner_, TFHE.asEuint64(totalSupply_));
+        _totalSupply = totalSupply_;
 
         /// @dev Define the constant in the storage.
         _EUINT64_ZERO = TFHE.asEuint64(0);
