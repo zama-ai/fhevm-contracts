@@ -11,9 +11,6 @@ import type { Comp } from "../../types";
  * @param _comp       Comp token.
  * @param _nonce      Nonce to sign.
  * @param _expiry     Expiry timestamp.
- * @param _is64Bytes  Whether the signature must be 64 bytes. If false, it has 65 bytes.
- *                    Default is false.
- * @dev               See: https://eips.ethereum.org/EIPS/eip-2098
  * @returns           The signature.
  */
 export const delegateBySig = async (
@@ -22,7 +19,6 @@ export const delegateBySig = async (
   _comp: Comp,
   _nonce: number,
   _expiry: number,
-  _is64Bytes: boolean = false,
 ): Promise<string> => {
   const compAddress_ = await _comp.getAddress();
   const delegatee_ = _delegatee;
