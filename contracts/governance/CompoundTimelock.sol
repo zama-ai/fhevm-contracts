@@ -17,10 +17,10 @@ contract CompoundTimelock is ICompoundTimelock {
      */
     uint256 public constant GRACE_PERIOD = 14 days;
 
-    /// @notice Minimum delay that can be set in the setDelay function.
+    /// @notice Minimum delay that can be set in the `setDelay` function.
     uint256 public constant MINIMUM_DELAY = 2 days;
 
-    /// @notice Maximum delay that can be set in the setDelay function.
+    /// @notice Maximum delay that can be set in the `setDelay` function.
     uint256 public constant MAXIMUM_DELAY = 30 days;
 
     /// @notice Admin address.
@@ -36,15 +36,20 @@ contract CompoundTimelock is ICompoundTimelock {
     uint256 public delay;
 
     /// @notice Return whether the transaction is queued based on its hash.
-    mapping(bytes32 => bool) public queuedTransactions;
+    mapping(bytes32 hashTransaction => bool isQueued) public queuedTransactions;
 
     /**
      * @param admin_ Admin address.
      * @param delay_ Delay (in timestamp).
      */
     constructor(address admin_, uint256 delay_) {
-        require(delay_ >= MINIMUM_DELAY, "Timelock::constructor: Delay must exceed minimum delay.");
-        require(delay_ <= MAXIMUM_DELAY, "Timelock::setDelay: Delay must not exceed maximum delay.");
+        if (delay_ < MINIMUM_DELAY) {
+            revert DelayBelowMinimumDelay();
+        }
+
+        if (delay_ > MAXIMUM_DELAY) {
+            revert DelayAboveMaximumDelay();
+        }
 
         admin = admin_;
         delay = delay_;
@@ -58,9 +63,18 @@ contract CompoundTimelock is ICompoundTimelock {
      * @param delay_ Delay (in timestamp).
      */
     function setDelay(uint256 delay_) public {
-        require(msg.sender == address(this), "Timelock::setDelay: Call must come from Timelock.");
-        require(delay_ >= MINIMUM_DELAY, "Timelock::setDelay: Delay must exceed minimum delay.");
-        require(delay_ <= MAXIMUM_DELAY, "Timelock::setDelay: Delay must not exceed maximum delay.");
+        if (msg.sender != address(this)) {
+            revert SenderIsNotTimelock();
+        }
+
+        if (delay_ < MINIMUM_DELAY) {
+            revert DelayBelowMinimumDelay();
+        }
+
+        if (delay_ > MAXIMUM_DELAY) {
+            revert DelayAboveMaximumDelay();
+        }
+
         delay = delay_;
 
         emit NewDelay(delay);
@@ -70,7 +84,10 @@ contract CompoundTimelock is ICompoundTimelock {
      * @notice See {ICompoundTimelock-acceptAdmin}.
      */
     function acceptAdmin() public {
-        require(msg.sender == pendingAdmin, "Timelock::acceptAdmin: Call must come from pendingAdmin.");
+        if (msg.sender != pendingAdmin) {
+            revert SenderIsNotPendingAdmin();
+        }
+
         admin = msg.sender;
         pendingAdmin = address(0);
 
@@ -83,7 +100,10 @@ contract CompoundTimelock is ICompoundTimelock {
      * @param pendingAdmin_ Pending admin address.
      */
     function setPendingAdmin(address pendingAdmin_) public {
-        require(msg.sender == address(this), "Timelock::setPendingAdmin: Call must come from Timelock.");
+        if (msg.sender != address(this)) {
+            revert SenderIsNotTimelock();
+        }
+
         pendingAdmin = pendingAdmin_;
 
         emit NewPendingAdmin(pendingAdmin);
@@ -99,11 +119,13 @@ contract CompoundTimelock is ICompoundTimelock {
         bytes memory data,
         uint256 eta
     ) public returns (bytes32) {
-        require(msg.sender == admin, "Timelock::queueTransaction: Call must come from admin.");
-        require(
-            eta >= block.timestamp + delay,
-            "Timelock::queueTransaction: Estimated execution block must satisfy delay."
-        );
+        if (msg.sender != admin) {
+            revert SenderIsNotTimelock();
+        }
+
+        if (eta < block.timestamp + delay) {
+            revert TransactionTooEarlyForQueuing();
+        }
 
         bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
         queuedTransactions[txHash] = true;
@@ -122,7 +144,9 @@ contract CompoundTimelock is ICompoundTimelock {
         bytes memory data,
         uint256 eta
     ) public {
-        require(msg.sender == admin, "Timelock::cancelTransaction: Call must come from admin.");
+        if (msg.sender != admin) {
+            revert SenderIsNotAdmin();
+        }
 
         bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
         queuedTransactions[txHash] = false;
@@ -140,12 +164,21 @@ contract CompoundTimelock is ICompoundTimelock {
         bytes memory data,
         uint256 eta
     ) public payable returns (bytes memory) {
-        require(msg.sender == admin, "Timelock::executeTransaction: Call must come from admin.");
+        if (msg.sender != admin) {
+            revert SenderIsNotAdmin();
+        }
 
         bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
-        require(queuedTransactions[txHash], "Timelock::executeTransaction: Transaction hasn't been queued.");
-        require(block.timestamp >= eta, "Timelock::executeTransaction: Transaction hasn't surpassed time lock.");
-        require(block.timestamp <= eta + GRACE_PERIOD, "Timelock::executeTransaction: Transaction is stale.");
+        if (!queuedTransactions[txHash]) {
+            revert TransactionNotQueued();
+        }
+        if (block.timestamp < eta) {
+            revert TransactionTooEarlyForExecution();
+        }
+
+        if (block.timestamp > eta + GRACE_PERIOD) {
+            revert TransactionTooLateForExecution();
+        }
 
         queuedTransactions[txHash] = false;
 
@@ -158,7 +191,10 @@ contract CompoundTimelock is ICompoundTimelock {
         }
 
         (bool success, bytes memory returnData) = target.call{ value: value }(callData);
-        require(success, "Timelock::executeTransaction: Transaction execution reverted.");
+
+        if (!success) {
+            revert ExecutionReverted();
+        }
 
         emit ExecuteTransaction(txHash, target, value, signature, data, eta);
 

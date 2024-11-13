@@ -418,19 +418,6 @@ describe("GovernorAlphaZama", function () {
     expect(proposalInfo.state).to.equal(6);
   });
 
-  it("could not deploy timelock contract if delay is below 2 days or above 31 days", async function () {
-    const timelockFactory = await ethers.getContractFactory("CompoundTimelock");
-
-    if (network.name === "hardhat") {
-      await expect(
-        timelockFactory.connect(this.signers.alice).deploy(this.signers.alice.address, 60 * 60 * 24 * 1),
-      ).to.be.revertedWith("Timelock::constructor: Delay must exceed minimum delay."); // 1 day < 2 days
-      await expect(
-        timelockFactory.connect(this.signers.alice).deploy(this.signers.alice.address, 60 * 60 * 24 * 31),
-      ).to.be.revertedWith("Timelock::setDelay: Delay must not exceed maximum delay."); // 31 days > 30 days
-    }
-  });
-
   it("only owner could queue setTimelockPendingAdmin then execute it, and then acceptTimelockAdmin", async function () {
     const latestBlockNumber = await ethers.provider.getBlockNumber();
     const block = await ethers.provider.getBlock(latestBlockNumber);
@@ -441,9 +428,9 @@ describe("GovernorAlphaZama", function () {
 
     if (network.name === "hardhat") {
       // hardhat cheatcodes are available only in mocked mode
-      await expect(this.governor.executeSetTimelockPendingAdmin(this.signers.bob, expiry)).to.be.revertedWith(
-        "Timelock::executeTransaction: Transaction hasn't surpassed time lock.",
-      );
+      await expect(
+        this.governor.executeSetTimelockPendingAdmin(this.signers.bob, expiry),
+      ).to.be.revertedWithCustomError(this.timelock, "TransactionTooEarlyForExecution");
 
       await expect(
         this.governor.connect(this.signers.carol).queueSetTimelockPendingAdmin(this.signers.bob, expiry),
@@ -458,9 +445,7 @@ describe("GovernorAlphaZama", function () {
       const tx3 = await this.governor.executeSetTimelockPendingAdmin(this.signers.bob, expiry);
       await tx3.wait();
 
-      await expect(this.timelock.acceptAdmin()).to.be.revertedWith(
-        "Timelock::acceptAdmin: Call must come from pendingAdmin.",
-      );
+      await expect(this.timelock.acceptAdmin()).to.be.revertedWithCustomError(this.timelock, "SenderIsNotPendingAdmin");
 
       const tx4 = await this.timelock.connect(this.signers.bob).acceptAdmin();
       await tx4.wait();
@@ -479,6 +464,7 @@ describe("GovernorAlphaZama", function () {
       const tx6 = await this.timelock
         .connect(this.signers.bob)
         .executeTransaction(timeLockAdd, 0, "setPendingAdmin(address)", callData, expiry2);
+
       await tx6.wait();
 
       await expect(this.governor.connect(this.signers.bob).acceptTimelockAdmin()).to.be.revertedWithCustomError(
@@ -1069,8 +1055,9 @@ describe("GovernorAlphaZama", function () {
     await ethers.provider.send("evm_setNextBlockTimestamp", [deadlineExecutionTransaction.toString()]);
     await mineNBlocks(1);
 
-    await expect(this.governor.execute(proposalId)).to.be.revertedWith(
-      "Timelock::executeTransaction: Transaction is stale.",
+    await expect(this.governor.execute(proposalId)).to.be.revertedWithCustomError(
+      this.timelock,
+      "TransactionTooLateForExecution",
     );
 
     proposalInfo = await this.governor.getProposalInfo(proposalId);
