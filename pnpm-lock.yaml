@@ -147,6 +147,9 @@ importers:
       solidity-coverage:
         specifier: 0.8.12
         version: 0.8.12(hardhat@2.22.14(ts-node@10.9.2(@types/node@18.19.59)(typescript@5.4.2))(typescript@5.4.2))
+      solidity-docgen:
+        specifier: ^0.6.0-beta.36
+        version: 0.6.0-beta.36(hardhat@2.22.14(ts-node@10.9.2(@types/node@18.19.59)(typescript@5.4.2))(typescript@5.4.2))
       ts-generator:
         specifier: ^0.1.1
         version: 0.1.1
@@ -3147,6 +3150,11 @@ packages:
     hasBin: true
     peerDependencies:
       hardhat: ^2.11.0
+
+  solidity-docgen@0.6.0-beta.36:
+    resolution: {integrity: sha512-f/I5G2iJgU1h0XrrjRD0hHMr7C10u276vYvm//rw1TzFcYQ4xTOyAoi9oNAHRU0JU4mY9eTuxdVc2zahdMuhaQ==}
+    peerDependencies:
+      hardhat: ^2.8.0
 
   source-map-support@0.5.21:
     resolution: {integrity: sha512-uBHU3L3czsIyYXKX88fdrGovxdSCoTGDRZ6SYXtSRxLZUzHg5P/66Ht6uoUlHu9EZod+inXhKo3qQgwXUT/y1w==}
@@ -7233,6 +7241,12 @@ snapshots:
       semver: 7.6.0
       shelljs: 0.8.5
       web3-utils: 1.10.4
+
+  solidity-docgen@0.6.0-beta.36(hardhat@2.22.14(ts-node@10.9.2(@types/node@18.19.59)(typescript@5.4.2))(typescript@5.4.2)):
+    dependencies:
+      handlebars: 4.7.8
+      hardhat: 2.22.14(ts-node@10.9.2(@types/node@18.19.59)(typescript@5.4.2))(typescript@5.4.2)
+      solidity-ast: 0.4.59
 
   source-map-support@0.5.21:
     dependencies:

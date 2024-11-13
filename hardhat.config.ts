@@ -10,6 +10,7 @@ import { task } from "hardhat/config";
 import type { NetworkUserConfig } from "hardhat/types";
 import { resolve } from "path";
 import * as path from "path";
+import "solidity-docgen";
 
 import CustomProvider from "./CustomProvider";
 // Adjust the import path as needed
@@ -91,7 +92,7 @@ function replaceImportStatement(filePath: string, oldImport: string, newImport: 
   }
 }
 
-task("test", async (taskArgs, hre, runSuper) => {
+task("test", async (_taskArgs, hre, runSuper) => {
   // Run modified test task
   if (hre.network.name === "hardhat") {
     // in fhevm mode all this block is done when launching the node via `pnmp fhevm:start`
@@ -136,6 +137,11 @@ task("test", async (taskArgs, hre, runSuper) => {
 });
 
 const config: HardhatUserConfig = {
+  docgen: {
+    output: "docs",
+    pages: "files",
+    exclude: ["test/"],
+  },
   defaultNetwork: "local",
   namedAccounts: {
     deployer: 0,
