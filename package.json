@@ -8,6 +8,9 @@
   },
   "license": "BSD-3-Clause",
   "devDependencies": {
+    "@commitlint/cli": "^19.5.0",
+    "@commitlint/config-conventional": "^19.5.0",
+    "@commitlint/types": "^19.5.0",
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.6",
     "@nomicfoundation/hardhat-ethers": "^3.0.5",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.10",
@@ -38,6 +41,7 @@
     "hardhat-gas-reporter": "^1.0.10",
     "hardhat-ignore-warnings": "^0.2.11",
     "hardhat-preprocessor": "^0.1.5",
+    "husky": "^9.1.6",
     "lodash": "^4.17.21",
     "mocha": "^10.3.0",
     "prettier": "^2.8.8",
