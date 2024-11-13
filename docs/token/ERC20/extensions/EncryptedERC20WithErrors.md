@@ -18,9 +18,11 @@ Emitted when tokens are moved from one account (`from`) to another (`to`).
 
 Error codes allow tracking (in the storage) whether a transfer worked.
 
-_NO_ERROR: the transfer worked as expected UNSUFFICIENT_BALANCE: the transfer failed because the from balances were
-strictly inferior to the amount to transfer. UNSUFFICIENT_APPROVAL: the transfer failed because the sender allowance was
-strictly lower than the amount to transfer._
+| Name                  | Description                                                                                      |
+| --------------------- | ------------------------------------------------------------------------------------------------ |
+| NO_ERROR              | The transfer worked as expected.                                                                 |
+| UNSUFFICIENT_BALANCE  | The transfer failed because the from balances were strictly inferior to the amount to transfer.  |
+| UNSUFFICIENT_APPROVAL | The transfer failed because the sender allowance was strictly lower than the amount to transfer. |
 
 ```solidity
 enum ErrorCodes {

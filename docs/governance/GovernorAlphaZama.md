@@ -161,8 +161,19 @@ Possible states that a proposal may be in.
 
 ### Parameters
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
+| Name                         | Description                                                                                 |
+| ---------------------------- | ------------------------------------------------------------------------------------------- |
+| Pending                      | Proposal does not exist.                                                                    |
+| PendingThresholdVerification | Proposal is created but token threshold verification is pending.                            |
+| Rejected                     | Proposal was rejected as the proposer did not meet the token threshold.                     |
+| Active                       | Proposal is active and voters can cast their votes.                                         |
+| PendingResults               | Proposal is not active and the result decryption is in progress.                            |
+| Canceled                     | Proposal has been canceled by the proposer or by this contract's owner.                     |
+| Defeated                     | Proposal has been defeated (either not reaching the quorum or `againstVotes` > `forVotes`). |
+| Succeeded                    | Proposal has succeeded (`forVotes` > `againstVotes`).                                       |
+| Queued                       | Proposal has been queued in the `Timelock`.                                                 |
+| Expired                      | Proposal has expired (@dev This state exists only in read-only functions).                  |
+| Executed                     | Proposal has been executed in the `Timelock`.                                               |
 
 ```solidity
 enum ProposalState {
