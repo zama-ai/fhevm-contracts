@@ -121,6 +121,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
 
     /**
      * @param proposer              Proposal creator.
+     * @param state                 State of the proposal.
      * @param eta                   The timestamp that the proposal will be available for execution,
      *                              it is set automatically once the vote succeeds.
      * @param targets               The ordered list of target addresses for calls to be made.
