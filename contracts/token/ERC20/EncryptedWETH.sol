@@ -60,11 +60,14 @@ abstract contract EncryptedWETH is EncryptedERC20 {
      * @notice         Wrap ether to an encrypted format.
      */
     function wrap() public payable virtual {
-        if (msg.value > type(uint64).max) {
+        uint256 amountAdjusted = msg.value / (10 ** (18 - decimals()));
+
+        if (amountAdjusted > type(uint64).max) {
             revert AmountTooHigh();
         }
 
-        uint64 amountUint64 = uint64(msg.value / (10 ** (18 - decimals())));
+        uint64 amountUint64 = uint64(amountAdjusted);
+
         _balances[msg.sender] = TFHE.add(_balances[msg.sender], amountUint64);
 
         TFHE.allowThis(_balances[msg.sender]);
