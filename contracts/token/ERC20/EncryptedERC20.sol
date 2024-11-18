@@ -155,13 +155,26 @@ abstract contract EncryptedERC20 is IEncryptedERC20 {
     }
 
     /**
+     * @dev It does not incorporate any underflow check. It must be implemented
+     *      by the function calling it.
+     */
+    function _unsafeBurn(address account, euint64 amount) internal virtual {
+        euint64 newBalanceAccount = TFHE.sub(_balances[account], amount);
+        _balances[account] = newBalanceAccount;
+        TFHE.allowThis(newBalanceAccount);
+        TFHE.allow(newBalanceAccount, account);
+        emit Transfer(account, address(0));
+    }
+
+    /**
      * @dev It does not incorporate any overflow check. It must be implemented
      *      by the function calling it.
      */
     function _unsafeMint(address account, euint64 amount) internal virtual {
-        _balances[msg.sender] = TFHE.add(_balances[account], amount);
-        TFHE.allowThis(_balances[account]);
-        TFHE.allow(_balances[account], account);
+        euint64 newBalanceAccount = TFHE.add(_balances[account], amount);
+        _balances[account] = newBalanceAccount;
+        TFHE.allowThis(newBalanceAccount);
+        TFHE.allow(newBalanceAccount, account);
         emit Transfer(address(0), account);
     }
 
