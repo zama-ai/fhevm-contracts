@@ -20,11 +20,11 @@ import "fhevm/gateway/GatewayCaller.sol";
 abstract contract EncryptedERC20Wrapped is EncryptedERC20, GatewayCaller {
     using SafeERC20 for IERC20Metadata;
 
-    /// @notice Returns if user cannot transfer or mint.
-    error CannotTransferOrMint();
-
     /// @notice Returned if the amount is greater than 2**64.
     error AmountTooHigh();
+
+    /// @notice Returned if user cannot transfer or mint.
+    error CannotTransferOrUnwrap();
 
     /// @notice Emitted when token is unwrapped.
     event Unwrap(address indexed to, uint64 amount);
@@ -49,7 +49,7 @@ abstract contract EncryptedERC20Wrapped is EncryptedERC20, GatewayCaller {
     IERC20Metadata public immutable ERC20_TOKEN;
 
     /// @notice Tracks whether the account can move funds.
-    mapping(address account => bool canMoveFunds) public isAccountRestricted;
+    mapping(address account => bool isRestricted) public isAccountRestricted;
 
     /// @notice Tracks the unwrap request to a unique request id.
     mapping(uint256 requestId => UnwrapRequest unwrapRequest) public unwrapRequests;
@@ -78,7 +78,7 @@ abstract contract EncryptedERC20Wrapped is EncryptedERC20, GatewayCaller {
      * @param amount   Amount to unwrap.
      */
     function unwrap(uint64 amount) public virtual {
-        _canTransferOrMint(msg.sender);
+        _canTransferOrUnwrap(msg.sender);
 
         /// @dev Once this function is called, it becomes impossible for the sender to move any token.
         isAccountRestricted[msg.sender] = true;
@@ -145,9 +145,9 @@ abstract contract EncryptedERC20Wrapped is EncryptedERC20, GatewayCaller {
         delete isAccountRestricted[unwrapRequest.account];
     }
 
-    function _canTransferOrMint(address account) internal virtual {
+    function _canTransferOrUnwrap(address account) internal virtual {
         if (isAccountRestricted[account]) {
-            revert CannotTransferOrMint();
+            revert CannotTransferOrUnwrap();
         }
     }
 
@@ -157,7 +157,7 @@ abstract contract EncryptedERC20Wrapped is EncryptedERC20, GatewayCaller {
         euint64 amount,
         ebool isTransferable
     ) internal virtual override {
-        _canTransferOrMint(from);
+        _canTransferOrUnwrap(from);
         super._transferNoEvent(from, to, amount, isTransferable);
     }
 }

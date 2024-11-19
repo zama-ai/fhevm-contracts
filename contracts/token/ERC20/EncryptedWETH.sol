@@ -4,15 +4,21 @@ pragma solidity ^0.8.24;
 import { EncryptedERC20 } from "./EncryptedERC20.sol";
 
 import "fhevm/lib/TFHE.sol";
+import "fhevm/gateway/GatewayCaller.sol";
+
+import "hardhat/console.sol";
 
 /**
  * @title             EncryptedWETH
  * @notice            This contract allows users to wrap/unwrap trustlessly
  *                    ETH (or other native tokens) to EncryptedERC20 tokens.
  */
-abstract contract EncryptedWETH is EncryptedERC20 {
+abstract contract EncryptedWETH is EncryptedERC20, GatewayCaller {
     /// @notice Returned if the amount is greater than 2**64.
     error AmountTooHigh();
+
+    /// @notice Returned if user cannot transfer or mint.
+    error CannotTransferOrUnwrap();
 
     /// @notice Returned if ETH transfer fails.
     error ETHTransferFail();
@@ -20,8 +26,27 @@ abstract contract EncryptedWETH is EncryptedERC20 {
     /// @notice Emitted when encrypted wrapped ether is unwrapped.
     event Unwrap(address indexed to, uint64 amount);
 
+    /// @notice Emitted if unwrap fails.
+    event UnwrapFail(address account, uint64 amount);
+
     /// @notice Emitted when ether is wrapped.
     event Wrap(address indexed to, uint64 amount);
+
+    /**
+     * @notice          Keeps track of unwrap information.
+     * @param account   Account that initiates the unwrap request.
+     * @param amount    Amount to be unwrapped.
+     */
+    struct UnwrapRequest {
+        address account;
+        uint64 amount;
+    }
+
+    /// @notice Tracks whether the account can move funds.
+    mapping(address account => bool isRestricted) public isAccountRestricted;
+
+    /// @notice Tracks the unwrap request to a unique request id.
+    mapping(uint256 requestId => UnwrapRequest unwrapRequest) public unwrapRequests;
 
     /**
      * @notice         Deposit/withdraw ethers (or native tokens).
@@ -32,35 +57,42 @@ abstract contract EncryptedWETH is EncryptedERC20 {
     {}
 
     /**
+     * @notice         Fallback function calls wrap().
+     */
+    fallback() external payable {
+        wrap();
+    }
+
+    /**
      * @notice         Unwrap EncryptedERC20 tokens to ether.
      * @param amount   Amount to unwrap.
      */
     function unwrap(uint64 amount) public virtual {
-        _balances[msg.sender] = TFHE.sub(_balances[msg.sender], amount);
-        TFHE.allowThis(_balances[msg.sender]);
-        TFHE.allow(_balances[msg.sender], msg.sender);
+        _canTransferOrUnwrap(msg.sender);
 
-        _totalSupply -= amount;
+        /// @dev Once this function is called, it becomes impossible for the sender to move any token.
+        isAccountRestricted[msg.sender] = true;
+        ebool canUnwrap = TFHE.le(amount, _balances[msg.sender]);
 
-        /// @dev It does a supply adjustment.
-        uint256 amountUint256 = amount * (10 ** (18 - decimals()));
+        uint256[] memory cts = new uint256[](1);
+        cts[0] = Gateway.toUint256(canUnwrap);
 
-        /* solhint-disable avoid-call-value*/
-        /* solhint-disable avoid-low-level-calls*/
-        (bool callSuccess, ) = msg.sender.call{ value: amountUint256 }("");
+        uint256 requestId = Gateway.requestDecryption(
+            cts,
+            this.callbackUnwrap.selector,
+            0,
+            block.timestamp + 100,
+            false
+        );
 
-        if (!callSuccess) {
-            revert ETHTransferFail();
-        }
-
-        emit Unwrap(msg.sender, amount);
+        unwrapRequests[requestId] = UnwrapRequest({ account: msg.sender, amount: amount });
     }
 
     /**
      * @notice         Wrap ether to an encrypted format.
      */
     function wrap() public payable virtual {
-        uint256 amountAdjusted = msg.value / (10 ** (18 - decimals()));
+        uint256 amountAdjusted = (msg.value) / (10 ** (18 - decimals()));
 
         if (amountAdjusted > type(uint64).max) {
             revert AmountTooHigh();
@@ -68,13 +100,61 @@ abstract contract EncryptedWETH is EncryptedERC20 {
 
         uint64 amountUint64 = uint64(amountAdjusted);
 
-        _balances[msg.sender] = TFHE.add(_balances[msg.sender], amountUint64);
-
-        TFHE.allowThis(_balances[msg.sender]);
-        TFHE.allow(_balances[msg.sender], msg.sender);
-
+        _unsafeMint(msg.sender, TFHE.asEuint64(amountUint64));
         _totalSupply += amountUint64;
 
         emit Wrap(msg.sender, amountUint64);
+    }
+
+    /**
+     * @notice            Callback function for the gateway.
+     * @param requestId   Request id.
+     * @param canUnwrap   Whether it can be unwrapped.
+     */
+    function callbackUnwrap(uint256 requestId, bool canUnwrap) public virtual onlyGateway {
+        UnwrapRequest memory unwrapRequest = unwrapRequests[requestId];
+        delete unwrapRequests[requestId];
+
+        console.log(canUnwrap);
+
+        if (canUnwrap) {
+            _unsafeBurn(unwrapRequest.account, TFHE.asEuint64(unwrapRequest.amount));
+            _totalSupply -= unwrapRequest.amount;
+
+            /// @dev It does a supply adjustment.
+            uint256 amountUint256 = unwrapRequest.amount * (10 ** (18 - decimals()));
+
+            /* solhint-disable avoid-call-value*/
+            /* solhint-disable avoid-low-level-calls*/
+            (bool callSuccess, ) = unwrapRequest.account.call{ value: amountUint256 }("");
+
+            if (!callSuccess) {
+                revert ETHTransferFail();
+            }
+
+            emit Unwrap(unwrapRequest.account, unwrapRequest.amount);
+            console.log("YES");
+        } else {
+            emit UnwrapFail(unwrapRequest.account, unwrapRequest.amount);
+            console.log("FAIL");
+        }
+
+        delete isAccountRestricted[unwrapRequest.account];
+    }
+
+    function _canTransferOrUnwrap(address account) internal virtual {
+        if (isAccountRestricted[account]) {
+            revert CannotTransferOrUnwrap();
+        }
+    }
+
+    function _transferNoEvent(
+        address from,
+        address to,
+        euint64 amount,
+        ebool isTransferable
+    ) internal virtual override {
+        _canTransferOrUnwrap(from);
+        super._transferNoEvent(from, to, amount, isTransferable);
     }
 }
