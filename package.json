@@ -87,20 +87,10 @@
     "prettier:check": "prettier --check \"**/*.{js,json,md,sol,ts,yml}\"",
     "prettier:write": "prettier --write \"**/*.{js,json,md,sol,ts,yml}\"",
     "typechain": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat typechain",
-    "test": "hardhat test",
-    "test:mock": "HARDHAT_NETWORK=hardhat npx hardhat test --network hardhat",
-    "coverage:mock": "npx hardhat coverage",
+    "test": "HARDHAT_NETWORK=hardhat npx hardhat test",
+    "coverage": "npx hardhat coverage",
     "task:getEthereumAddress": "hardhat task:getEthereumAddress",
-    "task:accounts": "hardhat task:accounts",
-    "fhevm:start": "./launch-fhevm.sh",
-    "fhevm:stop": "docker rm -f fhevm",
-    "fhevm:restart": "fhevm:stop && fhevm:start",
-    "fhevm:faucet": "npm run fhevm:faucet:alice && sleep 5 && npm run fhevm:faucet:bob && sleep 5 && npm run fhevm:faucet:carol && sleep 5 && npm run fhevm:faucet:dave && sleep 5 && npm run fhevm:faucet:eve",
-    "fhevm:faucet:alice": "docker exec -i fhevm faucet $(npx hardhat task:getEthereumAddressAlice)",
-    "fhevm:faucet:bob": "docker exec -i fhevm faucet $(npx hardhat task:getEthereumAddressBob)",
-    "fhevm:faucet:carol": "docker exec -i fhevm faucet $(npx hardhat task:getEthereumAddressCarol)",
-    "fhevm:faucet:dave": "docker exec -i fhevm faucet $(npx hardhat task:getEthereumAddressDave)",
-    "fhevm:faucet:eve": "docker exec -i fhevm faucet $(npx hardhat task:getEthereumAddressEve)"
+    "task:accounts": "hardhat task:accounts"
   },
   "dependencies": {
     "@openzeppelin/contracts-upgradeable": "5.0.2",
