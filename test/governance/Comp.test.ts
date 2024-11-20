@@ -131,8 +131,7 @@ describe("Comp", function () {
     const delegator = this.signers.alice;
     const delegatee = this.signers.bob;
     const nonce = 0;
-    let latestBlockNumber = await ethers.provider.getBlockNumber();
-    const block = await ethers.provider.getBlock(latestBlockNumber);
+    const block = await ethers.provider.getBlock(await ethers.provider.getBlockNumber());
     const expiry = block!.timestamp + 100;
     const signature = await delegateBySig(delegator, delegatee.address, this.comp, nonce, expiry);
 
@@ -152,8 +151,7 @@ describe("Comp", function () {
     const delegator = this.signers.alice;
     const delegatee = this.signers.bob;
     const nonce = 0;
-    let latestBlockNumber = await ethers.provider.getBlockNumber();
-    const block = await ethers.provider.getBlock(latestBlockNumber);
+    const block = await ethers.provider.getBlock(await ethers.provider.getBlockNumber());
     const expiry = block!.timestamp + 100;
     const signature = await delegateBySig(delegator, delegatee.address, this.comp, nonce, expiry);
 
@@ -171,8 +169,7 @@ describe("Comp", function () {
     const delegator = this.signers.alice;
     const delegatee = this.signers.bob;
     const nonce = 0;
-    let latestBlockNumber = await ethers.provider.getBlockNumber();
-    const block = await ethers.provider.getBlock(latestBlockNumber);
+    const block = await ethers.provider.getBlock(await ethers.provider.getBlockNumber());
     const expiry = block!.timestamp + 100;
 
     // Signer is not the delegator
@@ -187,12 +184,11 @@ describe("Comp", function () {
     const delegator = this.signers.alice;
     const delegatee = this.signers.bob;
     const nonce = 0;
-    let latestBlockNumber = await ethers.provider.getBlockNumber();
-    const block = await ethers.provider.getBlock(latestBlockNumber);
+    const block = await ethers.provider.getBlock(await ethers.provider.getBlockNumber());
     const expiry = block!.timestamp + 100;
     const signature = await delegateBySig(delegator, delegatee.address, this.comp, nonce, expiry);
 
-    ethers.provider.send("evm_increaseTime", ["0xffff"]);
+    await ethers.provider.send("evm_increaseTime", ["0xffff"]);
 
     await expect(
       this.comp.connect(delegatee).delegateBySig(delegator, delegatee, nonce, expiry, signature),
@@ -206,8 +202,6 @@ describe("Comp", function () {
       this.comp,
       "BlockNumberEqualOrHigherThanCurrentBlock",
     );
-
-    const newAllowedContract = "0x9d3e06a2952dc49EDCc73e41C76645797fC53967";
 
     const tx = await this.comp.connect(this.signers.alice).setGovernor(this.signers.bob);
     await tx.wait();
@@ -347,6 +341,8 @@ describe("Comp", function () {
 
     const blockNumbers = [];
 
+    const thisBlockNumber = await ethers.provider.getBlockNumber();
+
     while (i < 20) {
       let tx = await this.comp.connect(this.signers.alice).delegate(this.signers.alice.address);
       await tx.wait();
@@ -358,7 +354,7 @@ describe("Comp", function () {
       i++;
     }
 
-    waitNBlocks(1);
+    await waitNBlocks(1);
 
     // There are 40 checkpoints for Alice and 39 checkpoints for Carol
     expect(await this.comp.numCheckpoints(this.signers.alice.address)).to.eq(BigInt(40));
@@ -366,13 +362,15 @@ describe("Comp", function () {
 
     i = 0;
 
+    const startWithAlice = thisBlockNumber % 2 === 1;
+
     while (i < 40) {
       if (blockNumbers[i] % 2 === 0) {
         expect(
           await reencryptPriorVotes(
             this.signers,
             this.instances,
-            "carol",
+            startWithAlice ? "alice" : "carol",
             blockNumbers[i],
             this.comp,
             this.compAddress,
@@ -383,7 +381,7 @@ describe("Comp", function () {
           await reencryptPriorVotes(
             this.signers,
             this.instances,
-            "alice",
+            startWithAlice ? "carol" : "alice",
             blockNumbers[i],
             this.comp,
             this.compAddress,

@@ -341,7 +341,7 @@ describe("EncryptedERC20WithErrors", function () {
     const NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
     const mintAmount = 100_000;
     const transferAmount = 50_000;
-    let tx = await this.encryptedERC20.connect(this.signers.alice).mint(mintAmount);
+    const tx = await this.encryptedERC20.connect(this.signers.alice).mint(mintAmount);
     await tx.wait();
 
     const input = this.instances.alice.createEncryptedInput(this.encryptedERC20Address, this.signers.alice.address);
