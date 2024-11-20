@@ -84,6 +84,7 @@ interface ICompoundTimelock {
      *         The grace period indicates how long a transaction can remain queued before it cannot be
      *         executed again.
      */
+    /* solhint-disable func-name-mixedcase*/
     function GRACE_PERIOD() external view returns (uint256);
 
     /**
