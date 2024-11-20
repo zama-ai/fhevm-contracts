@@ -6,8 +6,6 @@ import { EncryptedERC20 } from "./EncryptedERC20.sol";
 import "fhevm/lib/TFHE.sol";
 import "fhevm/gateway/GatewayCaller.sol";
 
-import "hardhat/console.sol";
-
 /**
  * @title             EncryptedWETH
  * @notice            This contract allows users to wrap/unwrap trustlessly
@@ -64,6 +62,13 @@ abstract contract EncryptedWETH is EncryptedERC20, GatewayCaller {
     }
 
     /**
+     * @notice         Receive function calls wrap().
+     */
+    receive() external payable {
+        wrap();
+    }
+
+    /**
      * @notice         Unwrap EncryptedERC20 tokens to ether.
      * @param amount   Amount to unwrap.
      */
@@ -115,8 +120,6 @@ abstract contract EncryptedWETH is EncryptedERC20, GatewayCaller {
         UnwrapRequest memory unwrapRequest = unwrapRequests[requestId];
         delete unwrapRequests[requestId];
 
-        console.log(canUnwrap);
-
         if (canUnwrap) {
             _unsafeBurn(unwrapRequest.account, TFHE.asEuint64(unwrapRequest.amount));
             _totalSupply -= unwrapRequest.amount;
@@ -133,10 +136,8 @@ abstract contract EncryptedWETH is EncryptedERC20, GatewayCaller {
             }
 
             emit Unwrap(unwrapRequest.account, unwrapRequest.amount);
-            console.log("YES");
         } else {
             emit UnwrapFail(unwrapRequest.account, unwrapRequest.amount);
-            console.log("FAIL");
         }
 
         delete isAccountRestricted[unwrapRequest.account];
