@@ -30,11 +30,9 @@ export async function transferTokensAndDelegate(
 
   let tx = await comp
     .connect(signers.alice)
-    ["transfer(address,bytes32,bytes)"](
-      signers[account as keyof Signers],
-      encryptedTransferAmount.handles[0],
-      encryptedTransferAmount.inputProof,
-    );
+    [
+      "transfer(address,bytes32,bytes)"
+    ](signers[account as keyof Signers], encryptedTransferAmount.handles[0], encryptedTransferAmount.inputProof);
   await tx.wait();
 
   tx = await comp.connect(signers[account as keyof Signers]).delegate(signers[delegate as keyof Signers].address);

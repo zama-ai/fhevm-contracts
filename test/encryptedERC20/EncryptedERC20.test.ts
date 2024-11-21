@@ -201,11 +201,9 @@ describe("EncryptedERC20", function () {
 
     const tx = await this.encryptedERC20
       .connect(this.signers.alice)
-      ["approve(address,bytes32,bytes)"](
-        this.signers.bob.address,
-        encryptedAllowanceAmount.handles[0],
-        encryptedAllowanceAmount.inputProof,
-      );
+      [
+        "approve(address,bytes32,bytes)"
+      ](this.signers.bob.address, encryptedAllowanceAmount.handles[0], encryptedAllowanceAmount.inputProof);
 
     await tx.wait();
 
@@ -284,11 +282,9 @@ describe("EncryptedERC20", function () {
     await expect(
       this.encryptedERC20
         .connect(this.signers.alice)
-        ["transfer(address,bytes32,bytes)"](
-          NULL_ADDRESS,
-          encryptedTransferAmount.handles[0],
-          encryptedTransferAmount.inputProof,
-        ),
+        [
+          "transfer(address,bytes32,bytes)"
+        ](NULL_ADDRESS, encryptedTransferAmount.handles[0], encryptedTransferAmount.inputProof),
     ).to.be.revertedWithCustomError(this.encryptedERC20, "ReceiverAddressNull");
   });
 
@@ -304,11 +300,9 @@ describe("EncryptedERC20", function () {
 
     tx = await this.encryptedERC20
       .connect(this.signers.alice)
-      ["transfer(address,bytes32,bytes)"](
-        this.signers.carol.address,
-        encryptedTransferAmount.handles[0],
-        encryptedTransferAmount.inputProof,
-      );
+      [
+        "transfer(address,bytes32,bytes)"
+      ](this.signers.carol.address, encryptedTransferAmount.handles[0], encryptedTransferAmount.inputProof);
 
     await tx.wait();
 
@@ -332,11 +326,9 @@ describe("EncryptedERC20", function () {
 
     tx = await this.encryptedERC20
       .connect(this.signers.alice)
-      ["approve(address,bytes32,bytes)"](
-        this.signers.carol.address,
-        encryptedAllowanceAmount.handles[0],
-        encryptedAllowanceAmount.inputProof,
-      );
+      [
+        "approve(address,bytes32,bytes)"
+      ](this.signers.carol.address, encryptedAllowanceAmount.handles[0], encryptedAllowanceAmount.inputProof);
 
     input = this.instances.carol.createEncryptedInput(this.encryptedERC20Address, this.signers.carol.address);
     input.add64(transferAmount);
@@ -344,12 +336,9 @@ describe("EncryptedERC20", function () {
 
     tx = await this.encryptedERC20
       .connect(this.signers.carol)
-      ["transferFrom(address,address,bytes32,bytes)"](
-        this.signers.alice.address,
-        this.signers.carol.address,
-        encryptedTransferAmount.handles[0],
-        encryptedTransferAmount.inputProof,
-      );
+      [
+        "transferFrom(address,address,bytes32,bytes)"
+      ](this.signers.alice.address, this.signers.carol.address, encryptedTransferAmount.handles[0], encryptedTransferAmount.inputProof);
 
     const allowanceHandleAlice = await this.encryptedERC20.allowance(
       this.signers.alice.address,
@@ -371,11 +360,9 @@ describe("EncryptedERC20", function () {
 
     const tx = await this.encryptedERC20
       .connect(this.signers.alice)
-      ["approve(address,bytes32,bytes)"](
-        this.signers.carol.address,
-        encryptedAllowanceAmount.handles[0],
-        encryptedAllowanceAmount.inputProof,
-      );
+      [
+        "approve(address,bytes32,bytes)"
+      ](this.signers.carol.address, encryptedAllowanceAmount.handles[0], encryptedAllowanceAmount.inputProof);
 
     await tx.wait();
 

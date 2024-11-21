@@ -111,11 +111,9 @@ describe("Comp", function () {
 
     tx = await this.comp
       .connect(this.signers.alice)
-      ["transfer(address,bytes32,bytes)"](
-        this.signers.bob.address,
-        encryptedTransferAmount.handles[0],
-        encryptedTransferAmount.inputProof,
-      );
+      [
+        "transfer(address,bytes32,bytes)"
+      ](this.signers.bob.address, encryptedTransferAmount.handles[0], encryptedTransferAmount.inputProof);
 
     await tx.wait();
 
