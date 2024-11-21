@@ -2,9 +2,9 @@
 pragma solidity ^0.8.24;
 
 import { Comp } from "../../governance/Comp.sol";
-import { DefaultFHEVMConfig } from "../DefaultFHEVMConfig.sol";
+import { MockZamaFHEVMConfig } from "fhevm/config/ZamaFHEVMConfig.sol";
 
-contract TestComp is DefaultFHEVMConfig, Comp {
+contract TestComp is MockZamaFHEVMConfig, Comp {
     constructor(
         address owner_,
         string memory name_,

@@ -2,10 +2,10 @@
 pragma solidity ^0.8.24;
 
 import { GovernorAlphaZama } from "../../governance/GovernorAlphaZama.sol";
-import { DefaultFHEVMConfig } from "../DefaultFHEVMConfig.sol";
-import { DefaultGatewayConfig } from "../DefaultGatewayConfig.sol";
+import { MockZamaFHEVMConfig } from "fhevm/config/ZamaFHEVMConfig.sol";
+import { MockZamaGatewayConfig } from "fhevm/config/ZamaGatewayConfig.sol";
 
-contract TestGovernorAlphaZama is DefaultFHEVMConfig, DefaultGatewayConfig, GovernorAlphaZama {
+contract TestGovernorAlphaZama is MockZamaFHEVMConfig, MockZamaGatewayConfig, GovernorAlphaZama {
     constructor(
         address owner_,
         address timelock_,
