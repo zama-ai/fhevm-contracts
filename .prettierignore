@@ -2,11 +2,13 @@
 .coverage_artifacts
 .coverage_cache
 .coverage_contracts
+abi
 artifacts
 build
 cache
 coverage
 dist
+fhevmTemp
 node_modules
 types
 

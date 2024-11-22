@@ -102,7 +102,9 @@ describe("GovernorAlphaZama", function () {
       this.compAddress,
     );
 
-    let tx = await this.governor.connect(this.signers.bob).propose(targets, values, signatures, calldatas, description);
+    const tx = await this.governor
+      .connect(this.signers.bob)
+      .propose(targets, values, signatures, calldatas, description);
     await tx.wait();
 
     const proposalId = await this.governor.latestProposalIds(this.signers.bob.address);
@@ -270,16 +272,16 @@ describe("GovernorAlphaZama", function () {
     const proposalId = await this.governor.latestProposalIds(this.signers.bob.address);
 
     // VOTE
-    let input = this.instances.bob.createEncryptedInput(this.governorAddress, this.signers.bob.address);
+    const input = this.instances.bob.createEncryptedInput(this.governorAddress, this.signers.bob.address);
     input.addBool(true);
-    let encryptedVote = await input.encrypt();
+    const encryptedVote = await input.encrypt();
     tx = await this.governor
       .connect(this.signers.bob)
       ["castVote(uint256,bytes32,bytes)"](proposalId, encryptedVote.handles[0], encryptedVote.inputProof);
     await tx.wait();
 
     // Bob reeencrypts his receipt
-    let [hasVoted, support, votes] = await reencryptVoteReceipt(
+    const [hasVoted, support, votes] = await reencryptVoteReceipt(
       this.signers,
       this.instances,
       proposalId,
@@ -419,8 +421,7 @@ describe("GovernorAlphaZama", function () {
   });
 
   it("only owner could queue setTimelockPendingAdmin then execute it, and then acceptTimelockAdmin", async function () {
-    const latestBlockNumber = await ethers.provider.getBlockNumber();
-    const block = await ethers.provider.getBlock(latestBlockNumber);
+    const block = await ethers.provider.getBlock(await ethers.provider.getBlockNumber());
     const expiry = block!.timestamp + 60 * 60 * 24 * 2 + 60;
 
     const tx = await this.governor.queueSetTimelockPendingAdmin(this.signers.bob, expiry);
@@ -479,11 +480,11 @@ describe("GovernorAlphaZama", function () {
   });
 
   it("all arrays of a proposal should be of same length, non null and less than max operations", async function () {
-    let targets = [this.signers.bob.address];
-    let values = ["0"];
-    let signatures = ["getBalanceOf(address)"];
-    let calldatas = [ethers.AbiCoder.defaultAbiCoder().encode(["address"], [this.signers.bob.address])];
-    let description = "description";
+    const targets = [this.signers.bob.address];
+    const values = ["0"];
+    const signatures = ["getBalanceOf(address)"];
+    const calldatas = [ethers.AbiCoder.defaultAbiCoder().encode(["address"], [this.signers.bob.address])];
+    const description = "description";
 
     const invalidTargets = [this.signers.bob.address, this.signers.carol.address];
     await expect(
@@ -564,7 +565,9 @@ describe("GovernorAlphaZama", function () {
       this.compAddress,
     );
 
-    let tx = await this.governor.connect(this.signers.bob).propose(targets, values, signatures, calldatas, description);
+    const tx = await this.governor
+      .connect(this.signers.bob)
+      .propose(targets, values, signatures, calldatas, description);
     await tx.wait();
 
     // @dev ProposalId starts at 1.
@@ -592,7 +595,9 @@ describe("GovernorAlphaZama", function () {
       this.compAddress,
     );
 
-    let tx = await this.governor.connect(this.signers.bob).propose(targets, values, signatures, calldatas, description);
+    const tx = await this.governor
+      .connect(this.signers.bob)
+      .propose(targets, values, signatures, calldatas, description);
     await tx.wait();
 
     await expect(
@@ -629,9 +634,9 @@ describe("GovernorAlphaZama", function () {
 
     // VOTE
     // Bob casts a vote
-    let input = this.instances.bob.createEncryptedInput(this.governorAddress, this.signers.bob.address);
+    const input = this.instances.bob.createEncryptedInput(this.governorAddress, this.signers.bob.address);
     input.addBool(true);
-    let encryptedVote = await input.encrypt();
+    const encryptedVote = await input.encrypt();
     tx = await this.governor
       .connect(this.signers.bob)
       ["castVote(uint256,bytes32,bytes)"](proposalId, encryptedVote.handles[0], encryptedVote.inputProof);
@@ -822,9 +827,9 @@ describe("GovernorAlphaZama", function () {
 
     // VOTE
     // Bob votes for
-    let input = this.instances.bob.createEncryptedInput(this.governorAddress, this.signers.bob.address);
+    const input = this.instances.bob.createEncryptedInput(this.governorAddress, this.signers.bob.address);
     input.addBool(true);
-    let encryptedVote = await input.encrypt();
+    const encryptedVote = await input.encrypt();
     tx = await this.governor
       .connect(this.signers.bob)
       ["castVote(uint256,bytes32,bytes)"](proposalId, encryptedVote.handles[0], encryptedVote.inputProof);
@@ -885,9 +890,9 @@ describe("GovernorAlphaZama", function () {
 
     // VOTE
     // Bob votes for
-    let input = this.instances.bob.createEncryptedInput(this.governorAddress, this.signers.bob.address);
+    const input = this.instances.bob.createEncryptedInput(this.governorAddress, this.signers.bob.address);
     input.addBool(true);
-    let encryptedVote = await input.encrypt();
+    const encryptedVote = await input.encrypt();
     tx = await this.governor
       .connect(this.signers.bob)
       ["castVote(uint256,bytes32,bytes)"](proposalId, encryptedVote.handles[0], encryptedVote.inputProof);
@@ -922,9 +927,9 @@ describe("GovernorAlphaZama", function () {
     let tx = await this.governor.connect(this.signers.bob).propose(targets, values, signatures, calldatas, description);
     const proposalId = await this.governor.latestProposalIds(this.signers.bob.address);
 
-    let input = this.instances.bob.createEncryptedInput(this.governorAddress, this.signers.bob.address);
+    const input = this.instances.bob.createEncryptedInput(this.governorAddress, this.signers.bob.address);
     input.addBool(true);
-    let encryptedVote = await input.encrypt();
+    const encryptedVote = await input.encrypt();
 
     await expect(
       this.governor
@@ -982,9 +987,9 @@ describe("GovernorAlphaZama", function () {
 
     // VOTE
     // Bob casts a vote
-    let input = this.instances.bob.createEncryptedInput(this.governorAddress, this.signers.bob.address);
+    const input = this.instances.bob.createEncryptedInput(this.governorAddress, this.signers.bob.address);
     input.addBool(true);
-    let encryptedVote = await input.encrypt();
+    const encryptedVote = await input.encrypt();
     tx = await this.governor
       .connect(this.signers.bob)
       ["castVote(uint256,bytes32,bytes)"](proposalId, encryptedVote.handles[0], encryptedVote.inputProof);
@@ -1026,9 +1031,9 @@ describe("GovernorAlphaZama", function () {
 
     // VOTE
     // Bob casts a vote
-    let input = this.instances.bob.createEncryptedInput(this.governorAddress, this.signers.bob.address);
+    const input = this.instances.bob.createEncryptedInput(this.governorAddress, this.signers.bob.address);
     input.addBool(true);
-    let encryptedVote = await input.encrypt();
+    const encryptedVote = await input.encrypt();
     tx = await this.governor
       .connect(this.signers.bob)
       ["castVote(uint256,bytes32,bytes)"](proposalId, encryptedVote.handles[0], encryptedVote.inputProof);

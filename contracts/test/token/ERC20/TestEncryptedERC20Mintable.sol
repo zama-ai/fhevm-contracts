@@ -2,9 +2,9 @@
 pragma solidity ^0.8.24;
 
 import { EncryptedERC20Mintable } from "../../../token/ERC20/extensions/EncryptedERC20Mintable.sol";
-import { DefaultFHEVMConfig } from "../../DefaultFHEVMConfig.sol";
+import { MockZamaFHEVMConfig } from "fhevm/config/ZamaFHEVMConfig.sol";
 
-contract TestEncryptedERC20Mintable is DefaultFHEVMConfig, EncryptedERC20Mintable {
+contract TestEncryptedERC20Mintable is MockZamaFHEVMConfig, EncryptedERC20Mintable {
     constructor(
         string memory name_,
         string memory symbol_,
