@@ -26,7 +26,7 @@ pnpm add fhevm-contracts
 
 To write Solidity contracts that use `TFHE` and/or `Gateway`, it is required to set different contract addresses.
 
-Fortunately, [the fhevm repo)](https://github.com/zama-ai/fhevm), one of this repo's dependencies, exports config files
+Fortunately, [the fhevm repo](https://github.com/zama-ai/fhevm), one of this repo's dependencies, exports config files
 that can be inherited to simplify the process.
 
 #### Using the mock network (for testing)
@@ -94,8 +94,8 @@ can send pull requests, so please make sure to get in touch before you do.
 
 ### License
 
-> [!CAUTION] Smart contracts are a nascent technology that carry a high level of technical risk and uncertainty. You are
-> solely responsible for any use of the fhEVM Contracts and you assume all risks associated with any such use.
+Smart contracts are a nascent technology that carry a high level of technical risk and uncertainty. You are solely
+responsible for any use of fhEVM Contracts and you assume all risks associated with any such use.
 
-This software is distributed under the **BSD-3-Clause-Clear** license. If you have any question about the license,
-please contact us at hello@zama.ai.
+> This software is distributed under the **BSD-3-Clause-Clear** license. If you have any question about the license,
+> please contact us at hello@zama.ai.
