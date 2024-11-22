@@ -2,8 +2,8 @@
 pragma solidity ^0.8.24;
 
 import { EncryptedWETH } from "../../../token/ERC20/EncryptedWETH.sol";
-import { DefaultFHEVMConfig } from "../../DefaultFHEVMConfig.sol";
-import { DefaultGatewayConfig } from "../../DefaultGatewayConfig.sol";
+import { MockZamaFHEVMConfig } from "fhevm/config/ZamaFHEVMConfig.sol";
+import { MockZamaGatewayConfig } from "fhevm/config/ZamaGatewayConfig.sol";
 
 /* solhint-disable no-empty-blocks*/
-contract TestEncryptedWETH is DefaultFHEVMConfig, DefaultGatewayConfig, EncryptedWETH {}
+contract TestEncryptedWETH is MockZamaFHEVMConfig, MockZamaGatewayConfig, EncryptedWETH {}
