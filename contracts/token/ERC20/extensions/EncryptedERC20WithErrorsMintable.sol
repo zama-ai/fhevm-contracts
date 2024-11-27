@@ -33,7 +33,7 @@ abstract contract EncryptedERC20WithErrorsMintable is Ownable2Step, EncryptedERC
      * @param amount Amount of tokens to mint.
      */
     function mint(uint64 amount) public virtual onlyOwner {
-        _unsafeMint(msg.sender, TFHE.asEuint64(amount));
+        _unsafeMint(msg.sender, amount);
         /// @dev Since _totalSupply is not encrypted and _totalSupply >= balances[msg.sender],
         /// the next line contains an overflow check for the encrypted operation above.
         _totalSupply = _totalSupply + amount;

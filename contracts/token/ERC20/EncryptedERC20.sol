@@ -155,27 +155,23 @@ abstract contract EncryptedERC20 is IEncryptedERC20 {
     }
 
     /**
-     * @dev It does not incorporate any underflow check. It must be implemented
+     * @dev It does not incorporate any overflow check. It must be implemented
      *      by the function calling it.
      */
-    function _unsafeBurn(address account, euint64 amount) internal virtual {
-        euint64 newBalanceAccount = TFHE.sub(_balances[account], amount);
-        _balances[account] = newBalanceAccount;
-        TFHE.allowThis(newBalanceAccount);
-        TFHE.allow(newBalanceAccount, account);
-        emit Transfer(account, address(0));
+    function _unsafeMint(address account, uint64 amount) internal virtual {
+        _unsafeMintNoEvent(account, amount);
+        emit Transfer(address(0), account);
     }
 
     /**
      * @dev It does not incorporate any overflow check. It must be implemented
      *      by the function calling it.
      */
-    function _unsafeMint(address account, euint64 amount) internal virtual {
+    function _unsafeMintNoEvent(address account, uint64 amount) internal virtual {
         euint64 newBalanceAccount = TFHE.add(_balances[account], amount);
         _balances[account] = newBalanceAccount;
         TFHE.allowThis(newBalanceAccount);
         TFHE.allow(newBalanceAccount, account);
-        emit Transfer(address(0), account);
     }
 
     function _transfer(address from, address to, euint64 amount, ebool isTransferable) internal virtual {
@@ -187,11 +183,9 @@ abstract contract EncryptedERC20 is IEncryptedERC20 {
         if (from == address(0)) {
             revert SenderAddressNull();
         }
-
         if (to == address(0)) {
             revert ReceiverAddressNull();
         }
-
         /// Add to the balance of `to` and subract from the balance of `from`.
         euint64 transferValue = TFHE.select(isTransferable, amount, TFHE.asEuint64(0));
         euint64 newBalanceTo = TFHE.add(_balances[to], transferValue);

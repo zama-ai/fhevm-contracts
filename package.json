@@ -95,5 +95,6 @@
     "@openzeppelin/contracts-upgradeable": "5.0.2",
     "extra-bigint": "^1.1.18",
     "sqlite3": "^5.1.7"
-  }
+  },
+  "packageManager": "pnpm@9.4.0+sha1.9217c800d4ab947a7aee520242a7b70d64fc7638"
 }
