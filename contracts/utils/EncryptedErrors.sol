@@ -72,7 +72,7 @@ abstract contract EncryptedErrors {
      * @notice Returns the total number of the possible error codes defined.
      * @return the total number of the different possible error codes.
      */
-    function getNumErrorCodes() internal view returns (uint8) {
+    function getNumErrorCodesDefined() internal view returns (uint8) {
         return _TOTAL_NUMBER_ERROR_CODES;
     }
 
@@ -97,7 +97,7 @@ abstract contract EncryptedErrors {
      */
     function defineErrorIf(ebool condition, uint8 indexCode) internal returns (euint8) {
         if (indexCode == 0) revert ErrorIndexIsNull();
-        if (indexCode >= _TOTAL_NUMBER_ERROR_CODES) revert ErrorIndexInvalid();
+        if (indexCode > _TOTAL_NUMBER_ERROR_CODES) revert ErrorIndexInvalid();
         euint8 errorCode = TFHE.select(condition, _errorCodesDefinitions[indexCode], _errorCodesDefinitions[0]);
         return errorCode;
     }
@@ -112,7 +112,7 @@ abstract contract EncryptedErrors {
      */
     function defineErrorIfNot(ebool condition, uint8 indexCode) internal returns (euint8) {
         if (indexCode == 0) revert ErrorIndexIsNull();
-        if (indexCode >= _TOTAL_NUMBER_ERROR_CODES) revert ErrorIndexInvalid();
+        if (indexCode > _TOTAL_NUMBER_ERROR_CODES) revert ErrorIndexInvalid();
         euint8 errorCode = TFHE.select(condition, _errorCodesDefinitions[0], _errorCodesDefinitions[indexCode]);
         return errorCode;
     }
@@ -152,6 +152,7 @@ abstract contract EncryptedErrors {
         uint256 errorId = _errorCounter;
         _errorCounter++;
         _errorCodesEmitted[errorId] = errorCode;
+        TFHE.allowThis(errorCode);
         return errorId;
     }
 }

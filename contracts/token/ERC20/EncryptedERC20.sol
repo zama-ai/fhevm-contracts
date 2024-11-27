@@ -13,6 +13,9 @@ import { IEncryptedERC20 } from "./IEncryptedERC20.sol";
  *              The total supply is not encrypted.
  */
 abstract contract EncryptedERC20 is IEncryptedERC20 {
+    /// @notice used as a placehoder in Approval and Transfer events to comply with the official EIP20
+    uint256 internal constant PLACEHOLDER = type(uint256).max;
+
     /// @notice Total supply.
     uint64 internal _totalSupply;
 
@@ -57,7 +60,7 @@ abstract contract EncryptedERC20 is IEncryptedERC20 {
         _isSenderAllowedForAmount(amount);
         address owner = msg.sender;
         _approve(owner, spender, amount);
-        emit Approval(owner, spender);
+        emit Approval(owner, spender, PLACEHOLDER);
         return true;
     }
 
@@ -160,7 +163,7 @@ abstract contract EncryptedERC20 is IEncryptedERC20 {
      */
     function _unsafeMint(address account, uint64 amount) internal virtual {
         _unsafeMintNoEvent(account, amount);
-        emit Transfer(address(0), account);
+        emit Transfer(address(0), account, PLACEHOLDER);
     }
 
     /**
@@ -176,16 +179,18 @@ abstract contract EncryptedERC20 is IEncryptedERC20 {
 
     function _transfer(address from, address to, euint64 amount, ebool isTransferable) internal virtual {
         _transferNoEvent(from, to, amount, isTransferable);
-        emit Transfer(from, to);
+        emit Transfer(from, to, PLACEHOLDER);
     }
 
     function _transferNoEvent(address from, address to, euint64 amount, ebool isTransferable) internal virtual {
         if (from == address(0)) {
             revert SenderAddressNull();
         }
+
         if (to == address(0)) {
             revert ReceiverAddressNull();
         }
+
         /// Add to the balance of `to` and subract from the balance of `from`.
         euint64 transferValue = TFHE.select(isTransferable, amount, TFHE.asEuint64(0));
         euint64 newBalanceTo = TFHE.add(_balances[to], transferValue);
