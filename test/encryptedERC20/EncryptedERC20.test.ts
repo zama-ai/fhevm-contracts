@@ -285,7 +285,7 @@ describe("EncryptedERC20", function () {
         [
           "transfer(address,bytes32,bytes)"
         ](NULL_ADDRESS, encryptedTransferAmount.handles[0], encryptedTransferAmount.inputProof),
-    ).to.be.revertedWithCustomError(this.encryptedERC20, "ReceiverAddressNull");
+    ).to.be.revertedWithCustomError(this.encryptedERC20, "ERC20InvalidReceiver");
   });
 
   it("sender who is not allowed cannot transfer using a handle from another account", async function () {
