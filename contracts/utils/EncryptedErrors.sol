@@ -27,7 +27,7 @@ abstract contract EncryptedErrors {
     mapping(uint8 errorCode => euint8 encryptedErrorCode) private _errorCodesDefinitions;
 
     /// @notice Mapping of encrypted error codes emitted.
-    mapping(uint256 => euint8) private _errorCodesEmitted;
+    mapping(uint256 errorIndex => euint8 encryptedErrorCode) private _errorCodesEmitted;
 
     /// @notice Used to keep track of number of emitted errors
     /// @dev Should hold the size of the _errorCodesEmitted mapping
@@ -53,7 +53,7 @@ abstract contract EncryptedErrors {
     /**
      * @notice Returns the trivially encrypted error code at index `indexCodeDefinition`.
      * @param indexCodeDefinition the index of the requested error code definition.
-     * @return the trivially encrypted error code located at `indexCodeDefinition` of the _errorCodesDefinitions mapping.
+     * @return the trivially encrypted error code located at `indexCodeDefinition` of _errorCodesDefinitions mapping.
      */
     function getErrorCodeDefinition(uint8 indexCodeDefinition) internal view returns (euint8) {
         if (indexCodeDefinition >= _TOTAL_NUMBER_ERROR_CODES) revert ErrorIndexInvalid();
