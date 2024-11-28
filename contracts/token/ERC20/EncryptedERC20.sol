@@ -2,7 +2,9 @@
 pragma solidity ^0.8.24;
 
 import "fhevm/lib/TFHE.sol";
+
 import { IEncryptedERC20 } from "./IEncryptedERC20.sol";
+import { TFHEErrors } from "../../utils/TFHEErrors.sol";
 
 /**
  * @title       EncryptedERC20
@@ -12,7 +14,7 @@ import { IEncryptedERC20 } from "./IEncryptedERC20.sol";
  *              and setting allowances, but uses encrypted data types.
  *              The total supply is not encrypted.
  */
-abstract contract EncryptedERC20 is IEncryptedERC20 {
+abstract contract EncryptedERC20 is IEncryptedERC20, TFHEErrors {
     /// @notice used as a placehoder in Approval and Transfer events to comply with the official EIP20
     uint256 internal constant _PLACEHOLDER = type(uint256).max;
 
@@ -30,11 +32,6 @@ abstract contract EncryptedERC20 is IEncryptedERC20 {
 
     /// @notice A mapping of the form mapping(account => mapping(spender => allowance)).
     mapping(address account => mapping(address spender => euint64 allowance)) internal _allowances;
-
-    /**
-     * @notice Error when the `sender` is not allowed to access a value.
-     */
-    error TFHESenderNotAllowed();
 
     /**
      * @param name_ Name of the token.
