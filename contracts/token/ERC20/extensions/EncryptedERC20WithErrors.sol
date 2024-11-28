@@ -14,7 +14,6 @@ import { EncryptedErrors } from "../../../utils/EncryptedErrors.sol";
  *              The total supply is not encrypted.
  *              It also supports error handling for encrypted errors.
  */
-
 abstract contract EncryptedERC20WithErrors is EncryptedERC20, EncryptedErrors {
     /**
      * @notice Error codes allow tracking (in the storage) whether a transfer worked.
@@ -46,8 +45,8 @@ abstract contract EncryptedERC20WithErrors is EncryptedERC20, EncryptedErrors {
         _isSenderAllowedForAmount(amount);
         /// Check whether the owner has enough tokens.
         ebool canTransfer = TFHE.le(amount, _balances[msg.sender]);
-        euint8 errorCode = defineErrorIfNot(canTransfer, uint8(ErrorCodes.UNSUFFICIENT_BALANCE));
-        saveError(errorCode);
+        euint8 errorCode = _errorDefineIfNot(canTransfer, uint8(ErrorCodes.UNSUFFICIENT_BALANCE));
+        _errorSave(errorCode);
         TFHE.allow(errorCode, msg.sender);
         TFHE.allow(errorCode, to);
         _transfer(msg.sender, to, amount, canTransfer);
@@ -55,12 +54,12 @@ abstract contract EncryptedERC20WithErrors is EncryptedERC20, EncryptedErrors {
     }
 
     function getErrorCodeForTransferId(uint256 transferId) public view virtual returns (euint8) {
-        return getErrorCodeEmitted(transferId);
+        return _errorGetCodeEmitted(transferId);
     }
 
     function _transfer(address from, address to, euint64 amount, ebool isTransferable) internal override {
         _transferNoEvent(from, to, amount, isTransferable);
-        emit Transfer(from, to, getErrorCounter() - 1);
+        emit Transfer(from, to, _errorGetCounter() - 1);
     }
 
     /**
@@ -78,21 +77,21 @@ abstract contract EncryptedERC20WithErrors is EncryptedERC20, EncryptedErrors {
         address owner,
         address spender,
         euint64 amount
-    ) internal override returns (ebool isTransferable) {
+    ) internal virtual override returns (ebool isTransferable) {
         euint64 currentAllowance = _allowance(owner, spender);
         /// Make sure sure the allowance suffices.
         ebool allowedTransfer = TFHE.le(amount, currentAllowance);
-        euint8 errorCode = defineErrorIfNot(allowedTransfer, uint8(ErrorCodes.UNSUFFICIENT_APPROVAL));
+        euint8 errorCode = _errorDefineIfNot(allowedTransfer, uint8(ErrorCodes.UNSUFFICIENT_APPROVAL));
         /// Make sure the owner has enough tokens.
         ebool canTransfer = TFHE.le(amount, _balances[owner]);
         ebool isNotTransferableButIsApproved = TFHE.and(TFHE.not(canTransfer), allowedTransfer);
-        errorCode = changeErrorIf(
+        errorCode = _errorChangeIf(
             isNotTransferableButIsApproved, // should indeed check that spender is approved to not leak information
             // on balance of `from` to unauthorized spender via calling reencryptTransferError afterwards
             uint8(ErrorCodes.UNSUFFICIENT_BALANCE),
             errorCode
         );
-        saveError(errorCode);
+        _errorSave(errorCode);
         TFHE.allow(errorCode, owner);
         TFHE.allow(errorCode, spender);
         isTransferable = TFHE.and(canTransfer, allowedTransfer);

@@ -55,8 +55,10 @@ abstract contract EncryptedErrors {
      * @param indexCodeDefinition the index of the requested error code definition.
      * @return the trivially encrypted error code located at `indexCodeDefinition` of _errorCodesDefinitions mapping.
      */
-    function getErrorCodeDefinition(uint8 indexCodeDefinition) internal view returns (euint8) {
-        if (indexCodeDefinition >= _TOTAL_NUMBER_ERROR_CODES) revert ErrorIndexInvalid();
+    function _errorGetCodeDefinition(uint8 indexCodeDefinition) internal view returns (euint8) {
+        if (indexCodeDefinition >= _TOTAL_NUMBER_ERROR_CODES) {
+            revert ErrorIndexInvalid();
+        }
         return _errorCodesDefinitions[indexCodeDefinition];
     }
 
@@ -64,7 +66,7 @@ abstract contract EncryptedErrors {
      * @notice Returns the total counter of emitted of error codes.
      * @return the number of errors emitted.
      */
-    function getErrorCounter() internal view returns (uint256) {
+    function _errorGetCounter() internal view returns (uint256) {
         return _errorCounter;
     }
 
@@ -72,7 +74,7 @@ abstract contract EncryptedErrors {
      * @notice Returns the total number of the possible error codes defined.
      * @return the total number of the different possible error codes.
      */
-    function getNumErrorCodesDefined() internal view returns (uint8) {
+    function _errorGetNumCodesDefined() internal view returns (uint8) {
         return _TOTAL_NUMBER_ERROR_CODES;
     }
 
@@ -82,7 +84,7 @@ abstract contract EncryptedErrors {
      * @return the encrypted error code located at the `errorId` key.
      * @dev `errorId` must be a valid id, i.e below the error counter.
      */
-    function getErrorCodeEmitted(uint256 errorId) internal view returns (euint8) {
+    function _errorGetCodeEmitted(uint256 errorId) internal view returns (euint8) {
         if (errorId >= _errorCounter) revert ErrorIndexInvalid();
         return _errorCodesEmitted[errorId];
     }
@@ -95,7 +97,7 @@ abstract contract EncryptedErrors {
      * @return the reencrypted error code depending on `condition` value.
      * @dev `indexCode` must be non-null and below the total number of defined error codes.
      */
-    function defineErrorIf(ebool condition, uint8 indexCode) internal returns (euint8) {
+    function _errorDefineIf(ebool condition, uint8 indexCode) internal returns (euint8) {
         if (indexCode == 0) revert ErrorIndexIsNull();
         if (indexCode > _TOTAL_NUMBER_ERROR_CODES) revert ErrorIndexInvalid();
         euint8 errorCode = TFHE.select(condition, _errorCodesDefinitions[indexCode], _errorCodesDefinitions[0]);
@@ -110,7 +112,7 @@ abstract contract EncryptedErrors {
      * @return the reencrypted error code depending on `condition` value.
      * @dev `indexCode` must be non-null and below the total number of defined error codes.
      */
-    function defineErrorIfNot(ebool condition, uint8 indexCode) internal returns (euint8) {
+    function _errorDefineIfNot(ebool condition, uint8 indexCode) internal returns (euint8) {
         if (indexCode == 0) revert ErrorIndexIsNull();
         if (indexCode > _TOTAL_NUMBER_ERROR_CODES) revert ErrorIndexInvalid();
         euint8 errorCode = TFHE.select(condition, _errorCodesDefinitions[0], _errorCodesDefinitions[indexCode]);
@@ -125,7 +127,7 @@ abstract contract EncryptedErrors {
      * @return the reencrypted error code depending on `condition` value.
      * @dev `indexCode` must be below the total number of error codes.
      */
-    function changeErrorIf(ebool condition, uint8 indexCode, euint8 errorCode) internal returns (euint8) {
+    function _errorChangeIf(ebool condition, uint8 indexCode, euint8 errorCode) internal returns (euint8) {
         if (indexCode >= _TOTAL_NUMBER_ERROR_CODES) revert ErrorIndexInvalid();
         return TFHE.select(condition, _errorCodesDefinitions[indexCode], errorCode);
     }
@@ -138,7 +140,7 @@ abstract contract EncryptedErrors {
      * @return the reencrypted error code depending on `condition` value.
      * @dev `indexCode` must be below the total number of error codes.
      */
-    function changeErrorIfNot(ebool condition, uint8 indexCode, euint8 errorCode) internal returns (euint8) {
+    function _errorChangeIfNot(ebool condition, uint8 indexCode, euint8 errorCode) internal returns (euint8) {
         if (indexCode >= _TOTAL_NUMBER_ERROR_CODES) revert ErrorIndexInvalid();
         return TFHE.select(condition, errorCode, _errorCodesDefinitions[indexCode]);
     }
@@ -148,7 +150,7 @@ abstract contract EncryptedErrors {
      * @param errorCode the encrypted error code to be saved in storage.
      * @return the `errorId` key in `_errorCodesEmitted` where `errorCode` is stored.
      */
-    function saveError(euint8 errorCode) internal returns (uint256) {
+    function _errorSave(euint8 errorCode) internal returns (uint256) {
         uint256 errorId = _errorCounter;
         _errorCounter++;
         _errorCodesEmitted[errorId] = errorCode;

@@ -14,7 +14,7 @@ import { IEncryptedERC20 } from "./IEncryptedERC20.sol";
  */
 abstract contract EncryptedERC20 is IEncryptedERC20 {
     /// @notice used as a placehoder in Approval and Transfer events to comply with the official EIP20
-    uint256 internal constant PLACEHOLDER = type(uint256).max;
+    uint256 internal constant _PLACEHOLDER = type(uint256).max;
 
     /// @notice Total supply.
     uint64 internal _totalSupply;
@@ -60,7 +60,7 @@ abstract contract EncryptedERC20 is IEncryptedERC20 {
         _isSenderAllowedForAmount(amount);
         address owner = msg.sender;
         _approve(owner, spender, amount);
-        emit Approval(owner, spender, PLACEHOLDER);
+        emit Approval(owner, spender, _PLACEHOLDER);
         return true;
     }
 
@@ -163,7 +163,7 @@ abstract contract EncryptedERC20 is IEncryptedERC20 {
      */
     function _unsafeMint(address account, uint64 amount) internal virtual {
         _unsafeMintNoEvent(account, amount);
-        emit Transfer(address(0), account, PLACEHOLDER);
+        emit Transfer(address(0), account, _PLACEHOLDER);
     }
 
     /**
@@ -179,7 +179,7 @@ abstract contract EncryptedERC20 is IEncryptedERC20 {
 
     function _transfer(address from, address to, euint64 amount, ebool isTransferable) internal virtual {
         _transferNoEvent(from, to, amount, isTransferable);
-        emit Transfer(from, to, PLACEHOLDER);
+        emit Transfer(from, to, _PLACEHOLDER);
     }
 
     function _transferNoEvent(address from, address to, euint64 amount, ebool isTransferable) internal virtual {
