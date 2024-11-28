@@ -13,6 +13,9 @@ import { IEncryptedERC20 } from "./IEncryptedERC20.sol";
  *              The total supply is not encrypted.
  */
 abstract contract EncryptedERC20 is IEncryptedERC20 {
+    /// @notice used as a placehoder in Approval and Transfer events to comply with the official EIP20
+    uint256 internal constant _PLACEHOLDER = type(uint256).max;
+
     /// @notice Total supply.
     uint64 internal _totalSupply;
 
@@ -57,7 +60,7 @@ abstract contract EncryptedERC20 is IEncryptedERC20 {
         _isSenderAllowedForAmount(amount);
         address owner = msg.sender;
         _approve(owner, spender, amount);
-        emit Approval(owner, spender);
+        emit Approval(owner, spender, _PLACEHOLDER);
         return true;
     }
 
@@ -155,32 +158,28 @@ abstract contract EncryptedERC20 is IEncryptedERC20 {
     }
 
     /**
-     * @dev It does not incorporate any underflow check. It must be implemented
+     * @dev It does not incorporate any overflow check. It must be implemented
      *      by the function calling it.
      */
-    function _unsafeBurn(address account, euint64 amount) internal virtual {
-        euint64 newBalanceAccount = TFHE.sub(_balances[account], amount);
-        _balances[account] = newBalanceAccount;
-        TFHE.allowThis(newBalanceAccount);
-        TFHE.allow(newBalanceAccount, account);
-        emit Transfer(account, address(0));
+    function _unsafeMint(address account, uint64 amount) internal virtual {
+        _unsafeMintNoEvent(account, amount);
+        emit Transfer(address(0), account, _PLACEHOLDER);
     }
 
     /**
      * @dev It does not incorporate any overflow check. It must be implemented
      *      by the function calling it.
      */
-    function _unsafeMint(address account, euint64 amount) internal virtual {
+    function _unsafeMintNoEvent(address account, uint64 amount) internal virtual {
         euint64 newBalanceAccount = TFHE.add(_balances[account], amount);
         _balances[account] = newBalanceAccount;
         TFHE.allowThis(newBalanceAccount);
         TFHE.allow(newBalanceAccount, account);
-        emit Transfer(address(0), account);
     }
 
     function _transfer(address from, address to, euint64 amount, ebool isTransferable) internal virtual {
         _transferNoEvent(from, to, amount, isTransferable);
-        emit Transfer(from, to);
+        emit Transfer(from, to, _PLACEHOLDER);
     }
 
     function _transferNoEvent(address from, address to, euint64 amount, ebool isTransferable) internal virtual {

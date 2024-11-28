@@ -26,7 +26,6 @@ describe("EncryptedERC20WithErrors", function () {
     expect(await this.encryptedERC20.name()).to.equal("Naraggara");
     expect(await this.encryptedERC20.symbol()).to.equal("NARA");
     expect(await this.encryptedERC20.decimals()).to.be.eq(BigInt(6));
-    expect(await this.encryptedERC20.getTotalNumberErrors()).to.be.eq(BigInt(2));
   });
 
   it("should mint the contract", async function () {
@@ -205,7 +204,7 @@ describe("EncryptedERC20WithErrors", function () {
         this.encryptedERC20,
         this.encryptedERC20Address,
       ),
-    ).to.equal("UNSUFFICIENT_BALANCE");
+    ).to.equal("UNSUFFICIENT_APPROVAL");
 
     const inputBob2 = this.instances.bob.createEncryptedInput(this.encryptedERC20Address, this.signers.bob.address);
     inputBob2.add64(transferAmount); // below allowance so next tx should send token
@@ -251,7 +250,7 @@ describe("EncryptedERC20WithErrors", function () {
         this.encryptedERC20,
         this.encryptedERC20Address,
       ),
-    ).to.equal("UNSUFFICIENT_APPROVAL");
+    ).to.equal("NO_ERROR");
   });
 
   it("should not be able to read the allowance if not spender/owner after initialization", async function () {

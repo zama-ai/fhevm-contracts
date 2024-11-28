@@ -12,13 +12,15 @@ interface IEncryptedERC20 {
      * @notice Emitted when the allowance of a `spender` for an `owner` is set by
      * a call to {approve}.
      */
-    event Approval(address indexed owner, address indexed spender);
+    event Approval(address indexed owner, address indexed spender, uint256 placeholder);
 
     /**
      * @notice Emitted when tokens are moved from one account (`from`) to
      * another (`to`).
+     * Last argument is either a default placeholder, typically equal to max(uint256), in case of
+     * an EncryptedERC20 without error handling, or an errorId in case of encrypted error handling.
      */
-    event Transfer(address indexed from, address indexed to);
+    event Transfer(address indexed from, address indexed to, uint256 errorId);
 
     /**
      * @notice Returned when receiver is address(0).

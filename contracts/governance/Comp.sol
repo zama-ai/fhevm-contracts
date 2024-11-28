@@ -101,7 +101,7 @@ abstract contract Comp is IComp, EncryptedERC20, EIP712, Ownable2Step {
         string memory version_,
         uint64 totalSupply_
     ) EncryptedERC20(name_, symbol_) EIP712(name_, version_) Ownable(owner_) {
-        _unsafeMint(owner_, TFHE.asEuint64(totalSupply_));
+        _unsafeMint(owner_, totalSupply_);
         _totalSupply = totalSupply_;
 
         /// @dev Define the constant in the storage.

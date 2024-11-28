@@ -26,8 +26,9 @@ pnpm add fhevm-contracts
 
 To write Solidity contracts that use `TFHE` and/or `Gateway`, it is required to set different contract addresses.
 
-Fortunately, [the fhevm repo)](https://github.com/zama-ai/fhevm), one of this repo's dependencies, exports config files
-that can be inherited to simplify the process.
+Fortunately, [the fhevm repo](https://github.com/zama-ai/fhevm), one of this repo's dependencies, exports config files
+that can be inherited to simplify the process. The config should be the first to be imported in the order of the
+inherited contracts.
 
 #### Using the mock network (for testing)
 
@@ -63,7 +64,7 @@ contract MyERC20 is SepoliaZamaFHEVMConfig, EncryptedERC20 {
 
 ## Available contracts
 
-As of version 0.2, these Solidity templates include governance-related and token-related contracts.
+These Solidity templates include governance-related and token-related contracts.
 
 ### Token
 
