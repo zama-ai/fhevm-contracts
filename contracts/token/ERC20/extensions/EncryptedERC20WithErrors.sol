@@ -30,8 +30,8 @@ abstract contract EncryptedERC20WithErrors is EncryptedERC20, EncryptedErrors {
     }
 
     /**
-     * @param name_ Name of the token.
-     * @param symbol_ Symbol.
+     * @param name_     Name of the token.
+     * @param symbol_   Symbol.
      */
     constructor(
         string memory name_,
@@ -43,7 +43,7 @@ abstract contract EncryptedERC20WithErrors is EncryptedERC20, EncryptedErrors {
      */
     function transfer(address to, euint64 amount) public virtual override returns (bool) {
         _isSenderAllowedForAmount(amount);
-        /// Check whether the owner has enough tokens.
+        /// @dev Check whether the owner has enough tokens.
         ebool canTransfer = TFHE.le(amount, _balances[msg.sender]);
         euint8 errorCode = _errorDefineIfNot(canTransfer, uint8(ErrorCodes.UNSUFFICIENT_BALANCE));
         _errorSave(errorCode);
@@ -51,15 +51,6 @@ abstract contract EncryptedERC20WithErrors is EncryptedERC20, EncryptedErrors {
         TFHE.allow(errorCode, to);
         _transfer(msg.sender, to, amount, canTransfer);
         return true;
-    }
-
-    function getErrorCodeForTransferId(uint256 transferId) public view virtual returns (euint8) {
-        return _errorGetCodeEmitted(transferId);
-    }
-
-    function _transfer(address from, address to, euint64 amount, ebool isTransferable) internal override {
-        _transferNoEvent(from, to, amount, isTransferable);
-        emit Transfer(from, to, _errorGetCounter() - 1);
     }
 
     /**
@@ -73,21 +64,37 @@ abstract contract EncryptedERC20WithErrors is EncryptedERC20, EncryptedErrors {
         return true;
     }
 
+    /**
+     * @notice            Returns the error for a transfer id.
+     * @param transferId  Transfer id. It can read from the `Transfer` event.
+     * @return errorCode  Encrypted error code.
+     */
+    function getErrorCodeForTransferId(uint256 transferId) public view virtual returns (euint8 errorCode) {
+        errorCode = _errorGetCodeEmitted(transferId);
+    }
+
+    function _transfer(address from, address to, euint64 amount, ebool isTransferable) internal override {
+        _transferNoEvent(from, to, amount, isTransferable);
+        /// @dev It was incremented in _saveError.
+        emit Transfer(from, to, _errorGetCounter() - 1);
+    }
+
     function _updateAllowance(
         address owner,
         address spender,
         euint64 amount
     ) internal virtual override returns (ebool isTransferable) {
         euint64 currentAllowance = _allowance(owner, spender);
-        /// Make sure sure the allowance suffices.
+        /// @dev It checks whether the allowance suffices.
         ebool allowedTransfer = TFHE.le(amount, currentAllowance);
         euint8 errorCode = _errorDefineIfNot(allowedTransfer, uint8(ErrorCodes.UNSUFFICIENT_APPROVAL));
-        /// Make sure the owner has enough tokens.
+        /// @dev It checks that the owner has enough tokens.
         ebool canTransfer = TFHE.le(amount, _balances[owner]);
         ebool isNotTransferableButIsApproved = TFHE.and(TFHE.not(canTransfer), allowedTransfer);
         errorCode = _errorChangeIf(
-            isNotTransferableButIsApproved, // should indeed check that spender is approved to not leak information
-            // on balance of `from` to unauthorized spender via calling reencryptTransferError afterwards
+            isNotTransferableButIsApproved,
+            /// @dev Should indeed check that spender is approved to not leak information.
+            ///      on balance of `from` to unauthorized spender via calling reencryptTransferError afterwards.
             uint8(ErrorCodes.UNSUFFICIENT_BALANCE),
             errorCode
         );

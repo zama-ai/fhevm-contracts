@@ -23,16 +23,6 @@ interface IEncryptedERC20 {
     event Transfer(address indexed from, address indexed to, uint256 errorId);
 
     /**
-     * @notice Returned when receiver is address(0).
-     */
-    error ReceiverAddressNull();
-
-    /**
-     * @notice Returned when sender is address(0).
-     */
-    error SenderAddressNull();
-
-    /**
      * @notice Sets the `encryptedAmount` as the allowance of `spender` over the caller's tokens.
      */
     function approve(address spender, einput encryptedAmount, bytes calldata inputProof) external returns (bool);

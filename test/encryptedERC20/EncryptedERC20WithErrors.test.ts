@@ -194,7 +194,7 @@ describe("EncryptedERC20WithErrors", function () {
       await reencryptBalance(this.signers, this.instances, "bob", this.encryptedERC20, this.encryptedERC20Address),
     ).to.equal(0); // check that transfer did not happen, as expected
 
-    // Check that the error code matches if balance is not sufficient
+    // Check that the error code matches if approval is not sufficient
     expect(
       await checkErrorCode(
         this.signers,
@@ -240,7 +240,7 @@ describe("EncryptedERC20WithErrors", function () {
       ),
     ).to.equal(0);
 
-    // Check that the error code matches if allowance is not sufficient
+    // Check that the error code matches if there is no error
     expect(
       await checkErrorCode(
         this.signers,
@@ -332,6 +332,26 @@ describe("EncryptedERC20WithErrors", function () {
     }
   });
 
+  it("spender cannot be null address", async function () {
+    const NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
+    const mintAmount = 100_000;
+    const transferAmount = 50_000;
+    const tx = await this.encryptedERC20.connect(this.signers.alice).mint(mintAmount);
+    await tx.wait();
+
+    const input = this.instances.alice.createEncryptedInput(this.encryptedERC20Address, this.signers.alice.address);
+    input.add64(transferAmount);
+    const encryptedTransferAmount = await input.encrypt();
+
+    await expect(
+      this.encryptedERC20
+        .connect(this.signers.alice)
+        [
+          "approve(address,bytes32,bytes)"
+        ](NULL_ADDRESS, encryptedTransferAmount.handles[0], encryptedTransferAmount.inputProof),
+    ).to.be.revertedWithCustomError(this.encryptedERC20, "ERC20InvalidSpender");
+  });
+
   it("receiver cannot be null address", async function () {
     const NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
     const mintAmount = 100_000;
@@ -349,7 +369,7 @@ describe("EncryptedERC20WithErrors", function () {
         [
           "transfer(address,bytes32,bytes)"
         ](NULL_ADDRESS, encryptedTransferAmount.handles[0], encryptedTransferAmount.inputProof),
-    ).to.be.revertedWithCustomError(this.encryptedERC20, "ReceiverAddressNull");
+    ).to.be.revertedWithCustomError(this.encryptedERC20, "ERC20InvalidReceiver");
   });
 
   it("sender who is not allowed cannot transfer using a handle from another account", async function () {

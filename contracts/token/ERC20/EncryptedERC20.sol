@@ -2,7 +2,10 @@
 pragma solidity ^0.8.24;
 
 import "fhevm/lib/TFHE.sol";
+
+import { IERC20Errors } from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import { IEncryptedERC20 } from "./IEncryptedERC20.sol";
+import { TFHEErrors } from "../../utils/TFHEErrors.sol";
 
 /**
  * @title       EncryptedERC20
@@ -12,10 +15,9 @@ import { IEncryptedERC20 } from "./IEncryptedERC20.sol";
  *              and setting allowances, but uses encrypted data types.
  *              The total supply is not encrypted.
  */
-abstract contract EncryptedERC20 is IEncryptedERC20 {
+abstract contract EncryptedERC20 is IEncryptedERC20, IERC20Errors, TFHEErrors {
     /// @notice used as a placehoder in Approval and Transfer events to comply with the official EIP20
     uint256 internal constant _PLACEHOLDER = type(uint256).max;
-
     /// @notice Total supply.
     uint64 internal _totalSupply;
 
@@ -30,11 +32,6 @@ abstract contract EncryptedERC20 is IEncryptedERC20 {
 
     /// @notice A mapping of the form mapping(account => mapping(spender => allowance)).
     mapping(address account => mapping(address spender => euint64 allowance)) internal _allowances;
-
-    /**
-     * @notice Error when the `sender` is not allowed to access a value.
-     */
-    error TFHESenderNotAllowed();
 
     /**
      * @param name_ Name of the token.
@@ -151,6 +148,14 @@ abstract contract EncryptedERC20 is IEncryptedERC20 {
     }
 
     function _approve(address owner, address spender, euint64 amount) internal virtual {
+        if (owner == address(0)) {
+            revert ERC20InvalidApprover(owner);
+        }
+
+        if (spender == address(0)) {
+            revert ERC20InvalidSpender(spender);
+        }
+
         _allowances[owner][spender] = amount;
         TFHE.allowThis(amount);
         TFHE.allow(amount, owner);
@@ -184,11 +189,11 @@ abstract contract EncryptedERC20 is IEncryptedERC20 {
 
     function _transferNoEvent(address from, address to, euint64 amount, ebool isTransferable) internal virtual {
         if (from == address(0)) {
-            revert SenderAddressNull();
+            revert ERC20InvalidSender(from);
         }
 
         if (to == address(0)) {
-            revert ReceiverAddressNull();
+            revert ERC20InvalidReceiver(to);
         }
 
         /// Add to the balance of `to` and subract from the balance of `from`.
