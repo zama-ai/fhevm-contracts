@@ -40,9 +40,6 @@ abstract contract Comp is IComp, EncryptedERC20, EIP712, Ownable2Step {
     /// @notice Emitted when an `account` (i.e. `delegator`) changes its delegate.
     event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
 
-    /// @notice Emitted when a `delegate` account's vote balance changes.
-    event DelegateVotesChanged(address indexed delegate);
-
     /// @notice Emitted when the governor contract that can reencrypt votes changes.
     /// @dev    WARNING: it can be set to a malicious contract, which could reencrypt all user votes.
     event NewGovernor(address indexed governor);
@@ -296,6 +293,5 @@ abstract contract Comp is IComp, EncryptedERC20, EIP712, Ownable2Step {
 
         TFHE.allowThis(newVotes);
         TFHE.allow(newVotes, delegatee);
-        emit DelegateVotesChanged(delegatee);
     }
 }
