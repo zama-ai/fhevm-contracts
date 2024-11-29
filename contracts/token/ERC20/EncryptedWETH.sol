@@ -6,39 +6,16 @@ import { EncryptedERC20 } from "./EncryptedERC20.sol";
 import "fhevm/lib/TFHE.sol";
 import "fhevm/gateway/GatewayCaller.sol";
 
+import { IEncryptedERC20Wrapped } from "./IEncryptedERC20Wrapped.sol";
+
 /**
  * @title             EncryptedWETH
  * @notice            This contract allows users to wrap/unwrap trustlessly
  *                    ETH (or other native tokens) to EncryptedERC20 tokens.
  */
-abstract contract EncryptedWETH is EncryptedERC20, GatewayCaller {
-    /// @notice Returned if the amount is greater than 2**64.
-    error AmountTooHigh();
-
-    /// @notice Returned if user cannot transfer or mint.
-    error CannotTransferOrUnwrap();
-
+abstract contract EncryptedWETH is EncryptedERC20, IEncryptedERC20Wrapped, GatewayCaller {
     /// @notice Returned if ETH transfer fails.
     error ETHTransferFail();
-
-    /// @notice Emitted when encrypted wrapped ether is unwrapped.
-    event Unwrap(address indexed to, uint64 amount);
-
-    /// @notice Emitted if unwrap fails.
-    event UnwrapFail(address account, uint64 amount);
-
-    /// @notice Emitted when ether is wrapped.
-    event Wrap(address indexed to, uint64 amount);
-
-    /**
-     * @notice          Keeps track of unwrap information.
-     * @param account   Account that initiates the unwrap request.
-     * @param amount    Amount to be unwrapped.
-     */
-    struct UnwrapRequest {
-        address account;
-        uint64 amount;
-    }
 
     /// @notice Tracks whether the account can move funds.
     mapping(address account => bool isRestricted) public isAccountRestricted;
@@ -105,7 +82,7 @@ abstract contract EncryptedWETH is EncryptedERC20, GatewayCaller {
 
         uint64 amountUint64 = uint64(amountAdjusted);
 
-        _unsafeMint(msg.sender, TFHE.asEuint64(amountUint64));
+        _unsafeMint(msg.sender, amountUint64);
         _totalSupply += amountUint64;
 
         emit Wrap(msg.sender, amountUint64);
@@ -121,7 +98,7 @@ abstract contract EncryptedWETH is EncryptedERC20, GatewayCaller {
         delete unwrapRequests[requestId];
 
         if (canUnwrap) {
-            _unsafeBurn(unwrapRequest.account, TFHE.asEuint64(unwrapRequest.amount));
+            _unsafeBurn(unwrapRequest.account, unwrapRequest.amount);
             _totalSupply -= unwrapRequest.amount;
 
             /// @dev It does a supply adjustment.
@@ -157,5 +134,13 @@ abstract contract EncryptedWETH is EncryptedERC20, GatewayCaller {
     ) internal virtual override {
         _canTransferOrUnwrap(from);
         super._transferNoEvent(from, to, amount, isTransferable);
+    }
+
+    function _unsafeBurn(address account, uint64 amount) internal {
+        euint64 newBalanceAccount = TFHE.sub(_balances[account], amount);
+        _balances[account] = newBalanceAccount;
+        TFHE.allowThis(newBalanceAccount);
+        TFHE.allow(newBalanceAccount, account);
+        emit Transfer(account, address(0), _PLACEHOLDER);
     }
 }

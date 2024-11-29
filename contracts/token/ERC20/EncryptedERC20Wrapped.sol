@@ -4,10 +4,11 @@ pragma solidity ^0.8.24;
 import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import { EncryptedERC20 } from "./EncryptedERC20.sol";
-
 import "fhevm/lib/TFHE.sol";
 import "fhevm/gateway/GatewayCaller.sol";
+
+import { IEncryptedERC20Wrapped } from "./IEncryptedERC20Wrapped.sol";
+import { EncryptedERC20 } from "./EncryptedERC20.sol";
 
 /**
  * @title             EncryptedERC20Wrapped
@@ -17,33 +18,8 @@ import "fhevm/gateway/GatewayCaller.sol";
  *                    tokens with a fee on transfer. All ERC20 tokens must have decimals
  *                    inferior or equal to 18 decimals but superior or equal to 6 decimals.
  */
-abstract contract EncryptedERC20Wrapped is EncryptedERC20, GatewayCaller {
+abstract contract EncryptedERC20Wrapped is EncryptedERC20, IEncryptedERC20Wrapped, GatewayCaller {
     using SafeERC20 for IERC20Metadata;
-
-    /// @notice Returned if the amount is greater than 2**64.
-    error AmountTooHigh();
-
-    /// @notice Returned if user cannot transfer or mint.
-    error CannotTransferOrUnwrap();
-
-    /// @notice Emitted when token is unwrapped.
-    event Unwrap(address indexed to, uint64 amount);
-
-    /// @notice Emitted if unwrap fails.
-    event UnwrapFail(address account, uint64 amount);
-
-    /// @notice Emitted when token is wrapped.
-    event Wrap(address indexed to, uint64 amount);
-
-    /**
-     * @notice          Keeps track of unwrap information.
-     * @param account   Account that initiates the unwrap request.
-     * @param amount    Amount to be unwrapped.
-     */
-    struct UnwrapRequest {
-        address account;
-        uint64 amount;
-    }
 
     /// @notice ERC20 token that is wrapped.
     IERC20Metadata public immutable ERC20_TOKEN;
@@ -113,7 +89,7 @@ abstract contract EncryptedERC20Wrapped is EncryptedERC20, GatewayCaller {
 
         uint64 amountUint64 = uint64(amountAdjusted);
 
-        _unsafeMint(msg.sender, TFHE.asEuint64(amountUint64));
+        _unsafeMint(msg.sender, amountUint64);
         _totalSupply += amountUint64;
 
         emit Wrap(msg.sender, amountUint64);
@@ -129,7 +105,7 @@ abstract contract EncryptedERC20Wrapped is EncryptedERC20, GatewayCaller {
         delete unwrapRequests[requestId];
 
         if (canUnwrap) {
-            _unsafeBurn(unwrapRequest.account, TFHE.asEuint64(unwrapRequest.amount));
+            _unsafeBurn(unwrapRequest.account, unwrapRequest.amount);
             _totalSupply -= unwrapRequest.amount;
 
             /// @dev It does a supply adjustment.
@@ -159,5 +135,13 @@ abstract contract EncryptedERC20Wrapped is EncryptedERC20, GatewayCaller {
     ) internal virtual override {
         _canTransferOrUnwrap(from);
         super._transferNoEvent(from, to, amount, isTransferable);
+    }
+
+    function _unsafeBurn(address account, uint64 amount) internal {
+        euint64 newBalanceAccount = TFHE.sub(_balances[account], amount);
+        _balances[account] = newBalanceAccount;
+        TFHE.allowThis(newBalanceAccount);
+        TFHE.allow(newBalanceAccount, account);
+        emit Transfer(account, address(0), _PLACEHOLDER);
     }
 }
