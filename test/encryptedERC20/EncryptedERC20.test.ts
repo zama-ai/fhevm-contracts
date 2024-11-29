@@ -5,6 +5,9 @@ import { getSigners, initSigners } from "../signers";
 import { deployEncryptedERC20Fixture, reencryptAllowance, reencryptBalance } from "./EncryptedERC20.fixture";
 
 describe("EncryptedERC20", function () {
+  // @dev The placeholder is type(uint256).max --> 2**256 - 1.
+  const PLACEHOLDER = BigInt(2) ** BigInt(256) - BigInt(1);
+
   before(async function () {
     await initSigners(2);
     this.signers = await getSigners();
@@ -27,7 +30,7 @@ describe("EncryptedERC20", function () {
   it("should mint the contract", async function () {
     const mintAmount = 1000;
     const tx = await this.encryptedERC20.connect(this.signers.alice).mint(mintAmount);
-    await tx.wait();
+    await expect(tx).to.emit(this.encryptedERC20, "Mint").withArgs(this.signers.alice, mintAmount);
 
     expect(
       await reencryptBalance(this.signers, this.instances, "alice", this.encryptedERC20, this.encryptedERC20Address),
@@ -47,13 +50,15 @@ describe("EncryptedERC20", function () {
     input.add64(transferAmount);
     const encryptedTransferAmount = await input.encrypt();
 
-    tx = await this.encryptedERC20["transfer(address,bytes32,bytes)"](
-      this.signers.bob.address,
-      encryptedTransferAmount.handles[0],
-      encryptedTransferAmount.inputProof,
-    );
+    tx = await this.encryptedERC20
+      .connect(this.signers.alice)
+      [
+        "transfer(address,bytes32,bytes)"
+      ](this.signers.bob.address, encryptedTransferAmount.handles[0], encryptedTransferAmount.inputProof);
 
-    await tx.wait();
+    await expect(tx)
+      .to.emit(this.encryptedERC20, "Transfer")
+      .withArgs(this.signers.alice, this.signers.bob, PLACEHOLDER);
 
     // Decrypt Alice's balance
     expect(
@@ -78,12 +83,17 @@ describe("EncryptedERC20", function () {
     const input = this.instances.alice.createEncryptedInput(this.encryptedERC20Address, this.signers.alice.address);
     input.add64(transferAmount);
     const encryptedTransferAmount = await input.encrypt();
+
     tx = await this.encryptedERC20["transfer(address,bytes32,bytes)"](
       this.signers.bob.address,
       encryptedTransferAmount.handles[0],
       encryptedTransferAmount.inputProof,
     );
-    await tx.wait();
+
+    // @dev There is no error-handling in this version of EncryptedERC20.
+    await expect(tx)
+      .to.emit(this.encryptedERC20, "Transfer")
+      .withArgs(this.signers.alice, this.signers.bob, PLACEHOLDER);
 
     // Decrypt Alice's balance
     expect(
@@ -117,7 +127,10 @@ describe("EncryptedERC20", function () {
       encryptedAllowanceAmount.handles[0],
       encryptedAllowanceAmount.inputProof,
     );
-    await tx.wait();
+
+    await expect(tx)
+      .to.emit(this.encryptedERC20, "Approval")
+      .withArgs(this.signers.alice, this.signers.bob, PLACEHOLDER);
 
     // @dev The allowance amount is set to be equal to the transfer amount.
     expect(
@@ -142,7 +155,10 @@ describe("EncryptedERC20", function () {
       encryptedTransferAmount.handles[0],
       encryptedTransferAmount.inputProof,
     );
-    await tx2.wait();
+
+    await expect(tx2)
+      .to.emit(this.encryptedERC20, "Transfer")
+      .withArgs(this.signers.alice, this.signers.bob, PLACEHOLDER);
 
     // Decrypt Alice's balance
     expect(
