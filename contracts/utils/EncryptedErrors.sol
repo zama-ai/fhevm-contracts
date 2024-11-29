@@ -69,7 +69,7 @@ abstract contract EncryptedErrors {
         uint8 indexCode,
         euint8 errorCode
     ) internal virtual returns (euint8 newErrorCode) {
-        if (indexCode >= _TOTAL_NUMBER_ERROR_CODES) {
+        if (indexCode > _TOTAL_NUMBER_ERROR_CODES) {
             revert ErrorIndexInvalid();
         }
 
@@ -90,7 +90,7 @@ abstract contract EncryptedErrors {
         uint8 indexCode,
         euint8 errorCode
     ) internal virtual returns (euint8 newErrorCode) {
-        if (indexCode >= _TOTAL_NUMBER_ERROR_CODES) {
+        if (indexCode > _TOTAL_NUMBER_ERROR_CODES) {
             revert ErrorIndexInvalid();
         }
 
