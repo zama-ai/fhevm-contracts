@@ -11,6 +11,10 @@ import { deployCompFixture, reencryptCurrentVotes, reencryptPriorVotes } from ".
 import { delegateBySig } from "./DelegateBySig";
 
 describe("Comp", function () {
+  // @dev The placeholder is type(uint256).max --> 2**256 - 1.
+  const PLACEHOLDER = 2n ** 256n - 1n;
+  const NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
+
   before(async function () {
     await initSigners(3);
     this.signers = await getSigners();
@@ -36,7 +40,7 @@ describe("Comp", function () {
       encryptedTransferAmount.inputProof,
     );
 
-    await tx.wait();
+    await expect(tx).to.emit(this.comp, "Transfer").withArgs(this.signers.alice, this.signers.bob, PLACEHOLDER);
 
     // Decrypt Alice's balance
     expect(await reencryptBalance(this.signers, this.instances, "alice", this.comp, this.compAddress)).to.equal(
@@ -51,7 +55,7 @@ describe("Comp", function () {
 
   it("can delegate tokens on-chain", async function () {
     const tx = await this.comp.connect(this.signers.alice).delegate(this.signers.bob.address);
-    await tx.wait();
+    await expect(tx).to.emit(this.comp, "DelegateChanged").withArgs(this.signers.alice, NULL_ADDRESS, this.signers.bob);
 
     const latestBlockNumber = await ethers.provider.getBlockNumber();
     await waitNBlocks(1);
@@ -73,12 +77,13 @@ describe("Comp", function () {
     let latestBlockNumber = await ethers.provider.getBlockNumber();
     const block = await ethers.provider.getBlock(latestBlockNumber);
     const expiry = block!.timestamp + 100;
-    const signature = await delegateBySig(delegator, delegatee.address, this.comp, nonce, expiry, false);
+    const signature = await delegateBySig(delegator, delegatee.address, this.comp, nonce, expiry);
 
     const tx = await this.comp
       .connect(this.signers.alice)
       .delegateBySig(delegator, delegatee, nonce, expiry, signature);
-    await tx.wait();
+
+    await expect(tx).to.emit(this.comp, "DelegateChanged").withArgs(this.signers.alice, NULL_ADDRESS, this.signers.bob);
 
     latestBlockNumber = await ethers.provider.getBlockNumber();
     await waitNBlocks(1);
@@ -154,7 +159,8 @@ describe("Comp", function () {
     const signature = await delegateBySig(delegator, delegatee.address, this.comp, nonce, expiry);
 
     const tx = await this.comp.connect(delegator).incrementNonce();
-    await tx.wait();
+    // @dev the newNonce is 1
+    await expect(tx).to.emit(this.comp, "NonceIncremented").withArgs(delegator, BigInt("1"));
 
     // Cannot reuse same nonce when delegating by sig
     await expect(this.comp.delegateBySig(delegator, delegatee, nonce, expiry, signature)).to.be.revertedWithCustomError(
@@ -202,7 +208,7 @@ describe("Comp", function () {
     );
 
     const tx = await this.comp.connect(this.signers.alice).setGovernor(this.signers.bob);
-    await tx.wait();
+    await expect(tx).to.emit(this.comp, "NewGovernor").withArgs(this.signers.bob);
 
     blockNumber = await ethers.provider.getBlockNumber();
 
@@ -294,7 +300,7 @@ describe("Comp", function () {
   it("getCurrentVote/getPriorVotes without any vote cannot be decrypted", async function () {
     // 1. If no checkpoint exists using getCurrentVotes
     let currentVoteHandle = await this.comp.connect(this.signers.bob).getCurrentVotes(this.signers.bob.address);
-    expect(currentVoteHandle).to.be.eq(BigInt(0));
+    expect(currentVoteHandle).to.be.eq(0n);
 
     await expect(
       reencryptEuint64(this.signers, this.instances, "bob", currentVoteHandle, this.comp),
@@ -309,7 +315,7 @@ describe("Comp", function () {
       .getPriorVotes(this.signers.bob.address, latestBlockNumber);
 
     // It is an encrypted constant that is not reencryptable by Bob.
-    expect(currentVoteHandle).not.to.be.eq(BigInt(0));
+    expect(currentVoteHandle).not.to.be.eq(0n);
 
     await expect(
       reencryptEuint64(this.signers, this.instances, "bob", currentVoteHandle, this.comp),
@@ -327,7 +333,7 @@ describe("Comp", function () {
       .getPriorVotes(this.signers.bob.address, latestBlockNumber);
 
     // It is an encrypted constant that is not reencryptable by Bob.
-    expect(currentVoteHandle).not.to.be.eq(BigInt(0));
+    expect(currentVoteHandle).not.to.be.eq(0n);
 
     await expect(
       reencryptEuint64(this.signers, this.instances, "bob", currentVoteHandle, this.comp),
@@ -393,7 +399,7 @@ describe("Comp", function () {
   it("governor address can access votes for any account", async function () {
     // Bob becomes the governor address.
     let tx = await this.comp.connect(this.signers.alice).setGovernor(this.signers.bob.address);
-    await tx.wait();
+    await expect(tx).to.emit(this.comp, "NewGovernor").withArgs(this.signers.bob);
 
     // Alice delegates her votes to Carol.
     tx = await this.comp.connect(this.signers.alice).delegate(this.signers.carol.address);

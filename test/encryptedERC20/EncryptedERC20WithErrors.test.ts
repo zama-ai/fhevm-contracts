@@ -6,8 +6,8 @@ import { reencryptAllowance, reencryptBalance } from "./EncryptedERC20.fixture";
 import { checkErrorCode, deployEncryptedERC20WithErrorsFixture } from "./EncryptedERC20WithErrors.fixture";
 
 describe("EncryptedERC20WithErrors", function () {
-  const DEFAULT_TRANSFER_ID = BigInt(0);
-  const DEFAULT_SECOND_TRANSFER_ID = BigInt(1);
+  // @dev The placeholder is type(uint256).max --> 2**256 - 1.
+  const PLACEHOLDER = 2n ** 256n - 1n;
 
   before(async function () {
     await initSigners(2);
@@ -31,7 +31,7 @@ describe("EncryptedERC20WithErrors", function () {
   it("should mint the contract", async function () {
     const mintAmount = 1000;
     const tx = await this.encryptedERC20.connect(this.signers.alice).mint(mintAmount);
-    await tx.wait();
+    await expect(tx).to.emit(this.encryptedERC20, "Mint").withArgs(this.signers.alice, mintAmount);
 
     expect(
       await reencryptBalance(this.signers, this.instances, "alice", this.encryptedERC20, this.encryptedERC20Address),
@@ -43,6 +43,7 @@ describe("EncryptedERC20WithErrors", function () {
   it("should transfer tokens between two users", async function () {
     const mintAmount = 10_000;
     const transferAmount = 1337;
+    const expectedTransferId = 0n;
 
     let tx = await this.encryptedERC20.connect(this.signers.alice).mint(mintAmount);
     await tx.wait();
@@ -57,7 +58,9 @@ describe("EncryptedERC20WithErrors", function () {
         "transfer(address,bytes32,bytes)"
       ](this.signers.bob.address, encryptedTransferAmount.handles[0], encryptedTransferAmount.inputProof);
 
-    await tx.wait();
+    await expect(tx)
+      .to.emit(this.encryptedERC20, "Transfer")
+      .withArgs(this.signers.alice, this.signers.bob, expectedTransferId);
 
     // Decrypt Alice's balance
     expect(
@@ -75,7 +78,7 @@ describe("EncryptedERC20WithErrors", function () {
         this.signers,
         this.instances,
         "alice",
-        DEFAULT_TRANSFER_ID,
+        expectedTransferId,
         this.encryptedERC20,
         this.encryptedERC20Address,
       ),
@@ -87,7 +90,7 @@ describe("EncryptedERC20WithErrors", function () {
         this.signers,
         this.instances,
         "bob",
-        DEFAULT_TRANSFER_ID,
+        expectedTransferId,
         this.encryptedERC20,
         this.encryptedERC20Address,
       ),
@@ -99,6 +102,7 @@ describe("EncryptedERC20WithErrors", function () {
     //      amount.
     const mintAmount = 1000;
     const transferAmount = 1337;
+    const expectedTransferId = 0n;
 
     let tx = await this.encryptedERC20.connect(this.signers.alice).mint(mintAmount);
     await tx.wait();
@@ -106,12 +110,16 @@ describe("EncryptedERC20WithErrors", function () {
     const input = this.instances.alice.createEncryptedInput(this.encryptedERC20Address, this.signers.alice.address);
     input.add64(transferAmount);
     const encryptedTransferAmount = await input.encrypt();
+
     tx = await this.encryptedERC20["transfer(address,bytes32,bytes)"](
       this.signers.bob.address,
       encryptedTransferAmount.handles[0],
       encryptedTransferAmount.inputProof,
     );
-    await tx.wait();
+
+    await expect(tx)
+      .to.emit(this.encryptedERC20, "Transfer")
+      .withArgs(this.signers.alice, this.signers.bob, expectedTransferId);
 
     // Decrypt Alice's balance
     expect(
@@ -129,7 +137,7 @@ describe("EncryptedERC20WithErrors", function () {
         this.signers,
         this.instances,
         "bob",
-        DEFAULT_TRANSFER_ID,
+        expectedTransferId,
         this.encryptedERC20,
         this.encryptedERC20Address,
       ),
@@ -157,7 +165,10 @@ describe("EncryptedERC20WithErrors", function () {
       encryptedAllowanceAmount.handles[0],
       encryptedAllowanceAmount.inputProof,
     );
-    await tx.wait();
+
+    await expect(tx)
+      .to.emit(this.encryptedERC20, "Approval")
+      .withArgs(this.signers.alice, this.signers.bob, PLACEHOLDER);
 
     // @dev The allowance amount is set to be equal to the transfer amount.
     expect(
@@ -171,18 +182,21 @@ describe("EncryptedERC20WithErrors", function () {
       ),
     ).to.equal(transferAmount);
 
-    const bobErc20 = this.encryptedERC20.connect(this.signers.bob);
+    const expectedTransferId1 = 0n;
+
     const inputBob1 = this.instances.bob.createEncryptedInput(this.encryptedERC20Address, this.signers.bob.address);
     inputBob1.add64(transferAmount + 1); // above allowance so next tx should actually not send any token
     const encryptedTransferAmount = await inputBob1.encrypt();
 
-    const tx2 = await bobErc20["transferFrom(address,address,bytes32,bytes)"](
-      this.signers.alice.address,
-      this.signers.bob.address,
-      encryptedTransferAmount.handles[0],
-      encryptedTransferAmount.inputProof,
-    );
-    await tx2.wait();
+    const tx2 = await this.encryptedERC20
+      .connect(this.signers.bob)
+      [
+        "transferFrom(address,address,bytes32,bytes)"
+      ](this.signers.alice.address, this.signers.bob.address, encryptedTransferAmount.handles[0], encryptedTransferAmount.inputProof);
+
+    await expect(tx2)
+      .to.emit(this.encryptedERC20, "Transfer")
+      .withArgs(this.signers.alice, this.signers.bob, expectedTransferId1);
 
     // Decrypt Alice's balance
     expect(
@@ -200,23 +214,27 @@ describe("EncryptedERC20WithErrors", function () {
         this.signers,
         this.instances,
         "bob",
-        DEFAULT_TRANSFER_ID,
+        expectedTransferId1,
         this.encryptedERC20,
         this.encryptedERC20Address,
       ),
     ).to.equal("UNSUFFICIENT_APPROVAL");
 
+    const expectedTransferId2 = 1n;
+
     const inputBob2 = this.instances.bob.createEncryptedInput(this.encryptedERC20Address, this.signers.bob.address);
     inputBob2.add64(transferAmount); // below allowance so next tx should send token
     const encryptedTransferAmount2 = await inputBob2.encrypt();
 
-    const tx3 = await bobErc20["transferFrom(address,address,bytes32,bytes)"](
-      this.signers.alice.address,
-      this.signers.bob.address,
-      encryptedTransferAmount2.handles[0],
-      encryptedTransferAmount2.inputProof,
-    );
-    await tx3.wait();
+    const tx3 = await await this.encryptedERC20
+      .connect(this.signers.bob)
+      [
+        "transferFrom(address,address,bytes32,bytes)"
+      ](this.signers.alice.address, this.signers.bob.address, encryptedTransferAmount2.handles[0], encryptedTransferAmount2.inputProof);
+
+    await expect(tx3)
+      .to.emit(this.encryptedERC20, "Transfer")
+      .withArgs(this.signers.alice, this.signers.bob, expectedTransferId2);
 
     // Decrypt Alice's balance
     expect(
@@ -246,7 +264,7 @@ describe("EncryptedERC20WithErrors", function () {
         this.signers,
         this.instances,
         "bob",
-        DEFAULT_SECOND_TRANSFER_ID,
+        expectedTransferId2,
         this.encryptedERC20,
         this.encryptedERC20Address,
       ),
@@ -439,6 +457,8 @@ describe("EncryptedERC20WithErrors", function () {
   it("cannot reencrypt errors if the account is not a participant of the transfer", async function () {
     const mintAmount = 10_000;
     const transferAmount = 1337;
+    const expectedTransferId = 0;
+
     let tx = await this.encryptedERC20.connect(this.signers.alice).mint(mintAmount);
     await tx.wait();
 
@@ -452,7 +472,11 @@ describe("EncryptedERC20WithErrors", function () {
         "transfer(address,bytes32,bytes)"
       ](this.signers.bob.address, encryptedTransferAmount.handles[0], encryptedTransferAmount.inputProof);
 
-    const errorCodeHandle = await this.encryptedERC20.getErrorCodeForTransferId(DEFAULT_TRANSFER_ID);
+    await expect(tx)
+      .to.emit(this.encryptedERC20, "Transfer")
+      .withArgs(this.signers.alice, this.signers.bob, expectedTransferId);
+
+    const errorCodeHandle = await this.encryptedERC20.getErrorCodeForTransferId(expectedTransferId);
 
     const { publicKey: publicKeyCarol, privateKey: privateKeyCarol } = this.instances.carol.generateKeypair();
     const eip712Carol = this.instances.carol.createEIP712(publicKeyCarol, this.encryptedERC20Address);

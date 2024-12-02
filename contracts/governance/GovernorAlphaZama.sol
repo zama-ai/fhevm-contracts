@@ -69,8 +69,8 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
         string description
     );
 
-    /// @notice Emitted when a proposal is defeated either by lack of votes or by
-    ///         more votes against.
+    /// @notice Emitted when a proposal is defeated either by (1) number of `for` votes inferior to the
+    ///         quorum, (2) the number of `for` votes equal or inferior to `against` votes.
     event ProposalDefeated(uint256 id);
 
     /// @notice Emitted when a proposal has been executed in the Timelock.
@@ -79,12 +79,12 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
     /// @notice Emitted when a proposal has been queued in the Timelock.
     event ProposalQueued(uint256 id, uint256 eta);
 
-    /// @notice Emitted when a proposal has been rejected since the number of votes is lower
-    ///         than the required threshold.
+    /// @notice Emitted when a proposal has been rejected since the number of votes of the proposer
+    /// is lower than the required threshold.
     event ProposalRejected(uint256 id);
 
-    /// @notice Emitted when a proposal has been rejected since the number of votes is lower
-    ///         than the required threshold.
+    /// @notice Emitted when a proposal has succeeded since the number of `for` votes is higher
+    ///         than quorum and strictly higher than `against` votes.
     event ProposalSucceeded(uint256 id);
 
     /// @notice Emitted when a vote has been cast on a proposal.
@@ -99,7 +99,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
      * @param PendingResults               Proposal is not active and the result decryption is in progress.
      * @param Canceled                     Proposal has been canceled by the proposer or by this contract's owner.
      * @param Defeated                     Proposal has been defeated
-     *                                     (either not reaching the quorum or `againstVotes` > `forVotes`).
+     *                                     (either not reaching the quorum or `againstVotes` >= `forVotes`).
      * @param Succeeded                    Proposal has succeeded (`forVotes` > `againstVotes`).
      * @param Queued                       Proposal has been queued in the `Timelock`.
      * @param Expired                      Proposal has expired (@dev This state exists only in read-only functions).

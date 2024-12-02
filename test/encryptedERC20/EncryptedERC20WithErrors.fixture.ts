@@ -30,13 +30,13 @@ export async function checkErrorCode(
   const errorCodeHandle = await token.getErrorCodeForTransferId(transferId);
   const errorCode = await reencryptEuint8(signers, instances, account, errorCodeHandle, tokenAddress);
   switch (errorCode) {
-    case BigInt(0): {
+    case 0n: {
       return "NO_ERROR";
     }
-    case BigInt(1): {
+    case 1n: {
       return "UNSUFFICIENT_BALANCE";
     }
-    case BigInt(2): {
+    case 2n: {
       return "UNSUFFICIENT_APPROVAL";
     }
     default: {
