@@ -4,17 +4,17 @@ import { ethers } from "hardhat";
 import { awaitAllDecryptionResults } from "../asyncDecrypt";
 import { createInstances } from "../instance";
 import { getSigners, initSigners } from "../signers";
-import { reencryptBalance } from "./EncryptedERC20.fixture";
-import { deployERC20AndEncryptedERC20WrappedFixture } from "./EncryptedERC20Wrapped.fixture";
+import { reencryptBalance } from "./ConfidentialERC20.fixture";
+import { deployERC20AndConfidentialERC20WrappedFixture } from "./ConfidentialERC20Wrapped.fixture";
 
-describe("EncryptedERC20Wrapped using ERC20 with 6 decimals", function () {
+describe("ConfidentialERC20Wrapped using ERC20 with 6 decimals", function () {
   before(async function () {
     await initSigners(2);
     this.signers = await getSigners();
   });
 
   beforeEach(async function () {
-    const [erc20, encryptedERC20] = await deployERC20AndEncryptedERC20WrappedFixture(
+    const [erc20, confidentialERC20Wrapped] = await deployERC20AndConfidentialERC20WrappedFixture(
       this.signers,
       "Naraggara",
       "NARA",
@@ -22,15 +22,15 @@ describe("EncryptedERC20Wrapped using ERC20 with 6 decimals", function () {
     );
 
     this.erc20 = erc20;
-    this.encryptedERC20 = encryptedERC20;
+    this.confidentialERC20Wrapped = confidentialERC20Wrapped;
     this.erc20ContractAddress = await erc20.getAddress();
-    this.encryptedERC20Address = await encryptedERC20.getAddress();
+    this.confidentialERC20WrappedAddress = await confidentialERC20Wrapped.getAddress();
     this.instances = await createInstances(this.signers);
   });
 
   it("name/symbol are automatically set", async function () {
-    expect(await this.encryptedERC20.name()).to.eq("Encrypted Naraggara");
-    expect(await this.encryptedERC20.symbol()).to.eq("eNARA");
+    expect(await this.confidentialERC20Wrapped.name()).to.eq("Encrypted Naraggara");
+    expect(await this.confidentialERC20Wrapped.symbol()).to.eq("eNARA");
   });
 
   it("can wrap", async function () {
@@ -43,14 +43,20 @@ describe("EncryptedERC20Wrapped using ERC20 with 6 decimals", function () {
     expect(await this.erc20.balanceOf(this.signers.alice)).to.equal(amountToWrap);
     expect(await this.erc20.totalSupply()).to.equal(amountToWrap);
 
-    tx = await this.erc20.connect(this.signers.alice).approve(this.encryptedERC20Address, amountToWrap);
+    tx = await this.erc20.connect(this.signers.alice).approve(this.confidentialERC20WrappedAddress, amountToWrap);
     await tx.wait();
-    tx = await this.encryptedERC20.wrap(amountToWrap);
+    tx = await this.confidentialERC20Wrapped.wrap(amountToWrap);
     await tx.wait();
 
     // Check encrypted balance
     expect(
-      await reencryptBalance(this.signers, this.instances, "alice", this.encryptedERC20, this.encryptedERC20Address),
+      await reencryptBalance(
+        this.signers,
+        this.instances,
+        "alice",
+        this.confidentialERC20Wrapped,
+        this.confidentialERC20WrappedAddress,
+      ),
     ).to.equal(amountToWrap);
   });
 
@@ -60,12 +66,12 @@ describe("EncryptedERC20Wrapped using ERC20 with 6 decimals", function () {
 
     let tx = await this.erc20.connect(this.signers.alice).mint(amountToWrap);
     await tx.wait();
-    tx = await this.erc20.connect(this.signers.alice).approve(this.encryptedERC20Address, amountToWrap);
+    tx = await this.erc20.connect(this.signers.alice).approve(this.confidentialERC20WrappedAddress, amountToWrap);
     await tx.wait();
-    tx = await this.encryptedERC20.connect(this.signers.alice).wrap(amountToWrap);
+    tx = await this.confidentialERC20Wrapped.connect(this.signers.alice).wrap(amountToWrap);
     await tx.wait();
 
-    tx = await this.encryptedERC20.connect(this.signers.alice).unwrap(amountToUnwrap);
+    tx = await this.confidentialERC20Wrapped.connect(this.signers.alice).unwrap(amountToUnwrap);
     await tx.wait();
 
     await awaitAllDecryptionResults();
@@ -74,7 +80,13 @@ describe("EncryptedERC20Wrapped using ERC20 with 6 decimals", function () {
     expect(await this.erc20.totalSupply()).to.equal(amountToWrap);
 
     expect(
-      await reencryptBalance(this.signers, this.instances, "alice", this.encryptedERC20, this.encryptedERC20Address),
+      await reencryptBalance(
+        this.signers,
+        this.instances,
+        "alice",
+        this.confidentialERC20Wrapped,
+        this.confidentialERC20WrappedAddress,
+      ),
     ).to.equal(amountToWrap - amountToUnwrap);
   });
 
@@ -85,25 +97,28 @@ describe("EncryptedERC20Wrapped using ERC20 with 6 decimals", function () {
 
     let tx = await this.erc20.connect(this.signers.alice).mint(amountToWrap);
     await tx.wait();
-    tx = await this.erc20.connect(this.signers.alice).approve(this.encryptedERC20Address, amountToWrap);
+    tx = await this.erc20.connect(this.signers.alice).approve(this.confidentialERC20WrappedAddress, amountToWrap);
     await tx.wait();
-    tx = await this.encryptedERC20.connect(this.signers.alice).wrap(amountToWrap);
-    await tx.wait();
-
-    tx = await this.encryptedERC20.connect(this.signers.alice).unwrap(amountToUnwrap);
+    tx = await this.confidentialERC20Wrapped.connect(this.signers.alice).wrap(amountToWrap);
     await tx.wait();
 
-    const input = this.instances.alice.createEncryptedInput(this.encryptedERC20Address, this.signers.alice.address);
+    tx = await this.confidentialERC20Wrapped.connect(this.signers.alice).unwrap(amountToUnwrap);
+    await tx.wait();
+
+    const input = this.instances.alice.createEncryptedInput(
+      this.confidentialERC20WrappedAddress,
+      this.signers.alice.address,
+    );
     input.add64(transferAmount);
     const encryptedTransferAmount = await input.encrypt();
 
     await expect(
-      this.encryptedERC20
+      this.confidentialERC20Wrapped
         .connect(this.signers.alice)
         [
           "transfer(address,bytes32,bytes)"
         ](this.signers.bob.address, encryptedTransferAmount.handles[0], encryptedTransferAmount.inputProof),
-    ).to.be.revertedWithCustomError(this.encryptedERC20, "CannotTransferOrUnwrap");
+    ).to.be.revertedWithCustomError(this.confidentialERC20Wrapped, "CannotTransferOrUnwrap");
   });
 
   it("cannot call twice unwrap before decryption", async function () {
@@ -112,18 +127,17 @@ describe("EncryptedERC20Wrapped using ERC20 with 6 decimals", function () {
 
     let tx = await this.erc20.connect(this.signers.alice).mint(amountToWrap);
     await tx.wait();
-    tx = await this.erc20.connect(this.signers.alice).approve(this.encryptedERC20Address, amountToWrap);
+    tx = await this.erc20.connect(this.signers.alice).approve(this.confidentialERC20WrappedAddress, amountToWrap);
     await tx.wait();
-    tx = await this.encryptedERC20.connect(this.signers.alice).wrap(amountToWrap);
-    await tx.wait();
-
-    tx = await this.encryptedERC20.connect(this.signers.alice).unwrap(amountToUnwrap);
+    tx = await this.confidentialERC20Wrapped.connect(this.signers.alice).wrap(amountToWrap);
     await tx.wait();
 
-    await expect(this.encryptedERC20.connect(this.signers.alice).unwrap(amountToUnwrap)).to.be.revertedWithCustomError(
-      this.encryptedERC20,
-      "CannotTransferOrUnwrap",
-    );
+    tx = await this.confidentialERC20Wrapped.connect(this.signers.alice).unwrap(amountToUnwrap);
+    await tx.wait();
+
+    await expect(
+      this.confidentialERC20Wrapped.connect(this.signers.alice).unwrap(amountToUnwrap),
+    ).to.be.revertedWithCustomError(this.confidentialERC20Wrapped, "CannotTransferOrUnwrap");
   });
 
   it("cannot unwrap more than balance", async function () {
@@ -132,20 +146,26 @@ describe("EncryptedERC20Wrapped using ERC20 with 6 decimals", function () {
 
     let tx = await this.erc20.connect(this.signers.alice).mint(amountToWrap);
     await tx.wait();
-    tx = await this.erc20.connect(this.signers.alice).approve(this.encryptedERC20Address, amountToWrap);
+    tx = await this.erc20.connect(this.signers.alice).approve(this.confidentialERC20WrappedAddress, amountToWrap);
     await tx.wait();
-    tx = await this.encryptedERC20.connect(this.signers.alice).wrap(amountToWrap);
+    tx = await this.confidentialERC20Wrapped.connect(this.signers.alice).wrap(amountToWrap);
     await tx.wait();
-    tx = await this.encryptedERC20.connect(this.signers.alice).unwrap(amountToUnwrap);
+    tx = await this.confidentialERC20Wrapped.connect(this.signers.alice).unwrap(amountToUnwrap);
     await tx.wait();
 
     await awaitAllDecryptionResults();
 
     // Verify the balances have not changed
-    expect(await this.erc20.balanceOf(this.encryptedERC20Address)).to.equal(amountToWrap);
-    expect(await this.encryptedERC20.totalSupply()).to.equal(amountToWrap);
+    expect(await this.erc20.balanceOf(this.confidentialERC20WrappedAddress)).to.equal(amountToWrap);
+    expect(await this.confidentialERC20Wrapped.totalSupply()).to.equal(amountToWrap);
     expect(
-      await reencryptBalance(this.signers, this.instances, "alice", this.encryptedERC20, this.encryptedERC20Address),
+      await reencryptBalance(
+        this.signers,
+        this.instances,
+        "alice",
+        this.confidentialERC20Wrapped,
+        this.confidentialERC20WrappedAddress,
+      ),
     ).to.equal(amountToWrap);
   });
 
@@ -155,33 +175,36 @@ describe("EncryptedERC20Wrapped using ERC20 with 6 decimals", function () {
 
     let tx = await this.erc20.connect(this.signers.alice).mint(amountToWrap);
     await tx.wait();
-    tx = await this.erc20.connect(this.signers.alice).approve(this.encryptedERC20Address, amountToWrap);
+    tx = await this.erc20.connect(this.signers.alice).approve(this.confidentialERC20WrappedAddress, amountToWrap);
     await tx.wait();
-    tx = await this.encryptedERC20.connect(this.signers.alice).wrap(amountToWrap);
+    tx = await this.confidentialERC20Wrapped.connect(this.signers.alice).wrap(amountToWrap);
     await tx.wait();
 
     let transferAmount = ethers.parseUnits("3000", 6);
-    let input = this.instances.alice.createEncryptedInput(this.encryptedERC20Address, this.signers.alice.address);
+    let input = this.instances.alice.createEncryptedInput(
+      this.confidentialERC20WrappedAddress,
+      this.signers.alice.address,
+    );
     input.add64(transferAmount);
     let encryptedTransferAmount = await input.encrypt();
 
-    await this.encryptedERC20
+    await this.confidentialERC20Wrapped
       .connect(this.signers.alice)
       [
         "transfer(address,bytes32,bytes)"
       ](this.signers.bob.address, encryptedTransferAmount.handles[0], encryptedTransferAmount.inputProof);
 
-    tx = await this.encryptedERC20.connect(this.signers.bob).unwrap(amountToUnwrap);
+    tx = await this.confidentialERC20Wrapped.connect(this.signers.bob).unwrap(amountToUnwrap);
     await tx.wait();
 
     await awaitAllDecryptionResults();
 
     transferAmount = ethers.parseUnits("1000", 6);
-    input = this.instances.bob.createEncryptedInput(this.encryptedERC20Address, this.signers.bob.address);
+    input = this.instances.bob.createEncryptedInput(this.confidentialERC20WrappedAddress, this.signers.bob.address);
     input.add64(transferAmount);
     encryptedTransferAmount = await input.encrypt();
 
-    await this.encryptedERC20
+    await this.confidentialERC20Wrapped
       .connect(this.signers.bob)
       [
         "transfer(address,bytes32,bytes)"
@@ -194,47 +217,46 @@ describe("EncryptedERC20Wrapped using ERC20 with 6 decimals", function () {
     // @dev Verify 2**64 - 1 is fine.
     let tx = await this.erc20.connect(this.signers.alice).mint(amountToWrap);
     await tx.wait();
-    tx = await this.erc20.connect(this.signers.alice).approve(this.encryptedERC20Address, amountToWrap);
+    tx = await this.erc20.connect(this.signers.alice).approve(this.confidentialERC20WrappedAddress, amountToWrap);
     await tx.wait();
-    tx = await this.encryptedERC20.connect(this.signers.alice).wrap(amountToWrap - BigInt(1));
+    tx = await this.confidentialERC20Wrapped.connect(this.signers.alice).wrap(amountToWrap - BigInt(1));
     await tx.wait();
 
     // Unwrap all
-    tx = await this.encryptedERC20.connect(this.signers.alice).unwrap(amountToWrap - BigInt(1));
+    tx = await this.confidentialERC20Wrapped.connect(this.signers.alice).unwrap(amountToWrap - BigInt(1));
     await tx.wait();
     await awaitAllDecryptionResults();
 
     // @dev Verify 2**64 is not fine
-    tx = await this.erc20.connect(this.signers.alice).approve(this.encryptedERC20Address, amountToWrap);
+    tx = await this.erc20.connect(this.signers.alice).approve(this.confidentialERC20WrappedAddress, amountToWrap);
     await tx.wait();
-    await expect(this.encryptedERC20.connect(this.signers.alice).wrap(amountToWrap)).to.be.revertedWithCustomError(
-      this.encryptedERC20,
-      "AmountTooHigh",
-    );
+    await expect(
+      this.confidentialERC20Wrapped.connect(this.signers.alice).wrap(amountToWrap),
+    ).to.be.revertedWithCustomError(this.confidentialERC20Wrapped, "AmountTooHigh");
   });
 
   it("only gateway can call callback functions", async function () {
-    await expect(this.encryptedERC20.connect(this.signers.alice).callbackUnwrap(1, false)).to.be.reverted;
+    await expect(this.confidentialERC20Wrapped.connect(this.signers.alice).callbackUnwrap(1, false)).to.be.reverted;
   });
 });
 
-describe("EncryptedERC20Wrapped using ERC20 with 18 decimals", function () {
+describe("ConfidentialERC20Wrapped using ERC20 with 18 decimals", function () {
   before(async function () {
     await initSigners(2);
     this.signers = await getSigners();
   });
 
   beforeEach(async function () {
-    const [erc20, encryptedERC20] = await deployERC20AndEncryptedERC20WrappedFixture(
+    const [erc20, confidentialERC20Wrapped] = await deployERC20AndConfidentialERC20WrappedFixture(
       this.signers,
       "Naraggara",
       "NARA",
       18,
     );
     this.erc20 = erc20;
-    this.encryptedERC20 = encryptedERC20;
+    this.confidentialERC20Wrapped = confidentialERC20Wrapped;
     this.erc20ContractAddress = await erc20.getAddress();
-    this.encryptedERC20Address = await encryptedERC20.getAddress();
+    this.confidentialERC20WrappedAddress = await confidentialERC20Wrapped.getAddress();
     this.instances = await createInstances(this.signers);
   });
 
@@ -250,14 +272,22 @@ describe("EncryptedERC20Wrapped using ERC20 with 18 decimals", function () {
     expect(await this.erc20.balanceOf(this.signers.alice)).to.equal(amountToWrap18Decimals);
     expect(await this.erc20.totalSupply()).to.equal(amountToWrap18Decimals);
 
-    tx = await this.erc20.connect(this.signers.alice).approve(this.encryptedERC20Address, amountToWrap18Decimals);
+    tx = await this.erc20
+      .connect(this.signers.alice)
+      .approve(this.confidentialERC20WrappedAddress, amountToWrap18Decimals);
     await tx.wait();
-    tx = await this.encryptedERC20.connect(this.signers.alice).wrap(amountToWrap18Decimals);
+    tx = await this.confidentialERC20Wrapped.connect(this.signers.alice).wrap(amountToWrap18Decimals);
     await tx.wait();
 
     // Check encrypted balance
     expect(
-      await reencryptBalance(this.signers, this.instances, "alice", this.encryptedERC20, this.encryptedERC20Address),
+      await reencryptBalance(
+        this.signers,
+        this.instances,
+        "alice",
+        this.confidentialERC20Wrapped,
+        this.confidentialERC20WrappedAddress,
+      ),
     ).to.equal(amountToWrap6Decimals);
   });
 
@@ -271,12 +301,14 @@ describe("EncryptedERC20Wrapped using ERC20 with 18 decimals", function () {
 
     let tx = await this.erc20.connect(this.signers.alice).mint(amountToWrap18Decimals);
     await tx.wait();
-    tx = await this.erc20.connect(this.signers.alice).approve(this.encryptedERC20Address, amountToWrap18Decimals);
+    tx = await this.erc20
+      .connect(this.signers.alice)
+      .approve(this.confidentialERC20WrappedAddress, amountToWrap18Decimals);
     await tx.wait();
-    tx = await this.encryptedERC20.connect(this.signers.alice).wrap(amountToWrap18Decimals);
+    tx = await this.confidentialERC20Wrapped.connect(this.signers.alice).wrap(amountToWrap18Decimals);
     await tx.wait();
 
-    tx = await this.encryptedERC20.connect(this.signers.alice).unwrap(amountToUnwrap6Decimals);
+    tx = await this.confidentialERC20Wrapped.connect(this.signers.alice).unwrap(amountToUnwrap6Decimals);
     await tx.wait();
 
     await awaitAllDecryptionResults();
@@ -286,11 +318,17 @@ describe("EncryptedERC20Wrapped using ERC20 with 18 decimals", function () {
 
     // Check encrypted balance
     expect(
-      await reencryptBalance(this.signers, this.instances, "alice", this.encryptedERC20, this.encryptedERC20Address),
+      await reencryptBalance(
+        this.signers,
+        this.instances,
+        "alice",
+        this.confidentialERC20Wrapped,
+        this.confidentialERC20WrappedAddress,
+      ),
     ).to.equal(amountToWrap6Decimals - amountToUnwrap6Decimals);
 
     // Unwrap all
-    tx = await this.encryptedERC20.unwrap(amountToWrap6Decimals - amountToUnwrap6Decimals);
+    tx = await this.confidentialERC20Wrapped.unwrap(amountToWrap6Decimals - amountToUnwrap6Decimals);
     await tx.wait();
 
     await awaitAllDecryptionResults();
@@ -304,15 +342,15 @@ describe("EncryptedERC20Wrapped using ERC20 with 18 decimals", function () {
     // @dev Verify 2**64 - 1 is fine.
     let tx = await this.erc20.connect(this.signers.alice).mint(amountToWrap);
     await tx.wait();
-    tx = await this.erc20.connect(this.signers.alice).approve(this.encryptedERC20Address, amountToWrap);
+    tx = await this.erc20.connect(this.signers.alice).approve(this.confidentialERC20WrappedAddress, amountToWrap);
     await tx.wait();
-    tx = await this.encryptedERC20.connect(this.signers.alice).wrap(amountToWrap - BigInt(1));
+    tx = await this.confidentialERC20Wrapped.connect(this.signers.alice).wrap(amountToWrap - BigInt(1));
     await tx.wait();
 
-    const totalSupply = await this.encryptedERC20.totalSupply();
+    const totalSupply = await this.confidentialERC20Wrapped.totalSupply();
 
     // Unwrap all
-    tx = await this.encryptedERC20.connect(this.signers.alice).unwrap(totalSupply);
+    tx = await this.confidentialERC20Wrapped.connect(this.signers.alice).unwrap(totalSupply);
     await tx.wait();
     await awaitAllDecryptionResults();
 
@@ -322,12 +360,11 @@ describe("EncryptedERC20Wrapped using ERC20 with 18 decimals", function () {
     await tx.wait();
     tx = await this.erc20.connect(this.signers.alice).transfer(this.signers.bob.address, amountToWrap);
     await tx.wait();
-    tx = await this.erc20.connect(this.signers.bob).approve(this.encryptedERC20Address, amountToWrap);
+    tx = await this.erc20.connect(this.signers.bob).approve(this.confidentialERC20WrappedAddress, amountToWrap);
     await tx.wait();
 
-    await expect(this.encryptedERC20.connect(this.signers.bob).wrap(amountToWrap)).to.be.revertedWithCustomError(
-      this.encryptedERC20,
-      "AmountTooHigh",
-    );
+    await expect(
+      this.confidentialERC20Wrapped.connect(this.signers.bob).wrap(amountToWrap),
+    ).to.be.revertedWithCustomError(this.confidentialERC20Wrapped, "AmountTooHigh");
   });
 });
