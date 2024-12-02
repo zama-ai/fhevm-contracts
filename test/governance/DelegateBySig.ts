@@ -2,13 +2,13 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { ethers } from "hardhat";
 import { Address } from "hardhat-deploy/types";
 
-import type { Comp } from "../../types";
+import type { ConfidentialERC20Votes } from "../../types";
 
 /**
  *
  * @param _signer     Signer from ethers.
  * @param _delegatee  Delegatee address.
- * @param _comp       Comp token.
+ * @param _comp       ConfidentialERC20Votes token.
  * @param _nonce      Nonce to sign.
  * @param _expiry     Expiry timestamp.
  * @returns           The signature.
@@ -16,7 +16,7 @@ import type { Comp } from "../../types";
 export const delegateBySig = async (
   _signer: HardhatEthersSigner,
   _delegatee: Address,
-  _comp: Comp,
+  _comp: ConfidentialERC20Votes,
   _nonce: number,
   _expiry: number,
 ): Promise<string> => {

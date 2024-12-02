@@ -301,7 +301,7 @@ uint256 PROPOSAL_THRESHOLD
 
 The number of votes required for a voter to become a proposer.
 
-_It is set at 100,000, which is 1% of the total supply of the Comp token._
+_It is set at 100,000, which is 1% of the total supply of the ConfidentialERC20Votes token._
 
 ## QUORUM_VOTES
 
@@ -311,7 +311,7 @@ uint64 QUORUM_VOTES
 
 The number of votes in support of a proposal required in order for a quorum to be reached and for a vote to succeed.
 
-_It is set at 400,000, which is 4% of the total supply of the Comp token._
+_It is set at 400,000, which is 4% of the total supply of the ConfidentialERC20Votes token._
 
 ## VOTING_DELAY
 
@@ -331,13 +331,13 @@ The duration of voting on a proposal, in blocks
 
 _It is recommended to be set at 3 days in blocks (i.e 21,600 for 12-second blocks)._
 
-## COMP
+## CONFIDENTIAL_ERC20_VOTES
 
 ```solidity
-contract IComp COMP
+contract IConfidentialERC20Votes CONFIDENTIAL_ERC20_VOTES
 ```
 
-Comp governance token.
+ConfidentialERC20Votes governance token.
 
 ## TIMELOCK
 
@@ -400,12 +400,12 @@ by at least a few days,. For instance, 3 days would have a votingPeriod = 21,600
 
 ### Parameters
 
-| Name           | Type    | Description        |
-| -------------- | ------- | ------------------ |
-| owner\_        | address | Owner address.     |
-| timelock\_     | address | Timelock contract. |
-| comp\_         | address | Comp token.        |
-| votingPeriod\_ | uint256 | Voting period.     |
+| Name                     | Type    | Description                   |
+| ------------------------ | ------- | ----------------------------- |
+| owner\_                  | address | Owner address.                |
+| timelock\_               | address | Timelock contract.            |
+| confidentialERC20Votes\_ | address | ConfidentialERC20Votes token. |
+| votingPeriod\_           | uint256 | Voting period.                |
 
 ## cancel
 

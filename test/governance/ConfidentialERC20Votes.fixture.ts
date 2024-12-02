@@ -1,16 +1,16 @@
 import { parseUnits } from "ethers";
 import { ethers } from "hardhat";
 
-import type { TestComp } from "../../types";
+import type { TestConfidentialERC20Votes } from "../../types";
 import { reencryptEuint64 } from "../reencrypt";
 import { Signers } from "../signers";
 import { FhevmInstances } from "../types";
 
-export async function deployCompFixture(signers: Signers): Promise<TestComp> {
-  const contractFactory = await ethers.getContractFactory("TestComp");
+export async function deployConfidentialERC20Votes(signers: Signers): Promise<TestConfidentialERC20Votes> {
+  const contractFactory = await ethers.getContractFactory("TestConfidentialERC20Votes");
   const contract = await contractFactory
     .connect(signers.alice)
-    .deploy(signers.alice.address, "CompoundZama", "COMP", "1.0", parseUnits("10000000", 6));
+    .deploy(signers.alice.address, "CompoundZama", "CONFIDENTIAL_ERC20_VOTES", "1.0", parseUnits("10000000", 6));
   await contract.waitForDeployment();
   return contract;
 }
@@ -21,21 +21,23 @@ export async function transferTokensAndDelegate(
   transferAmount: bigint,
   account: string,
   delegate: string,
-  comp: TestComp,
+  confidentialERC20Votes: TestConfidentialERC20Votes,
   compAddress: string,
 ): Promise<void> {
   const input = instances.alice.createEncryptedInput(compAddress, signers.alice.address);
   input.add64(transferAmount);
   const encryptedTransferAmount = await input.encrypt();
 
-  let tx = await comp
+  let tx = await confidentialERC20Votes
     .connect(signers.alice)
     [
       "transfer(address,bytes32,bytes)"
     ](signers[account as keyof Signers], encryptedTransferAmount.handles[0], encryptedTransferAmount.inputProof);
   await tx.wait();
 
-  tx = await comp.connect(signers[account as keyof Signers]).delegate(signers[delegate as keyof Signers].address);
+  tx = await confidentialERC20Votes
+    .connect(signers[account as keyof Signers])
+    .delegate(signers[delegate as keyof Signers].address);
   await tx.wait();
 }
 
@@ -43,10 +45,10 @@ export async function reencryptCurrentVotes(
   signers: Signers,
   instances: FhevmInstances,
   account: string,
-  comp: TestComp,
+  confidentialERC20Votes: TestConfidentialERC20Votes,
   compAddress: string,
 ): Promise<bigint> {
-  const voteHandle = await comp.getCurrentVotes(signers[account as keyof Signers].address);
+  const voteHandle = await confidentialERC20Votes.getCurrentVotes(signers[account as keyof Signers].address);
   const vote = await reencryptEuint64(signers, instances, account, voteHandle, compAddress);
   return vote;
 }
@@ -56,10 +58,10 @@ export async function reencryptPriorVotes(
   instances: FhevmInstances,
   account: string,
   blockNumber: number,
-  comp: TestComp,
+  confidentialERC20Votes: TestConfidentialERC20Votes,
   compAddress: string,
 ): Promise<bigint> {
-  const voteHandle = await comp.getPriorVotes(signers[account as keyof Signers].address, blockNumber);
+  const voteHandle = await confidentialERC20Votes.getPriorVotes(signers[account as keyof Signers].address, blockNumber);
   const vote = await reencryptEuint64(signers, instances, account, voteHandle, compAddress);
   return vote;
 }

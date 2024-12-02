@@ -1,4 +1,4 @@
-# Comp
+# ConfidentialERC20Votes
 
 This contract inherits ConfidentialERC20, EIP712, and Ownable2Step. This is based on the Comp.sol contract written by
 Compound Labs. see: compound-finance/compound-protocol/blob/master/contracts/Governance/Comp.sol. It is a governance
@@ -151,7 +151,7 @@ The number of checkpoints for an `account`.
 ## \_checkpoints
 
 ```solidity
-mapping(address => mapping(uint32 => struct Comp.Checkpoint)) _checkpoints
+mapping(address => mapping(uint32 => struct ConfidentialERC20Votes.Checkpoint)) _checkpoints
 ```
 
 A record of votes \_checkpoints for an `account` using incremental indices.
@@ -223,7 +223,7 @@ _This function enables the sender to cancel a signature._
 function getPriorVotesForGovernor(address account, uint256 blockNumber) public virtual returns (euint64 votes)
 ```
 
-See {IComp-getPriorVotesForGovernor}.
+See {IConfidentialERC20Votes-getPriorVotesForGovernor}.
 
 ## getCurrentVotes
 

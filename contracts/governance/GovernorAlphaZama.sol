@@ -5,7 +5,7 @@ import "fhevm/lib/TFHE.sol";
 import "fhevm/gateway/GatewayCaller.sol";
 
 import { Ownable2Step, Ownable } from "@openzeppelin/contracts/access/Ownable2Step.sol";
-import { IComp } from "./IComp.sol";
+import { IConfidentialERC20Votes } from "./IConfidentialERC20Votes.sol";
 import { ICompoundTimelock } from "./ICompoundTimelock.sol";
 
 /**
@@ -197,12 +197,12 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
     uint256 public constant PROPOSAL_MAX_OPERATIONS = 10;
 
     /// @notice The number of votes required for a voter to become a proposer.
-    /// @dev    It is set at 100,000, which is 1% of the total supply of the Comp token.
+    /// @dev    It is set at 100,000, which is 1% of the total supply of the ConfidentialERC20Votes token.
     uint256 public constant PROPOSAL_THRESHOLD = 100000e6;
 
     /// @notice The number of votes in support of a proposal required in order for a quorum to be reached
     ///         and for a vote to succeed.
-    /// @dev    It is set at 400,000, which is 4% of the total supply of the Comp token.
+    /// @dev    It is set at 400,000, which is 4% of the total supply of the ConfidentialERC20Votes token.
     uint64 public constant QUORUM_VOTES = 400000e6;
 
     /// @notice The delay before voting on a proposal may take place once proposed.
@@ -214,8 +214,8 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
     ///         (i.e 21,600 for 12-second blocks).
     uint256 public immutable VOTING_PERIOD;
 
-    /// @notice Comp governance token.
-    IComp public immutable COMP;
+    /// @notice ConfidentialERC20Votes governance token.
+    IConfidentialERC20Votes public immutable CONFIDENTIAL_ERC20_VOTES;
 
     /// @notice Compound Timelock.
     ICompoundTimelock public immutable TIMELOCK;
@@ -253,7 +253,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
     /**
      * @param owner_            Owner address.
      * @param timelock_         Timelock contract.
-     * @param comp_             Comp token.
+     * @param comp_             ConfidentialERC20Votes token.
      * @param votingPeriod_     Voting period.
      * @dev                     Do not use a small value in production such as 5 or 20 to avoid security issues
      *                          unless for testing purpose. It should by at least a few days,.
@@ -261,7 +261,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
      */
     constructor(address owner_, address timelock_, address comp_, uint256 votingPeriod_) Ownable(owner_) {
         TIMELOCK = ICompoundTimelock(timelock_);
-        COMP = IComp(comp_);
+        CONFIDENTIAL_ERC20_VOTES = IConfidentialERC20Votes(comp_);
         VOTING_PERIOD = votingPeriod_;
 
         /// @dev Store these constant-like variables in the storage.
@@ -443,7 +443,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
 
         ebool canPropose = TFHE.lt(
             _EUINT64_PROPOSAL_THRESHOLD,
-            COMP.getPriorVotesForGovernor(msg.sender, block.number - 1)
+            CONFIDENTIAL_ERC20_VOTES.getPriorVotesForGovernor(msg.sender, block.number - 1)
         );
 
         uint256[] memory cts = new uint256[](1);
@@ -645,7 +645,7 @@ abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
             revert VoterHasAlreadyVoted();
         }
 
-        euint64 votes = COMP.getPriorVotesForGovernor(voter, proposal.startBlock);
+        euint64 votes = CONFIDENTIAL_ERC20_VOTES.getPriorVotesForGovernor(voter, proposal.startBlock);
         proposal.forVotes = TFHE.select(support, TFHE.add(proposal.forVotes, votes), proposal.forVotes);
         proposal.againstVotes = TFHE.select(support, proposal.againstVotes, TFHE.add(proposal.againstVotes, votes));
 

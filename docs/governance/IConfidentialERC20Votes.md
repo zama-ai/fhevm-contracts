@@ -1,4 +1,4 @@
-# IComp
+# IConfidentialERC20Votes
 
 _The GovernorAlphaZama relies on this interface._
 

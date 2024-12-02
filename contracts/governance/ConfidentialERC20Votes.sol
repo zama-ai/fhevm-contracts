@@ -6,10 +6,10 @@ import { Ownable2Step, Ownable } from "@openzeppelin/contracts/access/Ownable2St
 import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import { SignatureChecker } from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import { ConfidentialERC20 } from "../token/ERC20/ConfidentialERC20.sol";
-import { IComp } from "./IComp.sol";
+import { IConfidentialERC20Votes } from "./IConfidentialERC20Votes.sol";
 
 /**
- * @title       Comp
+ * @title       ConfidentialERC20Votes
  * @notice      This contract inherits ConfidentialERC20, EIP712, and Ownable2Step.
  *              This is based on the Comp.sol contract written by Compound Labs.
  *              see: compound-finance/compound-protocol/blob/master/contracts/Governance/Comp.sol
@@ -19,7 +19,7 @@ import { IComp } from "./IComp.sol";
  *              with an account's balance.
  * @dev         The delegation of votes leaks information about the account's encrypted balance to the `delegatee`.
  */
-abstract contract Comp is IComp, ConfidentialERC20, EIP712, Ownable2Step {
+abstract contract ConfidentialERC20Votes is IConfidentialERC20Votes, ConfidentialERC20, EIP712, Ownable2Step {
     /// @notice Returned if the `blockNumber` is higher or equal to the (current) `block.number`.
     /// @dev    It is returned in requests to access votes.
     error BlockNumberEqualOrHigherThanCurrentBlock();
@@ -161,7 +161,7 @@ abstract contract Comp is IComp, ConfidentialERC20, EIP712, Ownable2Step {
     }
 
     /**
-     * @notice See {IComp-getPriorVotesForGovernor}.
+     * @notice See {IConfidentialERC20Votes-getPriorVotesForGovernor}.
      */
     function getPriorVotesForGovernor(address account, uint256 blockNumber) public virtual returns (euint64 votes) {
         if (msg.sender != governor) {

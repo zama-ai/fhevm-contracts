@@ -6,7 +6,7 @@ import { awaitAllDecryptionResults } from "../asyncDecrypt";
 import { createInstances } from "../instance";
 import { getSigners, initSigners } from "../signers";
 import { mineNBlocks } from "../utils";
-import { deployCompFixture, transferTokensAndDelegate } from "./Comp.fixture";
+import { deployConfidentialERC20Votes, transferTokensAndDelegate } from "./ConfidentialERC20Votes.fixture";
 import {
   deployGovernorAlphaZamaFixture,
   deployTimelockFixture,
@@ -20,8 +20,8 @@ describe("GovernorAlphaZama", function () {
   });
 
   beforeEach(async function () {
-    const contract = await deployCompFixture(this.signers);
-    this.comp = contract;
+    const contract = await deployConfidentialERC20Votes(this.signers);
+    this.confidentialERC20Votes = contract;
     this.compAddress = await contract.getAddress();
     this.instances = await createInstances(this.signers);
 
@@ -38,7 +38,7 @@ describe("GovernorAlphaZama", function () {
     this.governor = governor;
     this.governorAddress = await governor.getAddress();
 
-    const tx = await this.comp.setGovernor(this.governorAddress);
+    const tx = await this.confidentialERC20Votes.setGovernor(this.governorAddress);
     await tx.wait();
 
     this.VOTING_DELAY = await this.governor.VOTING_DELAY();
@@ -60,7 +60,7 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "bob",
       "bob",
-      this.comp,
+      this.confidentialERC20Votes,
       this.compAddress,
     );
 
@@ -116,7 +116,7 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "bob",
       "bob",
-      this.comp,
+      this.confidentialERC20Votes,
       this.compAddress,
     );
 
@@ -156,7 +156,7 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "bob",
       "bob",
-      this.comp,
+      this.confidentialERC20Votes,
       this.compAddress,
     );
 
@@ -166,7 +166,7 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "carol",
       "carol",
-      this.comp,
+      this.confidentialERC20Votes,
       this.compAddress,
     );
 
@@ -305,7 +305,7 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "bob",
       "bob",
-      this.comp,
+      this.confidentialERC20Votes,
       this.compAddress,
     );
 
@@ -379,7 +379,7 @@ describe("GovernorAlphaZama", function () {
       transferAmountFor,
       "bob",
       "bob",
-      this.comp,
+      this.confidentialERC20Votes,
       this.compAddress,
     );
 
@@ -389,7 +389,7 @@ describe("GovernorAlphaZama", function () {
       transferAmountAgainst,
       "carol",
       "carol",
-      this.comp,
+      this.confidentialERC20Votes,
       this.compAddress,
     );
 
@@ -621,7 +621,7 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "bob",
       "bob",
-      this.comp,
+      this.confidentialERC20Votes,
       this.compAddress,
     );
 
@@ -651,7 +651,7 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "bob",
       "bob",
-      this.comp,
+      this.confidentialERC20Votes,
       this.compAddress,
     );
 
@@ -680,7 +680,7 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "bob",
       "bob",
-      this.comp,
+      this.confidentialERC20Votes,
       this.compAddress,
     );
 
@@ -741,7 +741,7 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "bob",
       "bob",
-      this.comp,
+      this.confidentialERC20Votes,
       this.compAddress,
     );
 
@@ -765,7 +765,7 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "carol",
       "carol",
-      this.comp,
+      this.confidentialERC20Votes,
       this.compAddress,
     );
 
@@ -804,7 +804,7 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "dave",
       "dave",
-      this.comp,
+      this.confidentialERC20Votes,
       this.compAddress,
     );
 
@@ -873,7 +873,7 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "bob",
       "bob",
-      this.comp,
+      this.confidentialERC20Votes,
       this.compAddress,
     );
 
@@ -938,7 +938,7 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "bob",
       "bob",
-      this.comp,
+      this.confidentialERC20Votes,
       this.compAddress,
     );
 
@@ -982,7 +982,7 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "bob",
       "bob",
-      this.comp,
+      this.confidentialERC20Votes,
       this.compAddress,
     );
 
@@ -1035,7 +1035,7 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "bob",
       "bob",
-      this.comp,
+      this.confidentialERC20Votes,
       this.compAddress,
     );
 
@@ -1079,7 +1079,7 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "bob",
       "bob",
-      this.comp,
+      this.confidentialERC20Votes,
       this.compAddress,
     );
 
