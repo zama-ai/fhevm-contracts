@@ -37,10 +37,10 @@ inherited contracts.
 pragma solidity ^0.8.24;
 
 import { MockZamaFHEVMConfig } from "fhevm/config/ZamaFHEVMConfig.sol";
-import { EncryptedERC20 } from "fhevm-contracts/contracts/token/ERC20/EncryptedERC20.sol";
+import { ConfidentialERC20 } from "fhevm-contracts/contracts/token/ERC20/ConfidentialERC20.sol";
 
-contract MyERC20 is MockZamaFHEVMConfig, EncryptedERC20 {
-  constructor() EncryptedERC20("MyToken", "MYTOKEN") {
+contract MyERC20 is MockZamaFHEVMConfig, ConfidentialERC20 {
+  constructor() ConfidentialERC20("MyToken", "MYTOKEN") {
     _unsafeMint(1000000, msg.sender);
   }
 }
@@ -53,10 +53,10 @@ contract MyERC20 is MockZamaFHEVMConfig, EncryptedERC20 {
 pragma solidity ^0.8.24;
 
 import { SepoliaZamaFHEVMConfig } from "fhevm/config/ZamaFHEVMConfig.sol";
-import { EncryptedERC20 } from "fhevm-contracts/contracts/token/ERC20/EncryptedERC20.sol";
+import { ConfidentialERC20 } from "fhevm-contracts/contracts/token/ERC20/ConfidentialERC20.sol";
 
-contract MyERC20 is SepoliaZamaFHEVMConfig, EncryptedERC20 {
-  constructor() EncryptedERC20("MyToken", "MYTOKEN") {
+contract MyERC20 is SepoliaZamaFHEVMConfig, ConfidentialERC20 {
+  constructor() ConfidentialERC20("MyToken", "MYTOKEN") {
     _unsafeMint(1000000, msg.sender);
   }
 }
@@ -68,10 +68,10 @@ These Solidity templates include governance-related and token-related contracts.
 
 ### Token
 
-- [EncryptedERC20](./contracts/token/ERC20/EncryptedERC20.sol)
-- [EncryptedERC20Mintable](./contracts/token/ERC20/extensions/EncryptedERC20Mintable.sol)
-- [EncryptedERC20WithErrors](./contracts/token/ERC20/extensions/EncryptedERC20WithErrors.sol)
-- [EncryptedERC20WithErrorsMintable](./contracts/token/ERC20/extensions/EncryptedERC20WithErrorsMintable.sol)
+- [ConfidentialERC20](./contracts/token/ERC20/ConfidentialERC20.sol)
+- [ConfidentialERC20Mintable](./contracts/token/ERC20/extensions/ConfidentialERC20Mintable.sol)
+- [ConfidentialERC20WithErrors](./contracts/token/ERC20/extensions/ConfidentialERC20WithErrors.sol)
+- [ConfidentialERC20WithErrorsMintable](./contracts/token/ERC20/extensions/ConfidentialERC20WithErrorsMintable.sol)
 
 ### Governance
 

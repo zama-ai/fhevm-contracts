@@ -4,18 +4,18 @@ pragma solidity ^0.8.24;
 import "fhevm/lib/TFHE.sol";
 
 import { IERC20Errors } from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
-import { IEncryptedERC20 } from "./IEncryptedERC20.sol";
+import { IConfidentialERC20 } from "./IConfidentialERC20.sol";
 import { TFHEErrors } from "../../utils/TFHEErrors.sol";
 
 /**
- * @title       EncryptedERC20
+ * @title       ConfidentialERC20
  * @notice      This contract implements an encrypted ERC20-like token with confidential balances using
  *              Zama's FHE (Fully Homomorphic Encryption) library.
  * @dev         It supports standard ERC20 functions such as transferring tokens, minting,
  *              and setting allowances, but uses encrypted data types.
  *              The total supply is not encrypted.
  */
-abstract contract EncryptedERC20 is IEncryptedERC20, IERC20Errors, TFHEErrors {
+abstract contract ConfidentialERC20 is IConfidentialERC20, IERC20Errors, TFHEErrors {
     /// @notice used as a placehoder in Approval and Transfer events to comply with the official EIP20
     uint256 internal constant _PLACEHOLDER = type(uint256).max;
     /// @notice Total supply.
@@ -43,7 +43,7 @@ abstract contract EncryptedERC20 is IEncryptedERC20, IERC20Errors, TFHEErrors {
     }
 
     /**
-     * @notice See {IEncryptedERC20-approve}.
+     * @notice See {IConfidentialERC20-approve}.
      */
     function approve(address spender, einput encryptedAmount, bytes calldata inputProof) public virtual returns (bool) {
         approve(spender, TFHE.asEuint64(encryptedAmount, inputProof));
@@ -51,7 +51,7 @@ abstract contract EncryptedERC20 is IEncryptedERC20, IERC20Errors, TFHEErrors {
     }
 
     /**
-     * @notice See {IEncryptedERC20-approve}.
+     * @notice See {IConfidentialERC20-approve}.
      */
     function approve(address spender, euint64 amount) public virtual returns (bool) {
         _isSenderAllowedForAmount(amount);
@@ -62,7 +62,7 @@ abstract contract EncryptedERC20 is IEncryptedERC20, IERC20Errors, TFHEErrors {
     }
 
     /**
-     * @notice See {IEncryptedERC20-transfer}.
+     * @notice See {IConfidentialERC20-transfer}.
      */
     function transfer(address to, einput encryptedAmount, bytes calldata inputProof) public virtual returns (bool) {
         transfer(to, TFHE.asEuint64(encryptedAmount, inputProof));
@@ -70,7 +70,7 @@ abstract contract EncryptedERC20 is IEncryptedERC20, IERC20Errors, TFHEErrors {
     }
 
     /**
-     * @notice See {IEncryptedERC20-transfer}.
+     * @notice See {IConfidentialERC20-transfer}.
      */
     function transfer(address to, euint64 amount) public virtual returns (bool) {
         _isSenderAllowedForAmount(amount);
@@ -82,7 +82,7 @@ abstract contract EncryptedERC20 is IEncryptedERC20, IERC20Errors, TFHEErrors {
     }
 
     /**
-     * @notice See {IEncryptedERC20-transferFrom}.
+     * @notice See {IConfidentialERC20-transferFrom}.
      */
     function transferFrom(
         address from,
@@ -95,7 +95,7 @@ abstract contract EncryptedERC20 is IEncryptedERC20, IERC20Errors, TFHEErrors {
     }
 
     /**
-     * @notice See {IEncryptedERC20-transferFrom}.
+     * @notice See {IConfidentialERC20-transferFrom}.
      */
     function transferFrom(address from, address to, euint64 amount) public virtual returns (bool) {
         _isSenderAllowedForAmount(amount);
@@ -106,42 +106,42 @@ abstract contract EncryptedERC20 is IEncryptedERC20, IERC20Errors, TFHEErrors {
     }
 
     /**
-     * @notice See {IEncryptedERC20-allowance}.
+     * @notice See {IConfidentialERC20-allowance}.
      */
     function allowance(address owner, address spender) public view virtual returns (euint64) {
         return _allowance(owner, spender);
     }
 
     /**
-     * @notice See {IEncryptedERC20-balanceOf}.
+     * @notice See {IConfidentialERC20-balanceOf}.
      */
     function balanceOf(address account) public view virtual returns (euint64) {
         return _balances[account];
     }
 
     /**
-     * @notice See {IEncryptedERC20-decimals}.
+     * @notice See {IConfidentialERC20-decimals}.
      */
     function decimals() public view virtual returns (uint8) {
         return 6;
     }
 
     /**
-     * @notice See {IEncryptedERC20-name}.
+     * @notice See {IConfidentialERC20-name}.
      */
     function name() public view virtual returns (string memory) {
         return _name;
     }
 
     /**
-     * @notice See {IEncryptedERC20-symbol}.
+     * @notice See {IConfidentialERC20-symbol}.
      */
     function symbol() public view virtual returns (string memory) {
         return _symbol;
     }
 
     /**
-     * @notice See {IEncryptedERC20-totalSupply}.
+     * @notice See {IConfidentialERC20-totalSupply}.
      */
     function totalSupply() public view virtual returns (uint64) {
         return _totalSupply;

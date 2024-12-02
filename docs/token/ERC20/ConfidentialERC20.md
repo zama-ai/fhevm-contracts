@@ -1,4 +1,4 @@
-# EncryptedERC20
+# ConfidentialERC20
 
 This contract implements an encrypted ERC20-like token with confidential balances using Zama's FHE (Fully Homomorphic
 Encryption) library.
@@ -73,7 +73,7 @@ constructor(string name_, string symbol_) internal
 function approve(address spender, einput encryptedAmount, bytes inputProof) public virtual returns (bool)
 ```
 
-See {IEncryptedERC20-approve}.
+See {IConfidentialERC20-approve}.
 
 ## approve
 
@@ -81,7 +81,7 @@ See {IEncryptedERC20-approve}.
 function approve(address spender, euint64 amount) public virtual returns (bool)
 ```
 
-See {IEncryptedERC20-approve}.
+See {IConfidentialERC20-approve}.
 
 ## transfer
 
@@ -89,7 +89,7 @@ See {IEncryptedERC20-approve}.
 function transfer(address to, einput encryptedAmount, bytes inputProof) public virtual returns (bool)
 ```
 
-See {IEncryptedERC20-transfer}.
+See {IConfidentialERC20-transfer}.
 
 ## transfer
 
@@ -97,7 +97,7 @@ See {IEncryptedERC20-transfer}.
 function transfer(address to, euint64 amount) public virtual returns (bool)
 ```
 
-See {IEncryptedERC20-transfer}.
+See {IConfidentialERC20-transfer}.
 
 ## transferFrom
 
@@ -105,7 +105,7 @@ See {IEncryptedERC20-transfer}.
 function transferFrom(address from, address to, einput encryptedAmount, bytes inputProof) public virtual returns (bool)
 ```
 
-See {IEncryptedERC20-transferFrom}.
+See {IConfidentialERC20-transferFrom}.
 
 ## transferFrom
 
@@ -113,7 +113,7 @@ See {IEncryptedERC20-transferFrom}.
 function transferFrom(address from, address to, euint64 amount) public virtual returns (bool)
 ```
 
-See {IEncryptedERC20-transferFrom}.
+See {IConfidentialERC20-transferFrom}.
 
 ## allowance
 
@@ -121,7 +121,7 @@ See {IEncryptedERC20-transferFrom}.
 function allowance(address owner, address spender) public view virtual returns (euint64)
 ```
 
-See {IEncryptedERC20-allowance}.
+See {IConfidentialERC20-allowance}.
 
 ## balanceOf
 
@@ -129,7 +129,7 @@ See {IEncryptedERC20-allowance}.
 function balanceOf(address account) public view virtual returns (euint64)
 ```
 
-See {IEncryptedERC20-balanceOf}.
+See {IConfidentialERC20-balanceOf}.
 
 ## decimals
 
@@ -137,7 +137,7 @@ See {IEncryptedERC20-balanceOf}.
 function decimals() public view virtual returns (uint8)
 ```
 
-See {IEncryptedERC20-decimals}.
+See {IConfidentialERC20-decimals}.
 
 ## name
 
@@ -145,7 +145,7 @@ See {IEncryptedERC20-decimals}.
 function name() public view virtual returns (string)
 ```
 
-See {IEncryptedERC20-name}.
+See {IConfidentialERC20-name}.
 
 ## symbol
 
@@ -153,7 +153,7 @@ See {IEncryptedERC20-name}.
 function symbol() public view virtual returns (string)
 ```
 
-See {IEncryptedERC20-symbol}.
+See {IConfidentialERC20-symbol}.
 
 ## totalSupply
 
@@ -161,7 +161,7 @@ See {IEncryptedERC20-symbol}.
 function totalSupply() public view virtual returns (uint64)
 ```
 
-See {IEncryptedERC20-totalSupply}.
+See {IConfidentialERC20-totalSupply}.
 
 ## \_approve
 

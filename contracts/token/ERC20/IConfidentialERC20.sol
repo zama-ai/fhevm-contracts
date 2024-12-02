@@ -4,10 +4,10 @@ pragma solidity ^0.8.24;
 import "fhevm/lib/TFHE.sol";
 
 /**
- * @title       IEncryptedERC20
+ * @title       IConfidentialERC20
  * @notice      Interface that defines ERC20-like tokens with encrypted balances.
  */
-interface IEncryptedERC20 {
+interface IConfidentialERC20 {
     /**
      * @notice Emitted when the allowance of a `spender` for an `owner` is set by
      * a call to {approve}.
@@ -18,7 +18,7 @@ interface IEncryptedERC20 {
      * @notice Emitted when tokens are moved from one account (`from`) to
      * another (`to`).
      * Last argument is either a default placeholder, typically equal to max(uint256), in case of
-     * an EncryptedERC20 without error handling, or an errorId in case of encrypted error handling.
+     * a ConfidentialERC20 without error handling, or an errorId in case of encrypted error handling.
      */
     event Transfer(address indexed from, address indexed to, uint256 errorId);
 

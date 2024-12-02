@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { parseUnits } from "ethers";
 import { ethers, network } from "hardhat";
 
-import { reencryptBalance } from "../encryptedERC20/EncryptedERC20.fixture";
+import { reencryptBalance } from "../confidentialERC20/ConfidentialERC20.fixture";
 import { createInstances } from "../instance";
 import { reencryptEuint64 } from "../reencrypt";
 import { getSigners, initSigners } from "../signers";

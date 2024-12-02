@@ -1,6 +1,6 @@
-# EncryptedERC20Mintable
+# ConfidentialERC20Mintable
 
-This contract inherits EncryptedERC20.
+This contract inherits ConfidentialERC20.
 
 _It allows an owner to mint tokens. Mint amounts are public._
 

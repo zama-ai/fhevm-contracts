@@ -4,14 +4,14 @@ pragma solidity ^0.8.24;
 import "fhevm/lib/TFHE.sol";
 import { Ownable2Step, Ownable } from "@openzeppelin/contracts/access/Ownable2Step.sol";
 
-import { EncryptedERC20 } from "../EncryptedERC20.sol";
+import { ConfidentialERC20WithErrors } from "./ConfidentialERC20WithErrors.sol";
 
 /**
- * @title       EncryptedERC20Mintable
- * @notice      This contract inherits EncryptedERC20.
+ * @title       ConfidentialERC20WithErrorsMintable
+ * @notice      This contract inherits ConfidentialERC20WithErrors.
  * @dev         It allows an owner to mint tokens. Mint amounts are public.
  */
-abstract contract EncryptedERC20Mintable is Ownable2Step, EncryptedERC20 {
+abstract contract ConfidentialERC20WithErrorsMintable is Ownable2Step, ConfidentialERC20WithErrors {
     /**
      * @notice Emitted when `amount` tokens are minted to one account (`to`).
      */
@@ -26,7 +26,7 @@ abstract contract EncryptedERC20Mintable is Ownable2Step, EncryptedERC20 {
         string memory name_,
         string memory symbol_,
         address owner_
-    ) Ownable(owner_) EncryptedERC20(name_, symbol_) {}
+    ) Ownable(owner_) ConfidentialERC20WithErrors(name_, symbol_) {}
 
     /**
      * @notice Mint tokens.
