@@ -1,34 +1,34 @@
 import { ethers } from "hardhat";
 
-import type { ERC20Mintable, EncryptedERC20Wrapped, TestEncryptedERC20Wrapped } from "../../types";
+import type { ConfidentialERC20Wrapped, ERC20Mintable, TestConfidentialERC20Wrapped } from "../../types";
 import { Signers } from "../signers";
 
-export async function deployERC20AndEncryptedERC20WrappedFixture(
+export async function deployERC20AndConfidentialERC20WrappedFixture(
   signers: Signers,
   name: string,
   symbol: string,
   decimals: number,
-): Promise<[ERC20Mintable, TestEncryptedERC20Wrapped]> {
+): Promise<[ERC20Mintable, TestConfidentialERC20Wrapped]> {
   const contractFactoryERC20Mintable = await ethers.getContractFactory("ERC20Mintable");
   const contractERC20 = await contractFactoryERC20Mintable
     .connect(signers.alice)
     .deploy(name, symbol, decimals, signers.alice.address);
   await contractERC20.waitForDeployment();
 
-  const contractFactoryEncryptedERC20Wrapped = await ethers.getContractFactory("TestEncryptedERC20Wrapped");
-  const contractEncryptedERC20Wrapped = await contractFactoryEncryptedERC20Wrapped
+  const contractFactory = await ethers.getContractFactory("TestConfidentialERC20Wrapped");
+  const contractConfidentialERC20Wrapped = await contractFactory
     .connect(signers.alice)
     .deploy(contractERC20.getAddress());
-  await contractEncryptedERC20Wrapped.waitForDeployment();
+  await contractConfidentialERC20Wrapped.waitForDeployment();
 
-  return [contractERC20, contractEncryptedERC20Wrapped];
+  return [contractERC20, contractConfidentialERC20Wrapped];
 }
 
 export async function mintAndWrap(
   signers: Signers,
   user: string,
   plainToken: ERC20Mintable,
-  token: EncryptedERC20Wrapped,
+  token: ConfidentialERC20Wrapped,
   tokenAddress: string,
   amount: bigint,
 ): Promise<void> {
