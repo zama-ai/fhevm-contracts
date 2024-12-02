@@ -7,7 +7,7 @@ import { getSigners, initSigners } from "../signers";
 import { deployEncryptedErrors } from "./EncryptedErrors.fixture";
 
 describe("EncryptedErrors", function () {
-  const NO_ERROR_CODE = BigInt(0);
+  const NO_ERROR_CODE = 0n;
 
   before(async function () {
     await initSigners(3);
@@ -201,7 +201,7 @@ describe("EncryptedErrors", function () {
 
   it("cannot define errors if indexCode is greater or equal than totalNumberErrorCodes", async function () {
     const condition = true;
-    const targetErrorCode = (await this.encryptedErrors.errorGetNumCodesDefined()) + BigInt(1);
+    const targetErrorCode = (await this.encryptedErrors.errorGetNumCodesDefined()) + 1n;
 
     const input = this.instances.alice.createEncryptedInput(this.encryptedErrorsAddress, this.signers.alice.address);
     const encryptedData = await input.addBool(condition).encrypt();
@@ -242,7 +242,7 @@ describe("EncryptedErrors", function () {
   it("cannot change errors if indexCode is greater or equal than totalNumberErrorCodes", async function () {
     const condition = true;
     const errorCode = 1;
-    const targetErrorCode = (await this.encryptedErrors.errorGetNumCodesDefined()) + BigInt(1);
+    const targetErrorCode = (await this.encryptedErrors.errorGetNumCodesDefined()) + 1n;
 
     const input = this.instances.alice.createEncryptedInput(this.encryptedErrorsAddress, this.signers.alice.address);
     const encryptedData = await input.addBool(condition).add8(errorCode).encrypt();

@@ -6,7 +6,7 @@ import { deployEncryptedERC20Fixture, reencryptAllowance, reencryptBalance } fro
 
 describe("EncryptedERC20", function () {
   // @dev The placeholder is type(uint256).max --> 2**256 - 1.
-  const PLACEHOLDER = BigInt(2) ** BigInt(256) - BigInt(1);
+  const PLACEHOLDER = 2n ** 256n - 1n;
 
   before(async function () {
     await initSigners(2);

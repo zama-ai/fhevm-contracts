@@ -7,7 +7,7 @@ import { checkErrorCode, deployEncryptedERC20WithErrorsFixture } from "./Encrypt
 
 describe("EncryptedERC20WithErrors", function () {
   // @dev The placeholder is type(uint256).max --> 2**256 - 1.
-  const PLACEHOLDER = BigInt(2) ** BigInt(256) - BigInt(1);
+  const PLACEHOLDER = 2n ** 256n - 1n;
 
   before(async function () {
     await initSigners(2);
@@ -43,7 +43,7 @@ describe("EncryptedERC20WithErrors", function () {
   it("should transfer tokens between two users", async function () {
     const mintAmount = 10_000;
     const transferAmount = 1337;
-    const expectedTransferId = BigInt(0);
+    const expectedTransferId = 0n;
 
     let tx = await this.encryptedERC20.connect(this.signers.alice).mint(mintAmount);
     await tx.wait();
@@ -102,7 +102,7 @@ describe("EncryptedERC20WithErrors", function () {
     //      amount.
     const mintAmount = 1000;
     const transferAmount = 1337;
-    const expectedTransferId = BigInt(0);
+    const expectedTransferId = 0n;
 
     let tx = await this.encryptedERC20.connect(this.signers.alice).mint(mintAmount);
     await tx.wait();
@@ -182,7 +182,7 @@ describe("EncryptedERC20WithErrors", function () {
       ),
     ).to.equal(transferAmount);
 
-    const expectedTransferId1 = BigInt(0);
+    const expectedTransferId1 = 0n;
 
     const inputBob1 = this.instances.bob.createEncryptedInput(this.encryptedERC20Address, this.signers.bob.address);
     inputBob1.add64(transferAmount + 1); // above allowance so next tx should actually not send any token
@@ -220,7 +220,7 @@ describe("EncryptedERC20WithErrors", function () {
       ),
     ).to.equal("UNSUFFICIENT_APPROVAL");
 
-    const expectedTransferId2 = BigInt(1);
+    const expectedTransferId2 = 1n;
 
     const inputBob2 = this.instances.bob.createEncryptedInput(this.encryptedERC20Address, this.signers.bob.address);
     inputBob2.add64(transferAmount); // below allowance so next tx should send token

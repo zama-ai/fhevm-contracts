@@ -73,14 +73,14 @@ describe("GovernorAlphaZama", function () {
     await expect(tx)
       .to.emit(this.governor, "ProposalCreated")
       .withArgs(
-        BigInt(1),
+        1n,
         this.signers.bob.address,
         targets,
         values,
         signatures,
         calldatas,
-        blockNumber + this.VOTING_DELAY + BigInt(1), // @dev We add one since the transaction incremented the block number
-        blockNumber + this.VOTING_DELAY + this.VOTING_PERIOD + BigInt(1),
+        blockNumber + this.VOTING_DELAY + 1n, // @dev We add one since the transaction incremented the block number
+        blockNumber + this.VOTING_DELAY + this.VOTING_PERIOD + 1n,
         description,
       );
 
@@ -103,7 +103,7 @@ describe("GovernorAlphaZama", function () {
   });
 
   it("anyone can propose a vote but it is rejected if votes are below the token threshold", async function () {
-    const transferAmount = (await this.governor.PROPOSAL_THRESHOLD()) - BigInt(1);
+    const transferAmount = (await this.governor.PROPOSAL_THRESHOLD()) - 1n;
     const targets = [this.signers.bob.address];
     const values = ["0"];
     const signatures = ["getBalanceOf(address)"];
@@ -189,7 +189,7 @@ describe("GovernorAlphaZama", function () {
 
     await expect(tx).to.emit(this.governor, "VoteCast").withArgs(
       this.signers.bob,
-      BigInt(1), // @dev proposalId
+      1n, // @dev proposalId
     );
 
     input = this.instances.carol.createEncryptedInput(this.governorAddress, this.signers.carol.address);
@@ -201,7 +201,7 @@ describe("GovernorAlphaZama", function () {
 
     await expect(tx).to.emit(this.governor, "VoteCast").withArgs(
       this.signers.carol,
-      BigInt(1), // @dev proposalId
+      1n, // @dev proposalId
     );
 
     // Bob/Carol can reeencrypt his/her receipt
@@ -247,7 +247,7 @@ describe("GovernorAlphaZama", function () {
     // POST-DECRYPTION RESULTS
     await awaitAllDecryptionResults();
     proposalInfo = await this.governor.getProposalInfo(proposalId);
-    expect(proposalInfo.forVotes).to.be.eq(transferAmount * BigInt(2));
+    expect(proposalInfo.forVotes).to.be.eq(transferAmount * 2n);
     expect(proposalInfo.againstVotes).to.be.eq(parseUnits(String(0), 6));
     // 7 ==> Succeeded
     expect(proposalInfo.state).to.equal(7);
@@ -268,7 +268,7 @@ describe("GovernorAlphaZama", function () {
     await expect(tx)
       .to.emit(this.governor, "ProposalQueued")
       .withArgs(
-        BigInt(1), // @dev proposalId,
+        1n, // @dev proposalId,
         nextBlockTimestamp + this.TIMELOCK_DELAY,
       );
 
@@ -282,7 +282,7 @@ describe("GovernorAlphaZama", function () {
     await ethers.provider.send("evm_setNextBlockTimestamp", [eta.toString()]);
     tx = await this.governor.execute(proposalId);
     await expect(tx).to.emit(this.governor, "ProposalExecuted").withArgs(
-      BigInt(1), // @dev proposalId
+      1n, // @dev proposalId
     );
 
     proposalInfo = await this.governor.getProposalInfo(proposalId);
@@ -296,7 +296,7 @@ describe("GovernorAlphaZama", function () {
     const signatures = ["getBalanceOf(address)"];
     const calldatas = [ethers.AbiCoder.defaultAbiCoder().encode(["address"], [this.signers.bob.address])];
     const description = "description";
-    const transferAmount = (await this.governor.QUORUM_VOTES()) - BigInt(1);
+    const transferAmount = (await this.governor.QUORUM_VOTES()) - 1n;
 
     // Bob receives enough to create a proposal but not enough to match the quorum.
     await transferTokensAndDelegate(
@@ -474,7 +474,7 @@ describe("GovernorAlphaZama", function () {
     if (block === null) {
       throw "Block is null. Check RPC config.";
     } else {
-      expiry = BigInt(block.timestamp) + this.TIMELOCK_DELAY + BigInt(1);
+      expiry = BigInt(block.timestamp) + this.TIMELOCK_DELAY + 1n;
     }
 
     const tx = await this.governor.queueSetTimelockPendingAdmin(this.signers.bob, expiry);
@@ -511,7 +511,7 @@ describe("GovernorAlphaZama", function () {
       if (block === null) {
         throw "Block is null. Check RPC config.";
       } else {
-        expiry2 = BigInt(block.timestamp) + this.TIMELOCK_DELAY + BigInt(1);
+        expiry2 = BigInt(block.timestamp) + this.TIMELOCK_DELAY + 1n;
       }
 
       const timeLockAdd = this.timelockAddress;
@@ -727,7 +727,7 @@ describe("GovernorAlphaZama", function () {
   });
 
   it("cannot cancel if state is Rejected/Defeated/Executed/Canceled", async function () {
-    let transferAmount = (await this.governor.PROPOSAL_THRESHOLD()) - BigInt(1);
+    let transferAmount = (await this.governor.PROPOSAL_THRESHOLD()) - 1n;
     const targets = [this.signers.bob.address];
     const values = ["0"];
     const signatures = ["getBalanceOf(address)"];
@@ -757,7 +757,7 @@ describe("GovernorAlphaZama", function () {
     );
 
     // CANNOT CANCEL IF DEFEATED
-    transferAmount = (await this.governor.QUORUM_VOTES()) - BigInt(1);
+    transferAmount = (await this.governor.QUORUM_VOTES()) - 1n;
 
     await transferTokensAndDelegate(
       this.signers,
@@ -912,7 +912,7 @@ describe("GovernorAlphaZama", function () {
     // @dev Alice is the governor's owner.
     tx = await this.governor.connect(this.signers.alice).cancel(proposalId);
     await expect(tx).to.emit(this.governor, "ProposalCanceled").withArgs(
-      BigInt(1), // @dev proposalId
+      1n, // @dev proposalId
     );
 
     // 5 ==> Canceled

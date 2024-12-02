@@ -12,8 +12,7 @@ import { delegateBySig } from "./DelegateBySig";
 
 describe("Comp", function () {
   // @dev The placeholder is type(uint256).max --> 2**256 - 1.
-  const PLACEHOLDER = BigInt(2) ** BigInt(256) - BigInt(1);
-
+  const PLACEHOLDER = 2n ** 256n - 1n;
   const NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
 
   before(async function () {
@@ -301,7 +300,7 @@ describe("Comp", function () {
   it("getCurrentVote/getPriorVotes without any vote cannot be decrypted", async function () {
     // 1. If no checkpoint exists using getCurrentVotes
     let currentVoteHandle = await this.comp.connect(this.signers.bob).getCurrentVotes(this.signers.bob.address);
-    expect(currentVoteHandle).to.be.eq(BigInt(0));
+    expect(currentVoteHandle).to.be.eq(0n);
 
     await expect(
       reencryptEuint64(this.signers, this.instances, "bob", currentVoteHandle, this.comp),
@@ -316,7 +315,7 @@ describe("Comp", function () {
       .getPriorVotes(this.signers.bob.address, latestBlockNumber);
 
     // It is an encrypted constant that is not reencryptable by Bob.
-    expect(currentVoteHandle).not.to.be.eq(BigInt(0));
+    expect(currentVoteHandle).not.to.be.eq(0n);
 
     await expect(
       reencryptEuint64(this.signers, this.instances, "bob", currentVoteHandle, this.comp),
@@ -334,7 +333,7 @@ describe("Comp", function () {
       .getPriorVotes(this.signers.bob.address, latestBlockNumber);
 
     // It is an encrypted constant that is not reencryptable by Bob.
-    expect(currentVoteHandle).not.to.be.eq(BigInt(0));
+    expect(currentVoteHandle).not.to.be.eq(0n);
 
     await expect(
       reencryptEuint64(this.signers, this.instances, "bob", currentVoteHandle, this.comp),
