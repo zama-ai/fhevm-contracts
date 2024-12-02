@@ -2,11 +2,11 @@
 pragma solidity ^0.8.24;
 
 /**
- * @title       IEncryptedERC20Wrapped/
+ * @title       IConfidentialERC20Wrapped/
  * @notice      Interface that defines events, errors, and structs for
  *              contrats that wrap native asset or ERC20 tokens.
  */
-interface IEncryptedERC20Wrapped {
+interface IConfidentialERC20Wrapped {
     /// @notice Returned if the amount is greater than 2**64.
     error AmountTooHigh();
 

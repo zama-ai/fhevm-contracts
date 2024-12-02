@@ -7,18 +7,18 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 import "fhevm/lib/TFHE.sol";
 import "fhevm/gateway/GatewayCaller.sol";
 
-import { IEncryptedERC20Wrapped } from "./IEncryptedERC20Wrapped.sol";
-import { EncryptedERC20 } from "./EncryptedERC20.sol";
+import { IConfidentialERC20Wrapped } from "./IConfidentialERC20Wrapped.sol";
+import { ConfidentialERC20 } from "./ConfidentialERC20.sol";
 
 /**
- * @title             EncryptedERC20Wrapped
+ * @title             ConfidentialERC20Wrapped
  * @notice            This contract allows users to wrap/unwrap trustlessly
- *                    ERC20 tokens to EncryptedERC20 tokens.
+ *                    ERC20 tokens to ConfidentialERC20 tokens.
  * @dev               This implementation does not support tokens with rebase functions or
  *                    tokens with a fee on transfer. All ERC20 tokens must have decimals
  *                    inferior or equal to 18 decimals but superior or equal to 6 decimals.
  */
-abstract contract EncryptedERC20Wrapped is EncryptedERC20, IEncryptedERC20Wrapped, GatewayCaller {
+abstract contract ConfidentialERC20Wrapped is ConfidentialERC20, IConfidentialERC20Wrapped, GatewayCaller {
     using SafeERC20 for IERC20Metadata;
 
     /// @notice ERC20 token that is wrapped.
@@ -41,7 +41,7 @@ abstract contract EncryptedERC20Wrapped is EncryptedERC20, IEncryptedERC20Wrappe
     constructor(
         address erc20_
     )
-        EncryptedERC20(
+        ConfidentialERC20(
             string(abi.encodePacked("Encrypted ", IERC20Metadata(erc20_).name())),
             string(abi.encodePacked("e", IERC20Metadata(erc20_).symbol()))
         )
@@ -50,7 +50,7 @@ abstract contract EncryptedERC20Wrapped is EncryptedERC20, IEncryptedERC20Wrappe
     }
 
     /**
-     * @notice         Unwrap EncryptedERC20 tokens to standard ERC20 tokens.
+     * @notice         Unwrap ConfidentialERC20 tokens to standard ERC20 tokens.
      * @param amount   Amount to unwrap.
      */
     function unwrap(uint64 amount) public virtual {

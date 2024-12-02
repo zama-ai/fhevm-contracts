@@ -5,10 +5,10 @@ import { ethers } from "hardhat";
 import { awaitAllDecryptionResults } from "../asyncDecrypt";
 import { createInstances } from "../instance";
 import { getSigners, initSigners } from "../signers";
-import { reencryptBalance } from "./EncryptedERC20.fixture";
-import { deployEncryptedWETHFixture } from "./EncryptedWETH.fixture";
+import { reencryptBalance } from "./ConfidentialERC20.fixture";
+import { deployConfidentialWETHFixture } from "./ConfidentialWETH.fixture";
 
-describe("EncryptedWETH", function () {
+describe("ConfidentialWETH", function () {
   before(async function () {
     await initSigners(3);
     this.signers = await getSigners();
@@ -16,15 +16,15 @@ describe("EncryptedWETH", function () {
   });
 
   beforeEach(async function () {
-    const encryptedWETH = await deployEncryptedWETHFixture(this.signers);
-    this.encryptedWETH = encryptedWETH;
-    this.encryptedWETHAddress = await encryptedWETH.getAddress();
+    const confidentialWETH = await deployConfidentialWETHFixture(this.signers);
+    this.confidentialWETH = confidentialWETH;
+    this.confidentialWETHAddress = await confidentialWETH.getAddress();
   });
 
   it("name/symbol are automatically set, totalSupply = 0", async function () {
-    expect(await this.encryptedWETH.name()).to.eq("Encrypted Wrapped Ether");
-    expect(await this.encryptedWETH.symbol()).to.eq("eWETH");
-    expect(await this.encryptedWETH.totalSupply()).to.eq("0");
+    expect(await this.confidentialWETH.name()).to.eq("Encrypted Wrapped Ether");
+    expect(await this.confidentialWETH.symbol()).to.eq("eWETH");
+    expect(await this.confidentialWETH.totalSupply()).to.eq("0");
   });
 
   it("can wrap", async function () {
@@ -35,12 +35,18 @@ describe("EncryptedWETH", function () {
     const amountToMint = amountToWrap18Decimals + ethers.parseUnits("1", 18);
     await ethers.provider.send("hardhat_setBalance", [this.signers.alice.address, "0x" + amountToMint.toString(16)]);
 
-    const tx = await this.encryptedWETH.connect(this.signers.alice).wrap({ value: amountToWrap18Decimals });
+    const tx = await this.confidentialWETH.connect(this.signers.alice).wrap({ value: amountToWrap18Decimals });
     await tx.wait();
 
     // Check encrypted balance
     expect(
-      await reencryptBalance(this.signers, this.instances, "alice", this.encryptedWETH, this.encryptedWETHAddress),
+      await reencryptBalance(
+        this.signers,
+        this.instances,
+        "alice",
+        this.confidentialWETH,
+        this.confidentialWETHAddress,
+      ),
     ).to.equal(amountToWrap6Decimals);
   });
 
@@ -55,25 +61,37 @@ describe("EncryptedWETH", function () {
     const amountToMint = amountToWrap18Decimals + ethers.parseUnits("1", 18);
     await ethers.provider.send("hardhat_setBalance", [this.signers.alice.address, "0x" + amountToMint.toString(16)]);
 
-    let tx = await this.encryptedWETH.connect(this.signers.alice).wrap({ value: amountToWrap18Decimals });
+    let tx = await this.confidentialWETH.connect(this.signers.alice).wrap({ value: amountToWrap18Decimals });
     await tx.wait();
 
-    tx = await this.encryptedWETH.connect(this.signers.alice).unwrap(amountToUnwrap6Decimals);
+    tx = await this.confidentialWETH.connect(this.signers.alice).unwrap(amountToUnwrap6Decimals);
     await tx.wait();
     await awaitAllDecryptionResults();
 
     // Check encrypted balance
     expect(
-      await reencryptBalance(this.signers, this.instances, "alice", this.encryptedWETH, this.encryptedWETHAddress),
+      await reencryptBalance(
+        this.signers,
+        this.instances,
+        "alice",
+        this.confidentialWETH,
+        this.confidentialWETHAddress,
+      ),
     ).to.equal(amountToWrap6Decimals - amountToUnwrap6Decimals);
 
     // Unwrap all
-    tx = await this.encryptedWETH.unwrap(amountToWrap6Decimals - amountToUnwrap6Decimals);
+    tx = await this.confidentialWETH.unwrap(amountToWrap6Decimals - amountToUnwrap6Decimals);
     await tx.wait();
     await awaitAllDecryptionResults();
 
     expect(
-      await reencryptBalance(this.signers, this.instances, "alice", this.encryptedWETH, this.encryptedWETHAddress),
+      await reencryptBalance(
+        this.signers,
+        this.instances,
+        "alice",
+        this.confidentialWETH,
+        this.confidentialWETHAddress,
+      ),
     ).to.equal(BigInt("0"));
   });
 
@@ -84,13 +102,13 @@ describe("EncryptedWETH", function () {
     await ethers.provider.send("hardhat_setBalance", [this.signers.alice.address, "0x" + amountToMint.toString(16)]);
 
     // @dev Verify 2**64 - 1 is fine.
-    let tx = await this.encryptedWETH.connect(this.signers.alice).wrap({ value: amountToWrap - BigInt(1) });
+    let tx = await this.confidentialWETH.connect(this.signers.alice).wrap({ value: amountToWrap - BigInt(1) });
     await tx.wait();
 
-    const totalSupply = await this.encryptedWETH.totalSupply();
+    const totalSupply = await this.confidentialWETH.totalSupply();
 
     // Unwrap all
-    tx = await this.encryptedWETH.connect(this.signers.alice).unwrap(totalSupply);
+    tx = await this.confidentialWETH.connect(this.signers.alice).unwrap(totalSupply);
     await tx.wait();
     await awaitAllDecryptionResults();
 
@@ -99,8 +117,8 @@ describe("EncryptedWETH", function () {
     await ethers.provider.send("hardhat_setBalance", [this.signers.bob.address, "0x" + amountToMint.toString(16)]);
 
     await expect(
-      this.encryptedWETH.connect(this.signers.bob).wrap({ value: amountToWrap }),
-    ).to.be.revertedWithCustomError(this.encryptedWETH, "AmountTooHigh");
+      this.confidentialWETH.connect(this.signers.bob).wrap({ value: amountToWrap }),
+    ).to.be.revertedWithCustomError(this.confidentialWETH, "AmountTooHigh");
   });
 
   it("cannot transfer after unwrap has been called but decryption has not occurred", async function () {
@@ -112,23 +130,23 @@ describe("EncryptedWETH", function () {
     const amountToMint = amountToWrap + ethers.parseUnits("1", 18);
     await ethers.provider.send("hardhat_setBalance", [this.signers.alice.address, "0x" + amountToMint.toString(16)]);
 
-    let tx = await this.encryptedWETH.connect(this.signers.alice).wrap({ value: amountToWrap });
+    let tx = await this.confidentialWETH.connect(this.signers.alice).wrap({ value: amountToWrap });
     await tx.wait();
 
-    tx = await this.encryptedWETH.connect(this.signers.alice).unwrap(amountToUnwrap);
+    tx = await this.confidentialWETH.connect(this.signers.alice).unwrap(amountToUnwrap);
     await tx.wait();
 
-    const input = this.instances.alice.createEncryptedInput(this.encryptedWETHAddress, this.signers.alice.address);
+    const input = this.instances.alice.createEncryptedInput(this.confidentialWETHAddress, this.signers.alice.address);
     input.add64(transferAmount);
     const encryptedTransferAmount = await input.encrypt();
 
     await expect(
-      this.encryptedWETH
+      this.confidentialWETH
         .connect(this.signers.alice)
         [
           "transfer(address,bytes32,bytes)"
         ](this.signers.bob.address, encryptedTransferAmount.handles[0], encryptedTransferAmount.inputProof),
-    ).to.be.revertedWithCustomError(this.encryptedWETH, "CannotTransferOrUnwrap");
+    ).to.be.revertedWithCustomError(this.confidentialWETH, "CannotTransferOrUnwrap");
   });
 
   it("cannot call twice unwrap before decryption", async function () {
@@ -138,16 +156,15 @@ describe("EncryptedWETH", function () {
     const amountToMint = amountToWrap + ethers.parseUnits("1", 18);
     await ethers.provider.send("hardhat_setBalance", [this.signers.alice.address, "0x" + amountToMint.toString(16)]);
 
-    let tx = await this.encryptedWETH.connect(this.signers.alice).wrap({ value: amountToWrap });
+    let tx = await this.confidentialWETH.connect(this.signers.alice).wrap({ value: amountToWrap });
     await tx.wait();
 
-    tx = await this.encryptedWETH.connect(this.signers.alice).unwrap(amountToUnwrap);
+    tx = await this.confidentialWETH.connect(this.signers.alice).unwrap(amountToUnwrap);
     await tx.wait();
 
-    await expect(this.encryptedWETH.connect(this.signers.alice).unwrap(amountToUnwrap)).to.be.revertedWithCustomError(
-      this.encryptedWETH,
-      "CannotTransferOrUnwrap",
-    );
+    await expect(
+      this.confidentialWETH.connect(this.signers.alice).unwrap(amountToUnwrap),
+    ).to.be.revertedWithCustomError(this.confidentialWETH, "CannotTransferOrUnwrap");
   });
 
   it("cannot unwrap more than balance", async function () {
@@ -160,17 +177,23 @@ describe("EncryptedWETH", function () {
     const amountToMint = amountToWrap18Decimals + ethers.parseUnits("1", 18);
     await ethers.provider.send("hardhat_setBalance", [this.signers.alice.address, "0x" + amountToMint.toString(16)]);
 
-    let tx = await this.encryptedWETH.connect(this.signers.alice).wrap({ value: amountToWrap18Decimals });
+    let tx = await this.confidentialWETH.connect(this.signers.alice).wrap({ value: amountToWrap18Decimals });
     await tx.wait();
-    tx = await this.encryptedWETH.connect(this.signers.alice).unwrap(amountToUnwrap6Decimals);
+    tx = await this.confidentialWETH.connect(this.signers.alice).unwrap(amountToUnwrap6Decimals);
     await tx.wait();
     await awaitAllDecryptionResults();
 
     // Verify the balances have not changed
-    expect(await ethers.provider.getBalance(this.encryptedWETHAddress)).to.equal(amountToWrap18Decimals);
-    expect(await this.encryptedWETH.totalSupply()).to.equal(amountToWrap6Decimals);
+    expect(await ethers.provider.getBalance(this.confidentialWETHAddress)).to.equal(amountToWrap18Decimals);
+    expect(await this.confidentialWETH.totalSupply()).to.equal(amountToWrap6Decimals);
     expect(
-      await reencryptBalance(this.signers, this.instances, "alice", this.encryptedWETH, this.encryptedWETHAddress),
+      await reencryptBalance(
+        this.signers,
+        this.instances,
+        "alice",
+        this.confidentialWETH,
+        this.confidentialWETHAddress,
+      ),
     ).to.equal(amountToWrap6Decimals);
   });
 
@@ -181,30 +204,30 @@ describe("EncryptedWETH", function () {
     const amountToMint = amountToWrap + ethers.parseUnits("1", 18);
     await ethers.provider.send("hardhat_setBalance", [this.signers.alice.address, "0x" + amountToMint.toString(16)]);
 
-    let tx = await this.encryptedWETH.connect(this.signers.alice).wrap({ value: amountToWrap });
+    let tx = await this.confidentialWETH.connect(this.signers.alice).wrap({ value: amountToWrap });
     await tx.wait();
 
     let transferAmount = ethers.parseUnits("3000", 6);
-    let input = this.instances.alice.createEncryptedInput(this.encryptedWETHAddress, this.signers.alice.address);
+    let input = this.instances.alice.createEncryptedInput(this.confidentialWETHAddress, this.signers.alice.address);
     input.add64(transferAmount);
     let encryptedTransferAmount = await input.encrypt();
 
-    await this.encryptedWETH
+    await this.confidentialWETH
       .connect(this.signers.alice)
       [
         "transfer(address,bytes32,bytes)"
       ](this.signers.bob.address, encryptedTransferAmount.handles[0], encryptedTransferAmount.inputProof);
 
-    tx = await this.encryptedWETH.connect(this.signers.bob).unwrap(amountToUnwrap);
+    tx = await this.confidentialWETH.connect(this.signers.bob).unwrap(amountToUnwrap);
     await tx.wait();
     await awaitAllDecryptionResults();
 
     transferAmount = ethers.parseUnits("1000", 6);
-    input = this.instances.bob.createEncryptedInput(this.encryptedWETHAddress, this.signers.bob.address);
+    input = this.instances.bob.createEncryptedInput(this.confidentialWETHAddress, this.signers.bob.address);
     input.add64(transferAmount);
     encryptedTransferAmount = await input.encrypt();
 
-    await this.encryptedWETH
+    await this.confidentialWETH
       .connect(this.signers.bob)
       [
         "transfer(address,bytes32,bytes)"
@@ -212,6 +235,6 @@ describe("EncryptedWETH", function () {
   });
 
   it("only gateway can call callback functions", async function () {
-    await expect(this.encryptedWETH.connect(this.signers.alice).callbackUnwrap(1, false)).to.be.reverted;
+    await expect(this.confidentialWETH.connect(this.signers.alice).callbackUnwrap(1, false)).to.be.reverted;
   });
 });
