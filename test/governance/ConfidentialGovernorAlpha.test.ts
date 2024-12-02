@@ -6,23 +6,23 @@ import { awaitAllDecryptionResults } from "../asyncDecrypt";
 import { createInstances } from "../instance";
 import { getSigners, initSigners } from "../signers";
 import { mineNBlocks } from "../utils";
-import { deployCompFixture, transferTokensAndDelegate } from "./Comp.fixture";
+import { deployConfidentialERC20Votes, transferTokensAndDelegate } from "./ConfidentialERC20Votes.fixture";
 import {
-  deployGovernorAlphaZamaFixture,
+  deployConfidentialGovernorAlphaFixture,
   deployTimelockFixture,
   reencryptVoteReceipt,
-} from "./GovernorAlphaZama.fixture";
+} from "./ConfidentialGovernorAlpha.fixture";
 
-describe("GovernorAlphaZama", function () {
+describe("ConfidentialGovernorAlpha", function () {
   before(async function () {
     await initSigners(4);
     this.signers = await getSigners();
   });
 
   beforeEach(async function () {
-    const contract = await deployCompFixture(this.signers);
-    this.comp = contract;
-    this.compAddress = await contract.getAddress();
+    const contract = await deployConfidentialERC20Votes(this.signers);
+    this.confidentialERC20Votes = contract;
+    this.confidentialERC20VotesAddress = await contract.getAddress();
     this.instances = await createInstances(this.signers);
 
     const precomputedGovernorAddress = ethers.getCreateAddress({
@@ -34,11 +34,15 @@ describe("GovernorAlphaZama", function () {
     this.timelock = timelock;
     this.timelockAddress = await timelock.getAddress();
 
-    const governor = await deployGovernorAlphaZamaFixture(this.signers, this.compAddress, this.timelockAddress);
+    const governor = await deployConfidentialGovernorAlphaFixture(
+      this.signers,
+      this.confidentialERC20VotesAddress,
+      this.timelockAddress,
+    );
     this.governor = governor;
     this.governorAddress = await governor.getAddress();
 
-    const tx = await this.comp.setGovernor(this.governorAddress);
+    const tx = await this.confidentialERC20Votes.setGovernor(this.governorAddress);
     await tx.wait();
 
     this.VOTING_DELAY = await this.governor.VOTING_DELAY();
@@ -60,8 +64,8 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "bob",
       "bob",
-      this.comp,
-      this.compAddress,
+      this.confidentialERC20Votes,
+      this.confidentialERC20VotesAddress,
     );
 
     const blockNumber = BigInt(await ethers.provider.getBlockNumber());
@@ -116,8 +120,8 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "bob",
       "bob",
-      this.comp,
-      this.compAddress,
+      this.confidentialERC20Votes,
+      this.confidentialERC20VotesAddress,
     );
 
     const tx = await this.governor
@@ -156,8 +160,8 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "bob",
       "bob",
-      this.comp,
-      this.compAddress,
+      this.confidentialERC20Votes,
+      this.confidentialERC20VotesAddress,
     );
 
     await transferTokensAndDelegate(
@@ -166,8 +170,8 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "carol",
       "carol",
-      this.comp,
-      this.compAddress,
+      this.confidentialERC20Votes,
+      this.confidentialERC20VotesAddress,
     );
 
     // INITIATE A PROPOSAL
@@ -305,8 +309,8 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "bob",
       "bob",
-      this.comp,
-      this.compAddress,
+      this.confidentialERC20Votes,
+      this.confidentialERC20VotesAddress,
     );
 
     // INITIATE A PROPOSAL
@@ -379,8 +383,8 @@ describe("GovernorAlphaZama", function () {
       transferAmountFor,
       "bob",
       "bob",
-      this.comp,
-      this.compAddress,
+      this.confidentialERC20Votes,
+      this.confidentialERC20VotesAddress,
     );
 
     await transferTokensAndDelegate(
@@ -389,8 +393,8 @@ describe("GovernorAlphaZama", function () {
       transferAmountAgainst,
       "carol",
       "carol",
-      this.comp,
-      this.compAddress,
+      this.confidentialERC20Votes,
+      this.confidentialERC20VotesAddress,
     );
 
     // INITIATE A PROPOSAL
@@ -621,8 +625,8 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "bob",
       "bob",
-      this.comp,
-      this.compAddress,
+      this.confidentialERC20Votes,
+      this.confidentialERC20VotesAddress,
     );
 
     const tx = await this.governor
@@ -651,8 +655,8 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "bob",
       "bob",
-      this.comp,
-      this.compAddress,
+      this.confidentialERC20Votes,
+      this.confidentialERC20VotesAddress,
     );
 
     const tx = await this.governor
@@ -680,8 +684,8 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "bob",
       "bob",
-      this.comp,
-      this.compAddress,
+      this.confidentialERC20Votes,
+      this.confidentialERC20VotesAddress,
     );
 
     // INITIATE A PROPOSAL
@@ -741,8 +745,8 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "bob",
       "bob",
-      this.comp,
-      this.compAddress,
+      this.confidentialERC20Votes,
+      this.confidentialERC20VotesAddress,
     );
 
     let tx = await this.governor.connect(this.signers.bob).propose(targets, values, signatures, calldatas, description);
@@ -765,8 +769,8 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "carol",
       "carol",
-      this.comp,
-      this.compAddress,
+      this.confidentialERC20Votes,
+      this.confidentialERC20VotesAddress,
     );
 
     tx = await this.governor.connect(this.signers.carol).propose(targets, values, signatures, calldatas, description);
@@ -804,8 +808,8 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "dave",
       "dave",
-      this.comp,
-      this.compAddress,
+      this.confidentialERC20Votes,
+      this.confidentialERC20VotesAddress,
     );
 
     tx = await this.governor.connect(this.signers.dave).propose(targets, values, signatures, calldatas, description);
@@ -873,8 +877,8 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "bob",
       "bob",
-      this.comp,
-      this.compAddress,
+      this.confidentialERC20Votes,
+      this.confidentialERC20VotesAddress,
     );
 
     // INITIATE A PROPOSAL
@@ -938,8 +942,8 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "bob",
       "bob",
-      this.comp,
-      this.compAddress,
+      this.confidentialERC20Votes,
+      this.confidentialERC20VotesAddress,
     );
 
     // INITIATE A PROPOSAL
@@ -982,8 +986,8 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "bob",
       "bob",
-      this.comp,
-      this.compAddress,
+      this.confidentialERC20Votes,
+      this.confidentialERC20VotesAddress,
     );
 
     let tx = await this.governor.connect(this.signers.bob).propose(targets, values, signatures, calldatas, description);
@@ -1035,8 +1039,8 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "bob",
       "bob",
-      this.comp,
-      this.compAddress,
+      this.confidentialERC20Votes,
+      this.confidentialERC20VotesAddress,
     );
 
     // INITIATE A PROPOSAL
@@ -1079,8 +1083,8 @@ describe("GovernorAlphaZama", function () {
       transferAmount,
       "bob",
       "bob",
-      this.comp,
-      this.compAddress,
+      this.confidentialERC20Votes,
+      this.confidentialERC20VotesAddress,
     );
 
     // INITIATE A PROPOSAL

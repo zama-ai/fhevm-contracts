@@ -5,21 +5,21 @@ import "fhevm/lib/TFHE.sol";
 import { Ownable2Step, Ownable } from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import { SignatureChecker } from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
-import { EncryptedERC20 } from "../token/ERC20/EncryptedERC20.sol";
-import { IComp } from "./IComp.sol";
+import { ConfidentialERC20 } from "../token/ERC20/ConfidentialERC20.sol";
+import { IConfidentialERC20Votes } from "./IConfidentialERC20Votes.sol";
 
 /**
- * @title       Comp
- * @notice      This contract inherits EncryptedERC20, EIP712, and Ownable2Step.
+ * @title       ConfidentialERC20Votes
+ * @notice      This contract inherits ConfidentialERC20, EIP712, and Ownable2Step.
  *              This is based on the Comp.sol contract written by Compound Labs.
  *              see: compound-finance/compound-protocol/blob/master/contracts/Governance/Comp.sol
  *              It is a governance token used to delegate votes, which can be used by contracts such as
- *              GovernorAlphaZama.sol.
+ *              ConfidentialGovernorAlpha.sol.
  *              It uses encrypted votes to delegate the voting power associated
  *              with an account's balance.
  * @dev         The delegation of votes leaks information about the account's encrypted balance to the `delegatee`.
  */
-abstract contract Comp is IComp, EncryptedERC20, EIP712, Ownable2Step {
+abstract contract ConfidentialERC20Votes is IConfidentialERC20Votes, ConfidentialERC20, EIP712, Ownable2Step {
     /// @notice Returned if the `blockNumber` is higher or equal to the (current) `block.number`.
     /// @dev    It is returned in requests to access votes.
     error BlockNumberEqualOrHigherThanCurrentBlock();
@@ -97,7 +97,7 @@ abstract contract Comp is IComp, EncryptedERC20, EIP712, Ownable2Step {
         string memory symbol_,
         string memory version_,
         uint64 totalSupply_
-    ) EncryptedERC20(name_, symbol_) EIP712(name_, version_) Ownable(owner_) {
+    ) ConfidentialERC20(name_, symbol_) EIP712(name_, version_) Ownable(owner_) {
         _unsafeMint(owner_, totalSupply_);
         _totalSupply = totalSupply_;
 
@@ -161,7 +161,7 @@ abstract contract Comp is IComp, EncryptedERC20, EIP712, Ownable2Step {
     }
 
     /**
-     * @notice See {IComp-getPriorVotesForGovernor}.
+     * @notice See {IConfidentialERC20Votes-getPriorVotesForGovernor}.
      */
     function getPriorVotesForGovernor(address account, uint256 blockNumber) public virtual returns (euint64 votes) {
         if (msg.sender != governor) {

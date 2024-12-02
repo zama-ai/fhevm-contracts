@@ -1,4 +1,4 @@
-# EncryptedERC20WithErrors
+# ConfidentialERC20WithErrors
 
 This contract implements an encrypted ERC20-like token with confidential balances using Zama's FHE (Fully Homomorphic
 Encryption) library.
@@ -59,7 +59,7 @@ constructor(string name_, string symbol_) internal
 function transfer(address to, euint64 amount) public virtual returns (bool)
 ```
 
-See {IEncryptedERC20-transfer}.
+See {IConfidentialERC20-transfer}.
 
 ## transferFrom
 
@@ -67,7 +67,7 @@ See {IEncryptedERC20-transfer}.
 function transferFrom(address from, address to, euint64 amount) public virtual returns (bool)
 ```
 
-See {IEncryptedERC20-transferFrom}.
+See {IConfidentialERC20-transferFrom}.
 
 ## getErrorCodeForTransferId
 

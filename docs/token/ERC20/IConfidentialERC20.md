@@ -1,4 +1,4 @@
-# IEncryptedERC20
+# IConfidentialERC20
 
 Interface that defines ERC20-like tokens with encrypted balances.
 

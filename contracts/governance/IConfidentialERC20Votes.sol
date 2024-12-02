@@ -4,10 +4,10 @@ pragma solidity ^0.8.24;
 import "fhevm/lib/TFHE.sol";
 
 /**
- * @title       IComp
- * @dev         The GovernorAlphaZama relies on this interface.
+ * @title       IConfidentialERC20Votes
+ * @dev         The ConfidentialGovernorAlpha relies on this interface.
  */
-interface IComp {
+interface IConfidentialERC20Votes {
     /**
      * @notice              Determine the prior number of votes for an account as of a block number.
      * @dev                 Block number must be a finalized block or else this function will revert.

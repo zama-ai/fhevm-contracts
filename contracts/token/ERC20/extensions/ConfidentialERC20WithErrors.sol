@@ -2,11 +2,11 @@
 pragma solidity ^0.8.24;
 
 import "fhevm/lib/TFHE.sol";
-import { EncryptedERC20 } from "../EncryptedERC20.sol";
+import { ConfidentialERC20 } from "../ConfidentialERC20.sol";
 import { EncryptedErrors } from "../../../utils/EncryptedErrors.sol";
 
 /**
- * @title       EncryptedERC20WithErrors
+ * @title       ConfidentialERC20WithErrors
  * @notice      This contract implements an encrypted ERC20-like token with confidential balances using
  *              Zama's FHE (Fully Homomorphic Encryption) library.
  * @dev         It supports standard ERC20 functions such as transferring tokens, minting,
@@ -14,7 +14,7 @@ import { EncryptedErrors } from "../../../utils/EncryptedErrors.sol";
  *              The total supply is not encrypted.
  *              It also supports error handling for encrypted errors.
  */
-abstract contract EncryptedERC20WithErrors is EncryptedERC20, EncryptedErrors {
+abstract contract ConfidentialERC20WithErrors is ConfidentialERC20, EncryptedErrors {
     /**
      * @notice Error codes allow tracking (in the storage) whether a transfer worked.
      * @dev    NO_ERROR: the transfer worked as expected
@@ -36,10 +36,10 @@ abstract contract EncryptedERC20WithErrors is EncryptedERC20, EncryptedErrors {
     constructor(
         string memory name_,
         string memory symbol_
-    ) EncryptedERC20(name_, symbol_) EncryptedErrors(uint8(type(ErrorCodes).max)) {}
+    ) ConfidentialERC20(name_, symbol_) EncryptedErrors(uint8(type(ErrorCodes).max)) {}
 
     /**
-     * @notice See {IEncryptedERC20-transfer}.
+     * @notice See {IConfidentialERC20-transfer}.
      */
     function transfer(address to, euint64 amount) public virtual override returns (bool) {
         _isSenderAllowedForAmount(amount);
@@ -54,7 +54,7 @@ abstract contract EncryptedERC20WithErrors is EncryptedERC20, EncryptedErrors {
     }
 
     /**
-     * @notice See {IEncryptedERC20-transferFrom}.
+     * @notice See {IConfidentialERC20-transferFrom}.
      */
     function transferFrom(address from, address to, euint64 amount) public virtual override returns (bool) {
         _isSenderAllowedForAmount(amount);

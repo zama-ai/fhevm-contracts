@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { ethers, network } from "hardhat";
 
 import { getSigners, initSigners } from "../signers";
-import { deployTimelockFixture } from "./GovernorAlphaZama.fixture";
+import { deployTimelockFixture } from "./ConfidentialGovernorAlpha.fixture";
 
 describe("CompoundTimelock", function () {
   before(async function () {

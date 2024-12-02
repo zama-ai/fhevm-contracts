@@ -1,6 +1,6 @@
-# EncryptedERC20WithErrorsMintable
+# ConfidentialERC20WithErrorsMintable
 
-This contract inherits EncryptedERC20WithErrors.
+This contract inherits ConfidentialERC20WithErrors.
 
 _It allows an owner to mint tokens. Mint amounts are public._
 
