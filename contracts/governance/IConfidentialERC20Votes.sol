@@ -5,7 +5,7 @@ import "fhevm/lib/TFHE.sol";
 
 /**
  * @title       IConfidentialERC20Votes
- * @dev         The GovernorAlphaZama relies on this interface.
+ * @dev         The ConfidentialGovernorAlpha relies on this interface.
  */
 interface IConfidentialERC20Votes {
     /**

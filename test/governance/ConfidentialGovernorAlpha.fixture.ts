@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 
-import type { CompoundTimelock, TestGovernorAlphaZama } from "../../types";
+import type { CompoundTimelock, TestConfidentialGovernorAlpha } from "../../types";
 import { reencryptEbool, reencryptEuint64 } from "../reencrypt";
 import { Signers, getSigners } from "../signers";
 import { FhevmInstances } from "../types";
@@ -13,18 +13,18 @@ export async function deployTimelockFixture(admin: string): Promise<CompoundTime
   return timelock;
 }
 
-export async function deployGovernorAlphaZamaFixture(
+export async function deployConfidentialGovernorAlphaFixture(
   signers: Signers,
-  compAddress: string,
+  confidentialERC20VotesAddress: string,
   timelockAddress: string,
-): Promise<TestGovernorAlphaZama> {
+): Promise<TestConfidentialGovernorAlpha> {
   // @dev We use 5 only for testing purpose.
   // DO NOT use this value in production.
   const votingPeriod = 5;
-  const governorFactory = await ethers.getContractFactory("TestGovernorAlphaZama");
+  const governorFactory = await ethers.getContractFactory("TestConfidentialGovernorAlpha");
   const governor = await governorFactory
     .connect(signers.alice)
-    .deploy(signers.alice.address, timelockAddress, compAddress, votingPeriod);
+    .deploy(signers.alice.address, timelockAddress, confidentialERC20VotesAddress, votingPeriod);
   await governor.waitForDeployment();
   return governor;
 }
@@ -34,7 +34,7 @@ export async function reencryptVoteReceipt(
   instances: FhevmInstances,
   proposalId: bigint,
   account: string,
-  governor: TestGovernorAlphaZama,
+  governor: TestConfidentialGovernorAlpha,
   governorAddress: string,
 ): Promise<[boolean, boolean, bigint]> {
   const [hasVoted, supportHandle, voteHandle] = await governor.getReceipt(

@@ -8,7 +8,7 @@ import type { ConfidentialERC20Votes } from "../../types";
  *
  * @param _signer     Signer from ethers.
  * @param _delegatee  Delegatee address.
- * @param _comp       ConfidentialERC20Votes token.
+ * @param _confidentialERC20Votes       ConfidentialERC20Votes token.
  * @param _nonce      Nonce to sign.
  * @param _expiry     Expiry timestamp.
  * @returns           The signature.
@@ -16,11 +16,11 @@ import type { ConfidentialERC20Votes } from "../../types";
 export const delegateBySig = async (
   _signer: HardhatEthersSigner,
   _delegatee: Address,
-  _comp: ConfidentialERC20Votes,
+  _confidentialERC20Votes: ConfidentialERC20Votes,
   _nonce: number,
   _expiry: number,
 ): Promise<string> => {
-  const compAddress_ = await _comp.getAddress();
+  const confidentialERC20VotesAddress_ = await _confidentialERC20Votes.getAddress();
   const delegatee_ = _delegatee;
   const nonce_ = _nonce;
   const expiry_ = _expiry;
@@ -28,10 +28,10 @@ export const delegateBySig = async (
   const chainId = network.chainId;
 
   const domain = {
-    name: await _comp.name(),
+    name: await _confidentialERC20Votes.name(),
     version: "1.0",
     chainId: chainId,
-    verifyingContract: compAddress_,
+    verifyingContract: confidentialERC20VotesAddress_,
   };
 
   // Delegation(address delegatee,uint256 nonce,uint256 expiry)

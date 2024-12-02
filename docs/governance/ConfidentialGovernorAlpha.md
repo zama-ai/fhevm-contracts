@@ -1,4 +1,4 @@
-# GovernorAlphaZama
+# ConfidentialGovernorAlpha
 
 This is based on the GovernorAlpha.sol contract written by Compound Labs. see:
 compound-finance/compound-protocol/blob/master/contracts/Governance/GovernorAlpha.sol This decentralized governance
@@ -195,26 +195,26 @@ enum ProposalState {
 
 ### Parameters
 
-| Name                  | Type                            | Description                                                                                                      |
-| --------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| proposer              | address                         | Proposal creator.                                                                                                |
-| state                 | GovernorAlphaZama.ProposalState | State of the proposal.                                                                                           |
-| eta                   | uint256                         | The timestamp that the proposal will be available for execution, it is set automatically once the vote succeeds. |
-| targets               | address[]                       | The ordered list of target addresses for calls to be made.                                                       |
-| values                | uint256[]                       | The ordered list of values (i.e. `msg.value`) to be passed to the calls to be made.                              |
-| signatures            | string[]                        | The ordered list of function signatures to be called.                                                            |
-| calldatas             | calldatas                       | The ordered list of calldata to be passed to each call.                                                          |
-| startBlock            | startBlock                      | The block at which voting begins: holders must delegate their votes prior to this block.                         |
-| endBlock              | endBlock                        | The block at which voting ends: votes must be cast prior to this block. -----------                              |
-| forVotes              | forVotes                        | Current encrypted number of votes for to this proposal.-----------                                               |
-| againstVotes          | againstVotes                    | Current encrypted number of votes in opposition to this proposal.-----------                                     |
-| forVotesDecrypted     | forVotesDecrypted               | For votes once decrypted by the gateway.-----------                                                              |
-| againstVotesDecrypted | againstVotesDecrypted           | Against votes once decrypted by the gateway.-----------                                                          |
+| Name                  | Type                                    | Description                                                                                                      |
+| --------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| proposer              | address                                 | Proposal creator.                                                                                                |
+| state                 | ConfidentialGovernorAlpha.ProposalState | State of the proposal.                                                                                           |
+| eta                   | uint256                                 | The timestamp that the proposal will be available for execution, it is set automatically once the vote succeeds. |
+| targets               | address[]                               | The ordered list of target addresses for calls to be made.                                                       |
+| values                | uint256[]                               | The ordered list of values (i.e. `msg.value`) to be passed to the calls to be made.                              |
+| signatures            | string[]                                | The ordered list of function signatures to be called.                                                            |
+| calldatas             | calldatas                               | The ordered list of calldata to be passed to each call.                                                          |
+| startBlock            | startBlock                              | The block at which voting begins: holders must delegate their votes prior to this block.                         |
+| endBlock              | endBlock                                | The block at which voting ends: votes must be cast prior to this block. -----------                              |
+| forVotes              | forVotes                                | Current encrypted number of votes for to this proposal.-----------                                               |
+| againstVotes          | againstVotes                            | Current encrypted number of votes in opposition to this proposal.-----------                                     |
+| forVotesDecrypted     | forVotesDecrypted                       | For votes once decrypted by the gateway.-----------                                                              |
+| againstVotesDecrypted | againstVotesDecrypted                   | Against votes once decrypted by the gateway.-----------                                                          |
 
 ```solidity
 struct Proposal {
   address proposer;
-  enum GovernorAlphaZama.ProposalState state;
+  enum ConfidentialGovernorAlpha.ProposalState state;
   uint256 eta;
   address[] targets;
   uint256[] values;
@@ -233,24 +233,24 @@ struct Proposal {
 
 ### Parameters
 
-| Name         | Type                            | Description                                                                                                      |
-| ------------ | ------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| proposer     | address                         | Proposal creator.                                                                                                |
-| state        | GovernorAlphaZama.ProposalState | State of the proposal.                                                                                           |
-| eta          | uint256                         | The timestamp that the proposal will be available for execution, it is set automatically once the vote succeeds. |
-| targets      | address[]                       | The ordered list of target addresses for calls to be made.                                                       |
-| values       | uint256[]                       | The ordered list of values (i.e. `msg.value`) to be passed to the calls to be made.                              |
-| signatures   | string[]                        | The ordered list of function signatures to be called.                                                            |
-| calldatas    | calldatas                       | The ordered list of calldata to be passed to each call.                                                          |
-| startBlock   | startBlock                      | The block at which voting begins: holders must delegate their votes prior to this block.                         |
-| endBlock     | endBlock                        | The block at which voting ends: votes must be cast prior to this block. -----------                              |
-| forVotes     | forVotesDecrypted               | For votes once decrypted by the gateway.-----------                                                              |
-| againstVotes | againstVotesDecrypted           | Against votes once decrypted by the gateway.-----------                                                          |
+| Name         | Type                                    | Description                                                                                                      |
+| ------------ | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| proposer     | address                                 | Proposal creator.                                                                                                |
+| state        | ConfidentialGovernorAlpha.ProposalState | State of the proposal.                                                                                           |
+| eta          | uint256                                 | The timestamp that the proposal will be available for execution, it is set automatically once the vote succeeds. |
+| targets      | address[]                               | The ordered list of target addresses for calls to be made.                                                       |
+| values       | uint256[]                               | The ordered list of values (i.e. `msg.value`) to be passed to the calls to be made.                              |
+| signatures   | string[]                                | The ordered list of function signatures to be called.                                                            |
+| calldatas    | calldatas                               | The ordered list of calldata to be passed to each call.                                                          |
+| startBlock   | startBlock                              | The block at which voting begins: holders must delegate their votes prior to this block.                         |
+| endBlock     | endBlock                                | The block at which voting ends: votes must be cast prior to this block. -----------                              |
+| forVotes     | forVotesDecrypted                       | For votes once decrypted by the gateway.-----------                                                              |
+| againstVotes | againstVotesDecrypted                   | Against votes once decrypted by the gateway.-----------                                                          |
 
 ```solidity
 struct ProposalInfo {
   address proposer;
-  enum GovernorAlphaZama.ProposalState state;
+  enum ConfidentialGovernorAlpha.ProposalState state;
   uint256 eta;
   address[] targets;
   uint256[] values;
@@ -366,7 +366,7 @@ The latest proposal for each proposer.
 ## \_accountReceiptForProposalId
 
 ```solidity
-mapping(uint256 => mapping(address => struct GovernorAlphaZama.Receipt)) _accountReceiptForProposalId
+mapping(uint256 => mapping(address => struct ConfidentialGovernorAlpha.Receipt)) _accountReceiptForProposalId
 ```
 
 Ballot receipt for an account for a proposal id.
@@ -374,7 +374,7 @@ Ballot receipt for an account for a proposal id.
 ## \_proposals
 
 ```solidity
-mapping(uint256 => struct GovernorAlphaZama.Proposal) _proposals
+mapping(uint256 => struct ConfidentialGovernorAlpha.Proposal) _proposals
 ```
 
 The official record of all proposals that have been created.
@@ -593,7 +593,7 @@ _Only callable by `owner`._
 ## getProposalInfo
 
 ```solidity
-function getProposalInfo(uint256 proposalId) public view virtual returns (struct GovernorAlphaZama.ProposalInfo proposalInfo)
+function getProposalInfo(uint256 proposalId) public view virtual returns (struct ConfidentialGovernorAlpha.ProposalInfo proposalInfo)
 ```
 
 Returns proposal information for a proposal id.
@@ -608,9 +608,9 @@ _It returns decrypted `forVotes`/`againstVotes`. These are only available after 
 
 ### Return Values
 
-| Name         | Type                                  | Description           |
-| ------------ | ------------------------------------- | --------------------- |
-| proposalInfo | struct GovernorAlphaZama.ProposalInfo | Proposal information. |
+| Name         | Type                                          | Description           |
+| ------------ | --------------------------------------------- | --------------------- |
+| proposalInfo | struct ConfidentialGovernorAlpha.ProposalInfo | Proposal information. |
 
 ## getReceipt
 

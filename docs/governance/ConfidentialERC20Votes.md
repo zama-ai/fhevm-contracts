@@ -2,8 +2,8 @@
 
 This contract inherits ConfidentialERC20, EIP712, and Ownable2Step. This is based on the Comp.sol contract written by
 Compound Labs. see: compound-finance/compound-protocol/blob/master/contracts/Governance/Comp.sol. It is a governance
-token used to delegate votes, which can be used by contracts such as GovernorAlphaZama.sol. It uses encrypted votes to
-delegate the voting power associated with an account's balance.
+token used to delegate votes, which can be used by contracts such as ConfidentialGovernorAlpha.sol. It uses encrypted
+votes to delegate the voting power associated with an account's balance.
 
 _The delegation of votes leaks information about the account's encrypted balance to the `delegatee`._
 

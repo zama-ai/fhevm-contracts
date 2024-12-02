@@ -76,7 +76,7 @@ These Solidity templates include governance-related and token-related contracts.
 ### Governance
 
 - [ConfidentialERC20Votes](./contracts/governance/ConfidentialERC20Votes.sol)
-- [GovernorAlphaZama](./contracts/governance/GovernorAlphaZama.sol)
+- [ConfidentialGovernorAlpha](./contracts/governance/ConfidentialGovernorAlpha.sol)
 
 ### Utils
 

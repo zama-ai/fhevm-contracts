@@ -9,7 +9,7 @@ import { IConfidentialERC20Votes } from "./IConfidentialERC20Votes.sol";
 import { ICompoundTimelock } from "./ICompoundTimelock.sol";
 
 /**
- * @title       GovernorAlphaZama
+ * @title       ConfidentialGovernorAlpha
  * @notice      This is based on the GovernorAlpha.sol contract written by Compound Labs.
  *              see: compound-finance/compound-protocol/blob/master/contracts/Governance/GovernorAlpha.sol
  *              This decentralized governance system allows users to propose and vote on changes to the protocol.
@@ -19,7 +19,7 @@ import { ICompoundTimelock } from "./ICompoundTimelock.sol";
  *              - Quorum: A minimum number of votes (quorum) must be reached for the proposal to pass.
  *              - Execution: Once a proposal passes, it is executed and takes effect on the protocol.
  */
-abstract contract GovernorAlphaZama is Ownable2Step, GatewayCaller {
+abstract contract ConfidentialGovernorAlpha is Ownable2Step, GatewayCaller {
     /// @notice Returned if proposal contains too many changes.
     error LengthAboveMaxOperations();
 

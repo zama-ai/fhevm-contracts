@@ -1,6 +1,6 @@
 # IConfidentialERC20Votes
 
-_The GovernorAlphaZama relies on this interface._
+_The ConfidentialGovernorAlpha relies on this interface._
 
 ## getPriorVotesForGovernor
 

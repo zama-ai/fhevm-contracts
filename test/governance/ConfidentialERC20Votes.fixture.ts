@@ -22,9 +22,9 @@ export async function transferTokensAndDelegate(
   account: string,
   delegate: string,
   confidentialERC20Votes: TestConfidentialERC20Votes,
-  compAddress: string,
+  confidentialERC20VotesAddress: string,
 ): Promise<void> {
-  const input = instances.alice.createEncryptedInput(compAddress, signers.alice.address);
+  const input = instances.alice.createEncryptedInput(confidentialERC20VotesAddress, signers.alice.address);
   input.add64(transferAmount);
   const encryptedTransferAmount = await input.encrypt();
 
@@ -46,10 +46,10 @@ export async function reencryptCurrentVotes(
   instances: FhevmInstances,
   account: string,
   confidentialERC20Votes: TestConfidentialERC20Votes,
-  compAddress: string,
+  confidentialERC20VotesAddress: string,
 ): Promise<bigint> {
   const voteHandle = await confidentialERC20Votes.getCurrentVotes(signers[account as keyof Signers].address);
-  const vote = await reencryptEuint64(signers, instances, account, voteHandle, compAddress);
+  const vote = await reencryptEuint64(signers, instances, account, voteHandle, confidentialERC20VotesAddress);
   return vote;
 }
 
@@ -59,9 +59,9 @@ export async function reencryptPriorVotes(
   account: string,
   blockNumber: number,
   confidentialERC20Votes: TestConfidentialERC20Votes,
-  compAddress: string,
+  confidentialERC20VotesAddress: string,
 ): Promise<bigint> {
   const voteHandle = await confidentialERC20Votes.getPriorVotes(signers[account as keyof Signers].address, blockNumber);
-  const vote = await reencryptEuint64(signers, instances, account, voteHandle, compAddress);
+  const vote = await reencryptEuint64(signers, instances, account, voteHandle, confidentialERC20VotesAddress);
   return vote;
 }
