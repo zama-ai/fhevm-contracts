@@ -5,8 +5,6 @@ import "fhevm/lib/TFHE.sol";
 
 import { IConfidentialERC20 } from "../token/ERC20/IConfidentialERC20.sol";
 
-import "hardhat/console.sol";
-
 /**
  * @title  ConfidentialVestingWallet
  * @notice This contract offers a simple vesting wallet for ConfidentialERC20 tokens.
@@ -70,12 +68,11 @@ abstract contract ConfidentialVestingWallet {
      */
     function release() public virtual {
         euint64 amount = _releasable();
-
         euint64 amountReleased = TFHE.add(_amountReleased, amount);
         _amountReleased = amountReleased;
+
         TFHE.allow(amountReleased, BENEFICIARY);
         TFHE.allowThis(amountReleased);
-
         TFHE.allowTransient(amount, address(CONFIDENTIAL_ERC20));
         CONFIDENTIAL_ERC20.transfer(BENEFICIARY, amount);
 

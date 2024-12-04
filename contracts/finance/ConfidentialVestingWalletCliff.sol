@@ -13,12 +13,11 @@ import { ConfidentialVestingWallet } from "./ConfidentialVestingWallet.sol";
  * @dev    This implementation is a linear vesting curve with a cliff.
  *         To use with the native asset, it is necessary to wrap the native asset to a ConfidentialERC20-like token.
  */
-
-abstract contract VestingWalletCliff is ConfidentialVestingWallet {
+abstract contract ConfidentialVestingWalletCliff is ConfidentialVestingWallet {
     /// @notice Returned if the cliff duration is greater than the vesting duration.
     error InvalidCliffDuration(uint64 cliffSeconds, uint64 durationSeconds);
 
-    /// @notice Cliff duration (in seconds).
+    /// @notice Cliff timestamp.
     uint64 public immutable CLIFF;
 
     /**
@@ -26,20 +25,20 @@ abstract contract VestingWalletCliff is ConfidentialVestingWallet {
      * @param token_            Confidential token address.
      * @param startTimestamp_   Start timestamp.
      * @param duration_         Duration (in seconds).
-     * @param cliff_            Cliff (in seconds).
+     * @param cliffSeconds_     Cliff (in seconds).
      */
     constructor(
         address beneficiary_,
         address token_,
         uint64 startTimestamp_,
         uint64 duration_,
-        uint64 cliff_
+        uint64 cliffSeconds_
     ) ConfidentialVestingWallet(beneficiary_, token_, startTimestamp_, duration_) {
-        if (cliff_ > duration_) {
-            revert InvalidCliffDuration(cliff_, duration_);
+        if (cliffSeconds_ > duration_) {
+            revert InvalidCliffDuration(cliffSeconds_, duration_);
         }
 
-        CLIFF = startTimestamp_ + cliff_;
+        CLIFF = startTimestamp_ + cliffSeconds_;
     }
 
     /**
