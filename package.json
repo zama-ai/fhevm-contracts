@@ -1,5 +1,5 @@
 {
-  "name": "@zama-ai/fhevm-contracts",
+  "name": "fhevm-contracts",
   "description": "fhEVM contracts is a Solidity library for secure smart-contract development using fhEVM and TFHE.",
   "version": "0.2.0-0",
   "author": {
