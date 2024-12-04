@@ -287,22 +287,16 @@ describe("ConfidentialERC20", function () {
       eip712Carol.message,
     );
 
-    try {
-      await this.instances.bob.reencrypt(
+    await expect(
+      this.instances.bob.reencrypt(
         allowanceHandleAlice,
         privateKeyCarol,
         publicKeyCarol,
         signatureCarol.replace("0x", ""),
         this.confidentialERC20Address,
         this.signers.carol.address,
-      );
-
-      expect.fail("Expected an error to be thrown - Carol should not be able to reencrypt Bob's allowance for Alice");
-    } catch (error) {
-      if (error instanceof Error) {
-        expect(error.message).to.equal("User is not authorized to reencrypt this handle!");
-      }
-    }
+      ),
+    ).to.be.rejectedWith("User is not authorized to reencrypt this handle!");
   });
 
   it("should not be able to read the balance if not user after initialization", async function () {
@@ -321,21 +315,16 @@ describe("ConfidentialERC20", function () {
       eip712Bob.message,
     );
 
-    try {
-      await this.instances.bob.reencrypt(
+    await expect(
+      this.instances.bob.reencrypt(
         balanceHandleAlice,
         privateKeyBob,
         publicKeyBob,
         signatureBob.replace("0x", ""),
         this.confidentialERC20Address,
         this.signers.bob.address,
-      );
-      expect.fail("Expected an error to be thrown - Bob should not be able to reencrypt Alice's balance");
-    } catch (error) {
-      if (error instanceof Error) {
-        expect(error.message).to.equal("User is not authorized to reencrypt this handle!");
-      }
-    }
+      ),
+    ).to.be.rejectedWith("User is not authorized to reencrypt this handle!");
   });
 
   it("receiver cannot be null address", async function () {
