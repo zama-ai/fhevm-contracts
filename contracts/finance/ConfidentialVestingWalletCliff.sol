@@ -14,7 +14,7 @@ import { ConfidentialVestingWallet } from "./ConfidentialVestingWallet.sol";
  *         To use with the native asset, it is necessary to wrap the native asset to a ConfidentialERC20-like token.
  */
 
-abstract contract VestingWalletCliff is ConfidentialVestingWallet {
+abstract contract ConfidentialVestingWalletCliff is ConfidentialVestingWallet {
     /// @notice Returned if the cliff duration is greater than the vesting duration.
     error InvalidCliffDuration(uint64 cliffSeconds, uint64 durationSeconds);
 
