@@ -9,9 +9,10 @@ contract TestConfidentialGovernorAlpha is MockZamaFHEVMConfig, MockZamaGatewayCo
     constructor(
         address owner_,
         address timelock_,
-        address comp_,
-        uint256 votingPeriod_
-    ) ConfidentialGovernorAlpha(owner_, timelock_, comp_, votingPeriod_) {
+        address confidentialERC20Votes_,
+        uint256 votingPeriod_,
+        uint256 maxDecryptionDelay_
+    ) ConfidentialGovernorAlpha(owner_, timelock_, confidentialERC20Votes_, votingPeriod_, maxDecryptionDelay_) {
         //
     }
 }

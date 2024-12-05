@@ -392,7 +392,7 @@ _This mapping is used for decryption._
 ## constructor
 
 ```solidity
-constructor(address owner_, address timelock_, address comp_, uint256 votingPeriod_) internal
+constructor(address owner_, address timelock_, address confidentialERC20Votes_, uint256 votingPeriod_) internal
 ```
 
 _Do not use a small value in production such as 5 or 20 to avoid security issues unless for testing purpose. It should
