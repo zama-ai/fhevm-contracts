@@ -21,6 +21,9 @@ import { ConfidentialERC20 } from "./ConfidentialERC20.sol";
 abstract contract ConfidentialERC20Wrapped is ConfidentialERC20, IConfidentialERC20Wrapped, GatewayCaller {
     using SafeERC20 for IERC20Metadata;
 
+    /// @notice Returned if the maximum decryption delay is higher than 1 day.
+    error MaxDecryptionDelayTooHigh();
+
     /// @notice ERC20 token that is wrapped.
     IERC20Metadata public immutable ERC20_TOKEN;
 
@@ -37,9 +40,15 @@ abstract contract ConfidentialERC20Wrapped is ConfidentialERC20, IConfidentialER
      *                 For instance,
      *                 "Wrapped Ether" --> "Encrypted Wrapped Ether"
      *                 "WETH" --> "eWETH".
+     * @param maxDecryptionDelay_       Maximum delay for the Gateway to decrypt.
+     * @dev                             Do not use a small value in production to avoid security issues if the response
+     *                                  cannot be processed because the block time is higher than the delay.
+     *                                  The current implementation expects the Gateway to always return a decrypted
+     *                                  value within the delay specified, as long as it is sufficient enough.
      */
     constructor(
-        address erc20_
+        address erc20_,
+        uint256 maxDecryptionDelay_
     )
         ConfidentialERC20(
             string(abi.encodePacked("Encrypted ", IERC20Metadata(erc20_).name())),
@@ -47,6 +56,11 @@ abstract contract ConfidentialERC20Wrapped is ConfidentialERC20, IConfidentialER
         )
     {
         ERC20_TOKEN = IERC20Metadata(erc20_);
+
+        /// @dev The maximum delay is set to 1 day.
+        if (maxDecryptionDelay_ > 1 days) {
+            revert MaxDecryptionDelayTooHigh();
+        }
     }
 
     /**
