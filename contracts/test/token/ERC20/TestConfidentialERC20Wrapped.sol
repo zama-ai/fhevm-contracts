@@ -6,5 +6,5 @@ import { MockZamaFHEVMConfig } from "fhevm/config/ZamaFHEVMConfig.sol";
 import { MockZamaGatewayConfig } from "fhevm/config/ZamaGatewayConfig.sol";
 
 contract TestConfidentialERC20Wrapped is MockZamaFHEVMConfig, MockZamaGatewayConfig, ConfidentialERC20Wrapped {
-    constructor(address erc20_) ConfidentialERC20Wrapped(erc20_) {}
+    constructor(address erc20_, uint256 maxDecryptionDelay_) ConfidentialERC20Wrapped(erc20_, maxDecryptionDelay_) {}
 }

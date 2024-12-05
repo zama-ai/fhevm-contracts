@@ -22,8 +22,8 @@ describe("ConfidentialWETH", function () {
   });
 
   it("name/symbol are automatically set, totalSupply = 0", async function () {
-    expect(await this.confidentialWETH.name()).to.eq("Encrypted Wrapped Ether");
-    expect(await this.confidentialWETH.symbol()).to.eq("eWETH");
+    expect(await this.confidentialWETH.name()).to.eq("Confidential Wrapped Ether");
+    expect(await this.confidentialWETH.symbol()).to.eq("WETHc");
     expect(await this.confidentialWETH.totalSupply()).to.eq("0");
   });
 
