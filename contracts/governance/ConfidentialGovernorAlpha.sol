@@ -29,6 +29,9 @@ abstract contract ConfidentialGovernorAlpha is Ownable2Step, GatewayCaller {
     /// @notice Returned if array lengths are not equal.
     error LengthsDoNotMatch();
 
+    /// @notice Returned if the maximum decryption delay is higher than 1 day.
+    error MaxDecryptionDelayTooHigh();
+
     /// @notice Returned if proposal's actions have already been queued.
     error ProposalActionsAlreadyQueued();
 
@@ -209,6 +212,9 @@ abstract contract ConfidentialGovernorAlpha is Ownable2Step, GatewayCaller {
     ///         It is 1 block.
     uint256 public constant VOTING_DELAY = 1;
 
+    /// @notice The maximum decryption delay for the Gateway to callback with the decrypted value.
+    uint256 public immutable MAX_DECRYPTION_DELAY;
+
     /// @notice The duration of voting on a proposal, in blocks
     /// @dev    It is recommended to be set at 3 days in blocks
     ///         (i.e 21,600 for 12-second blocks).
@@ -251,18 +257,36 @@ abstract contract ConfidentialGovernorAlpha is Ownable2Step, GatewayCaller {
     mapping(uint256 requestId => uint256 proposalId) internal _requestIdToProposalId;
 
     /**
-     * @param owner_            Owner address.
-     * @param timelock_         Timelock contract.
-     * @param comp_             ConfidentialERC20Votes token.
-     * @param votingPeriod_     Voting period.
-     * @dev                     Do not use a small value in production such as 5 or 20 to avoid security issues
-     *                          unless for testing purpose. It should by at least a few days,.
-     *                          For instance, 3 days would have a votingPeriod = 21,600 blocks if 12s per block.
+     * @param owner_                    Owner address.
+     * @param timelock_                 Timelock contract.
+     * @param confidentialERC20Votes_   ConfidentialERC20Votes token.
+     * @param votingPeriod_             Voting period.
+     * @dev                             Do not use a small value in production such as 5 or 20 to avoid security issues
+     *                                  unless for testing purposes. It should by at least a few days.
+     *                                  For instance, 3 days would have a votingPeriod = 21,600 blocks if 12s per block.
+     * @param maxDecryptionDelay_       Maximum delay for the Gateway to decrypt.
+     * @dev                             Do not use a small value in production to avoid security issues if the response
+     *                                  cannot be processed because the block time is higher than the delay.
+     *                                  The current implementation expects the Gateway to always return a decrypted
+     *                                  value within the delay specified, as long as it is sufficient enough.
      */
-    constructor(address owner_, address timelock_, address comp_, uint256 votingPeriod_) Ownable(owner_) {
+    constructor(
+        address owner_,
+        address timelock_,
+        address confidentialERC20Votes_,
+        uint256 votingPeriod_,
+        uint256 maxDecryptionDelay_
+    ) Ownable(owner_) {
         TIMELOCK = ICompoundTimelock(timelock_);
-        CONFIDENTIAL_ERC20_VOTES = IConfidentialERC20Votes(comp_);
+        CONFIDENTIAL_ERC20_VOTES = IConfidentialERC20Votes(confidentialERC20Votes_);
         VOTING_PERIOD = votingPeriod_;
+
+        /// @dev The maximum delay is set to 1 day.
+        if (maxDecryptionDelay_ > 1 days) {
+            revert MaxDecryptionDelayTooHigh();
+        }
+
+        MAX_DECRYPTION_DELAY = maxDecryptionDelay_;
 
         /// @dev Store these constant-like variables in the storage.
         _EUINT64_ZERO = TFHE.asEuint64(0);
@@ -453,7 +477,7 @@ abstract contract ConfidentialGovernorAlpha is Ownable2Step, GatewayCaller {
             cts,
             this.callbackInitiateProposal.selector,
             0,
-            block.timestamp + 100,
+            block.timestamp + MAX_DECRYPTION_DELAY,
             false
         );
 
@@ -509,7 +533,7 @@ abstract contract ConfidentialGovernorAlpha is Ownable2Step, GatewayCaller {
             cts,
             this.callbackVoteDecryption.selector,
             0,
-            block.timestamp + 100,
+            block.timestamp + MAX_DECRYPTION_DELAY,
             false
         );
 
