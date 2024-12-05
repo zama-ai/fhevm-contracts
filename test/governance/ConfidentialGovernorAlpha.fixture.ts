@@ -21,10 +21,12 @@ export async function deployConfidentialGovernorAlphaFixture(
   // @dev We use 5 only for testing purpose.
   // DO NOT use this value in production.
   const votingPeriod = 5;
+  // @dev We use 5 minutes for the maximum decryption delay (from the Gateway).
+  const maxDecryptionDelay = 60 * 5;
   const governorFactory = await ethers.getContractFactory("TestConfidentialGovernorAlpha");
   const governor = await governorFactory
     .connect(signers.alice)
-    .deploy(signers.alice.address, timelockAddress, confidentialERC20VotesAddress, votingPeriod);
+    .deploy(signers.alice.address, timelockAddress, confidentialERC20VotesAddress, votingPeriod, maxDecryptionDelay);
   await governor.waitForDeployment();
   return governor;
 }

@@ -1135,4 +1135,22 @@ describe("ConfidentialGovernorAlpha", function () {
     // 9 ==> Expired
     expect(proposalInfo.state).to.equal(9);
   });
+
+  it("cannot deploy if maxDecryptionDelay is higher than 1 day (86_400 seconds)", async function () {
+    const maxDecryptionDelay = 86_401;
+    const votingPeriod = 5;
+
+    const contractFactory = await ethers.getContractFactory("TestConfidentialGovernorAlpha");
+    await expect(
+      contractFactory
+        .connect(this.signers.alice)
+        .deploy(
+          this.signers.alice.address,
+          this.timelockAddress,
+          this.confidentialERC20VotesAddress,
+          votingPeriod,
+          maxDecryptionDelay,
+        ),
+    ).to.be.revertedWithCustomError(this.governor, "MaxDecryptionDelayTooHigh");
+  });
 });
