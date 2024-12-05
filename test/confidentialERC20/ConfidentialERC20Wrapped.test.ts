@@ -29,8 +29,8 @@ describe("ConfidentialERC20Wrapped using ERC20 with 6 decimals", function () {
   });
 
   it("name/symbol are automatically set", async function () {
-    expect(await this.confidentialERC20Wrapped.name()).to.eq("Encrypted Naraggara");
-    expect(await this.confidentialERC20Wrapped.symbol()).to.eq("eNARA");
+    expect(await this.confidentialERC20Wrapped.name()).to.eq("Confidential Naraggara");
+    expect(await this.confidentialERC20Wrapped.symbol()).to.eq("NARAc");
   });
 
   it("can wrap", async function () {

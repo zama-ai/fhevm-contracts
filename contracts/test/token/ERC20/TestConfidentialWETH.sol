@@ -5,5 +5,6 @@ import { ConfidentialWETH } from "../../../token/ERC20/ConfidentialWETH.sol";
 import { MockZamaFHEVMConfig } from "fhevm/config/ZamaFHEVMConfig.sol";
 import { MockZamaGatewayConfig } from "fhevm/config/ZamaGatewayConfig.sol";
 
-/* solhint-disable no-empty-blocks*/
-contract TestConfidentialWETH is MockZamaFHEVMConfig, MockZamaGatewayConfig, ConfidentialWETH {}
+contract TestConfidentialWETH is MockZamaFHEVMConfig, MockZamaGatewayConfig, ConfidentialWETH {
+    constructor(uint256 maxDecryptionDelay_) ConfidentialWETH(maxDecryptionDelay_) {}
+}

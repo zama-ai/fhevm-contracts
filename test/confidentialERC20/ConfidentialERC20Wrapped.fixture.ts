@@ -9,6 +9,8 @@ export async function deployERC20AndConfidentialERC20WrappedFixture(
   symbol: string,
   decimals: number,
 ): Promise<[ERC20Mintable, TestConfidentialERC20Wrapped]> {
+  // @dev We use 5 minutes for the maximum decryption delay (from the Gateway).
+  const maxDecryptionDelay = 60 * 5;
   const contractFactoryERC20Mintable = await ethers.getContractFactory("ERC20Mintable");
   const contractERC20 = await contractFactoryERC20Mintable
     .connect(signers.alice)
@@ -18,7 +20,7 @@ export async function deployERC20AndConfidentialERC20WrappedFixture(
   const contractFactory = await ethers.getContractFactory("TestConfidentialERC20Wrapped");
   const contractConfidentialERC20Wrapped = await contractFactory
     .connect(signers.alice)
-    .deploy(contractERC20.getAddress());
+    .deploy(contractERC20.getAddress(), maxDecryptionDelay);
   await contractConfidentialERC20Wrapped.waitForDeployment();
 
   return [contractERC20, contractConfidentialERC20Wrapped];
