@@ -1,6 +1,6 @@
 import { expect } from "chai";
 
-import { createInstances } from "../instance";
+import { createInstance } from "../instance";
 import { getSigners, initSigners } from "../signers";
 import { deployConfidentialERC20Fixture, reencryptAllowance, reencryptBalance } from "./ConfidentialERC20.fixture";
 
@@ -9,15 +9,20 @@ describe("ConfidentialERC20", function () {
   const PLACEHOLDER = 2n ** 256n - 1n;
 
   before(async function () {
-    await initSigners(2);
+    await initSigners();
     this.signers = await getSigners();
+    this.instance = await createInstance();
   });
 
   beforeEach(async function () {
-    const contract = await deployConfidentialERC20Fixture(this.signers, "Naraggara", "NARA", "alice");
+    const contract = await deployConfidentialERC20Fixture(
+      this.signers.alice,
+      "Naraggara",
+      "NARA",
+      await this.signers.alice.getAddress(),
+    );
     this.confidentialERC20Address = await contract.getAddress();
     this.confidentialERC20 = contract;
-    this.instances = await createInstances(this.signers);
   });
 
   it("post-deployment state", async function () {
@@ -33,13 +38,7 @@ describe("ConfidentialERC20", function () {
     await expect(tx).to.emit(this.confidentialERC20, "Mint").withArgs(this.signers.alice, mintAmount);
 
     expect(
-      await reencryptBalance(
-        this.signers,
-        this.instances,
-        "alice",
-        this.confidentialERC20,
-        this.confidentialERC20Address,
-      ),
+      await reencryptBalance(this.signers.alice, this.instance, this.confidentialERC20, this.confidentialERC20Address),
     ).to.equal(mintAmount);
 
     expect(await this.confidentialERC20.totalSupply()).to.equal(mintAmount);
@@ -52,7 +51,7 @@ describe("ConfidentialERC20", function () {
     let tx = await this.confidentialERC20.connect(this.signers.alice).mint(mintAmount);
     await tx.wait();
 
-    const input = this.instances.alice.createEncryptedInput(this.confidentialERC20Address, this.signers.alice.address);
+    const input = this.instance.createEncryptedInput(this.confidentialERC20Address, this.signers.alice.address);
     input.add64(transferAmount);
     const encryptedTransferAmount = await input.encrypt();
 
@@ -68,24 +67,12 @@ describe("ConfidentialERC20", function () {
 
     // Decrypt Alice's balance
     expect(
-      await reencryptBalance(
-        this.signers,
-        this.instances,
-        "alice",
-        this.confidentialERC20,
-        this.confidentialERC20Address,
-      ),
+      await reencryptBalance(this.signers.alice, this.instance, this.confidentialERC20, this.confidentialERC20Address),
     ).to.equal(mintAmount - transferAmount);
 
     // Decrypt Bob's balance
     expect(
-      await reencryptBalance(
-        this.signers,
-        this.instances,
-        "bob",
-        this.confidentialERC20,
-        this.confidentialERC20Address,
-      ),
+      await reencryptBalance(this.signers.bob, this.instance, this.confidentialERC20, this.confidentialERC20Address),
     ).to.equal(transferAmount);
   });
 
@@ -98,7 +85,7 @@ describe("ConfidentialERC20", function () {
     let tx = await this.confidentialERC20.connect(this.signers.alice).mint(mintAmount);
     await tx.wait();
 
-    const input = this.instances.alice.createEncryptedInput(this.confidentialERC20Address, this.signers.alice.address);
+    const input = this.instance.createEncryptedInput(this.confidentialERC20Address, this.signers.alice.address);
     input.add64(transferAmount);
     const encryptedTransferAmount = await input.encrypt();
 
@@ -115,24 +102,12 @@ describe("ConfidentialERC20", function () {
 
     // Decrypt Alice's balance
     expect(
-      await reencryptBalance(
-        this.signers,
-        this.instances,
-        "alice",
-        this.confidentialERC20,
-        this.confidentialERC20Address,
-      ),
+      await reencryptBalance(this.signers.alice, this.instance, this.confidentialERC20, this.confidentialERC20Address),
     ).to.equal(mintAmount);
 
     // Decrypt Bob's balance
     expect(
-      await reencryptBalance(
-        this.signers,
-        this.instances,
-        "bob",
-        this.confidentialERC20,
-        this.confidentialERC20Address,
-      ),
+      await reencryptBalance(this.signers.bob, this.instance, this.confidentialERC20, this.confidentialERC20Address),
     ).to.equal(0);
   });
 
@@ -145,10 +120,7 @@ describe("ConfidentialERC20", function () {
     let tx = await this.confidentialERC20.connect(this.signers.alice).mint(mintAmount);
     await tx.wait();
 
-    const inputAlice = this.instances.alice.createEncryptedInput(
-      this.confidentialERC20Address,
-      this.signers.alice.address,
-    );
+    const inputAlice = this.instance.createEncryptedInput(this.confidentialERC20Address, this.signers.alice.address);
     inputAlice.add64(transferAmount);
     const encryptedAllowanceAmount = await inputAlice.encrypt();
 
@@ -165,17 +137,16 @@ describe("ConfidentialERC20", function () {
     // @dev The allowance amount is set to be equal to the transfer amount.
     expect(
       await reencryptAllowance(
-        this.signers,
-        this.instances,
-        "alice",
-        "bob",
+        this.signers.alice,
+        this.signers.bob,
+        this.instance,
         this.confidentialERC20,
         this.confidentialERC20Address,
       ),
     ).to.equal(transferAmount);
 
     const bobErc20 = this.confidentialERC20.connect(this.signers.bob);
-    const inputBob1 = this.instances.bob.createEncryptedInput(this.confidentialERC20Address, this.signers.bob.address);
+    const inputBob1 = this.instance.createEncryptedInput(this.confidentialERC20Address, this.signers.bob.address);
     inputBob1.add64(transferAmount + 1); // above allowance so next tx should actually not send any token
     const encryptedTransferAmount = await inputBob1.encrypt();
 
@@ -192,27 +163,15 @@ describe("ConfidentialERC20", function () {
 
     // Decrypt Alice's balance
     expect(
-      await reencryptBalance(
-        this.signers,
-        this.instances,
-        "alice",
-        this.confidentialERC20,
-        this.confidentialERC20Address,
-      ),
+      await reencryptBalance(this.signers.alice, this.instance, this.confidentialERC20, this.confidentialERC20Address),
     ).to.equal(mintAmount); // check that transfer did not happen, as expected
 
     // Decrypt Bob's balance
     expect(
-      await reencryptBalance(
-        this.signers,
-        this.instances,
-        "bob",
-        this.confidentialERC20,
-        this.confidentialERC20Address,
-      ),
+      await reencryptBalance(this.signers.bob, this.instance, this.confidentialERC20, this.confidentialERC20Address),
     ).to.equal(0); // check that transfer did not happen, as expected
 
-    const inputBob2 = this.instances.bob.createEncryptedInput(this.confidentialERC20Address, this.signers.bob.address);
+    const inputBob2 = this.instance.createEncryptedInput(this.confidentialERC20Address, this.signers.bob.address);
     inputBob2.add64(transferAmount); // below allowance so next tx should send token
     const encryptedTransferAmount2 = await inputBob2.encrypt();
 
@@ -226,33 +185,20 @@ describe("ConfidentialERC20", function () {
 
     // Decrypt Alice's balance
     expect(
-      await reencryptBalance(
-        this.signers,
-        this.instances,
-        "alice",
-        this.confidentialERC20,
-        this.confidentialERC20Address,
-      ),
+      await reencryptBalance(this.signers.alice, this.instance, this.confidentialERC20, this.confidentialERC20Address),
     ).to.equal(mintAmount - transferAmount); // check that transfer did happen this time
 
     // Decrypt Bob's balance
     expect(
-      await reencryptBalance(
-        this.signers,
-        this.instances,
-        "bob",
-        this.confidentialERC20,
-        this.confidentialERC20Address,
-      ),
+      await reencryptBalance(this.signers.bob, this.instance, this.confidentialERC20, this.confidentialERC20Address),
     ).to.equal(transferAmount); // check that transfer did happen this time
 
     // Verify Alice's allowance is 0
     expect(
       await reencryptAllowance(
-        this.signers,
-        this.instances,
-        "alice",
-        "bob",
+        this.signers.alice,
+        this.signers.bob,
+        this.instance,
         this.confidentialERC20,
         this.confidentialERC20Address,
       ),
@@ -262,10 +208,7 @@ describe("ConfidentialERC20", function () {
   it("should not be able to read the allowance if not spender/owner after initialization", async function () {
     const amount = 10_000;
 
-    const inputAlice = this.instances.alice.createEncryptedInput(
-      this.confidentialERC20Address,
-      this.signers.alice.address,
-    );
+    const inputAlice = this.instance.createEncryptedInput(this.confidentialERC20Address, this.signers.alice.address);
     inputAlice.add64(amount);
     const encryptedAllowanceAmount = await inputAlice.encrypt();
 
@@ -279,8 +222,8 @@ describe("ConfidentialERC20", function () {
 
     const allowanceHandleAlice = await this.confidentialERC20.allowance(this.signers.alice, this.signers.bob);
 
-    const { publicKey: publicKeyCarol, privateKey: privateKeyCarol } = this.instances.carol.generateKeypair();
-    const eip712Carol = this.instances.carol.createEIP712(publicKeyCarol, this.confidentialERC20Address);
+    const { publicKey: publicKeyCarol, privateKey: privateKeyCarol } = await this.instance.generateKeypair();
+    const eip712Carol = this.instance.createEIP712(publicKeyCarol, this.confidentialERC20Address);
     const signatureCarol = await this.signers.carol.signTypedData(
       eip712Carol.domain,
       { Reencrypt: eip712Carol.types.Reencrypt },
@@ -288,7 +231,7 @@ describe("ConfidentialERC20", function () {
     );
 
     await expect(
-      this.instances.bob.reencrypt(
+      this.instance.reencrypt(
         allowanceHandleAlice,
         privateKeyCarol,
         publicKeyCarol,
@@ -307,8 +250,8 @@ describe("ConfidentialERC20", function () {
 
     const balanceHandleAlice = await this.confidentialERC20.balanceOf(this.signers.alice);
 
-    const { publicKey: publicKeyBob, privateKey: privateKeyBob } = this.instances.bob.generateKeypair();
-    const eip712Bob = this.instances.bob.createEIP712(publicKeyBob, this.confidentialERC20Address);
+    const { publicKey: publicKeyBob, privateKey: privateKeyBob } = await this.instance.generateKeypair();
+    const eip712Bob = this.instance.createEIP712(publicKeyBob, this.confidentialERC20Address);
     const signatureBob = await this.signers.bob.signTypedData(
       eip712Bob.domain,
       { Reencrypt: eip712Bob.types.Reencrypt },
@@ -316,7 +259,7 @@ describe("ConfidentialERC20", function () {
     );
 
     await expect(
-      this.instances.bob.reencrypt(
+      this.instance.reencrypt(
         balanceHandleAlice,
         privateKeyBob,
         publicKeyBob,
@@ -334,7 +277,7 @@ describe("ConfidentialERC20", function () {
     const tx = await this.confidentialERC20.connect(this.signers.alice).mint(mintAmount);
     await tx.wait();
 
-    const input = this.instances.alice.createEncryptedInput(this.confidentialERC20Address, this.signers.alice.address);
+    const input = this.instance.createEncryptedInput(this.confidentialERC20Address, this.signers.alice.address);
     input.add64(transferAmount);
     const encryptedTransferAmount = await input.encrypt();
 
@@ -353,7 +296,7 @@ describe("ConfidentialERC20", function () {
     let tx = await this.confidentialERC20.connect(this.signers.alice).mint(mintAmount);
     await tx.wait();
 
-    const input = this.instances.alice.createEncryptedInput(this.confidentialERC20Address, this.signers.alice.address);
+    const input = this.instance.createEncryptedInput(this.confidentialERC20Address, this.signers.alice.address);
     input.add64(transferAmount);
     const encryptedTransferAmount = await input.encrypt();
 
@@ -379,7 +322,7 @@ describe("ConfidentialERC20", function () {
     let tx = await this.confidentialERC20.connect(this.signers.alice).mint(mintAmount);
     await tx.wait();
 
-    let input = this.instances.alice.createEncryptedInput(this.confidentialERC20Address, this.signers.alice.address);
+    let input = this.instance.createEncryptedInput(this.confidentialERC20Address, this.signers.alice.address);
     input.add64(mintAmount);
     const encryptedAllowanceAmount = await input.encrypt();
 
@@ -389,7 +332,7 @@ describe("ConfidentialERC20", function () {
         "approve(address,bytes32,bytes)"
       ](this.signers.carol.address, encryptedAllowanceAmount.handles[0], encryptedAllowanceAmount.inputProof);
 
-    input = this.instances.carol.createEncryptedInput(this.confidentialERC20Address, this.signers.carol.address);
+    input = this.instance.createEncryptedInput(this.confidentialERC20Address, this.signers.carol.address);
     input.add64(transferAmount);
     const encryptedTransferAmount = await input.encrypt();
 
@@ -413,7 +356,7 @@ describe("ConfidentialERC20", function () {
 
   it("sender who is not allowed cannot approve using a handle from another account", async function () {
     const amount = 100_000;
-    const input = this.instances.alice.createEncryptedInput(this.confidentialERC20Address, this.signers.alice.address);
+    const input = this.instance.createEncryptedInput(this.confidentialERC20Address, this.signers.alice.address);
     input.add64(amount);
     const encryptedAllowanceAmount = await input.encrypt();
 

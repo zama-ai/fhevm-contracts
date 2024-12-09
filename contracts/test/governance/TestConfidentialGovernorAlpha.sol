@@ -2,10 +2,10 @@
 pragma solidity ^0.8.24;
 
 import { ConfidentialGovernorAlpha } from "../../governance/ConfidentialGovernorAlpha.sol";
-import { MockZamaFHEVMConfig } from "fhevm/config/ZamaFHEVMConfig.sol";
-import { MockZamaGatewayConfig } from "fhevm/config/ZamaGatewayConfig.sol";
+import { SepoliaZamaFHEVMConfig } from "fhevm/config/ZamaFHEVMConfig.sol";
+import { SepoliaZamaGatewayConfig } from "fhevm/config/ZamaGatewayConfig.sol";
 
-contract TestConfidentialGovernorAlpha is MockZamaFHEVMConfig, MockZamaGatewayConfig, ConfidentialGovernorAlpha {
+contract TestConfidentialGovernorAlpha is SepoliaZamaFHEVMConfig, SepoliaZamaGatewayConfig, ConfidentialGovernorAlpha {
     constructor(
         address owner_,
         address timelock_,

@@ -1,18 +1,19 @@
-import { toBigIntBE } from "bigint-buffer";
-import { toBufferBE } from "bigint-buffer";
+import { toBigIntBE, toBufferBE } from "bigint-buffer";
 import crypto from "crypto";
-import dotenv from "dotenv";
 import { Wallet, ethers } from "ethers";
-import * as fs from "fs";
 import hre from "hardhat";
 import { Keccak } from "sha3";
 import { isAddress } from "web3-validator";
 
+import {
+  ACL_ADDRESS,
+  INPUTVERIFIER_ADDRESS,
+  KMSVERIFIER_ADDRESS,
+  PRIVATE_KEY_COPROCESSOR_ACCOUNT,
+  PRIVATE_KEY_KMS_SIGNER,
+} from "./constants";
 import { insertSQL } from "./coprocessorUtils";
 import { awaitCoprocessor, getClearText } from "./coprocessorUtils";
-
-const parsedEnvACL = dotenv.parse(fs.readFileSync("node_modules/fhevm-core-contracts/addresses/.env.acl"));
-const aclAdd = parsedEnvACL.ACL_CONTRACT_ADDRESS;
 
 enum Types {
   ebool = 0,
@@ -138,11 +139,10 @@ export const reencryptRequestMocked = async (
   }
 
   // ACL checking
-  const aclFactory = await hre.ethers.getContractFactory("fhevmTemp/contracts/ACL.sol:ACL");
-  const acl = aclFactory.attach(aclAdd);
+  const aclArtifact = require("fhevm-core-contracts/artifacts/contracts/ACL.sol/ACL.json");
+  const acl = await hre.ethers.getContractAt(aclArtifact.abi, ACL_ADDRESS);
   const userAllowed = await acl.persistAllowed(handle, userAddress);
   const contractAllowed = await acl.persistAllowed(handle, contractAddress);
-
   const isAllowed = userAllowed && contractAllowed;
   if (!isAllowed) {
     throw new Error("User is not authorized to reencrypt this handle!");
@@ -307,44 +307,26 @@ export const createEncryptedInputMocked = (contractAddress: string, userAddress:
       });
       let inputProof = "0x" + numberToHex(handles.length); // for coprocessor : numHandles + numSignersKMS + hashCT + list_handles + signatureCopro + signatureKMSSigners (total len : 1+1+32+NUM_HANDLES*32+65+65*numSignersKMS)
       // for native : numHandles + numSignersKMS + list_handles + signatureKMSSigners + bundleCiphertext (total len : 1+1+NUM_HANDLES*32+65*numSignersKMS+bundleCiphertext.length)
-      const numSigners = +process.env.NUM_KMS_SIGNERS!;
+      const numSigners = 1; // @note: only 1 signer in mocked mode for the moment
       inputProof += numberToHex(numSigners);
-      if (process.env.IS_COPROCESSOR === "true") {
-        // coprocessor
-        inputProof += hash.toString("hex");
+      // if (process.env.IS_COPROCESSOR === "true") { // @note: for now we support only the coprocessor mode, not native
+      // coprocessor
+      inputProof += hash.toString("hex");
 
-        const listHandlesStr = handles.map((i) => uint8ArrayToHexString(i));
-        listHandlesStr.map((handle) => (inputProof += handle));
-        const listHandles = listHandlesStr.map((i) => BigInt("0x" + i));
-        const sigCoproc = await computeInputSignatureCopro(
-          "0x" + hash.toString("hex"),
-          listHandles,
-          userAddress,
-          contractAddress,
-        );
-        inputProof += sigCoproc.slice(2);
+      const listHandlesStr = handles.map((i) => uint8ArrayToHexString(i));
+      listHandlesStr.map((handle) => (inputProof += handle));
+      const listHandles = listHandlesStr.map((i) => BigInt("0x" + i));
+      const sigCoproc = await computeInputSignatureCopro(
+        "0x" + hash.toString("hex"),
+        listHandles,
+        userAddress,
+        contractAddress,
+      );
+      inputProof += sigCoproc.slice(2);
 
-        const signaturesKMS = await computeInputSignaturesKMS(
-          "0x" + hash.toString("hex"),
-          userAddress,
-          contractAddress,
-        );
-        signaturesKMS.map((sigKMS) => (inputProof += sigKMS.slice(2)));
-        listHandlesStr.map((handle, i) => insertSQL("0x" + handle, values[i]));
-      } else {
-        // native
-        const listHandlesStr = handles.map((i) => uint8ArrayToHexString(i));
-        listHandlesStr.map((handle) => (inputProof += handle));
-        const signaturesKMS = await computeInputSignaturesKMS(
-          "0x" + hash.toString("hex"),
-          userAddress,
-          contractAddress,
-        );
-        signaturesKMS.map((sigKMS) => (inputProof += sigKMS.slice(2)));
-        listHandlesStr.map((handle, i) => insertSQL("0x" + handle, values[i]));
-
-        inputProof += encrypted.toString("hex");
-      }
+      const signaturesKMS = await computeInputSignaturesKMS("0x" + hash.toString("hex"), userAddress, contractAddress);
+      signaturesKMS.map((sigKMS) => (inputProof += sigKMS.slice(2)));
+      listHandlesStr.map((handle, i) => insertSQL("0x" + handle, values[i]));
 
       return {
         handles,
@@ -400,14 +382,9 @@ async function computeInputSignatureCopro(
   userAddress: string,
   contractAddress: string,
 ): Promise<string> {
-  let signature: string;
-  const privKeySigner = process.env["PRIVATE_KEY_COPROCESSOR_ACCOUNT"];
-  if (privKeySigner) {
-    const coprocSigner = new Wallet(privKeySigner).connect(ethers.provider);
-    signature = await coprocSign(hash, handlesList, userAddress, contractAddress, coprocSigner);
-  } else {
-    throw new Error(`Private key for coprocessor not found in environment variables`);
-  }
+  const privKeySigner = PRIVATE_KEY_COPROCESSOR_ACCOUNT;
+  const coprocSigner = new Wallet(privKeySigner).connect(ethers.provider);
+  const signature = await coprocSign(hash, handlesList, userAddress, contractAddress, coprocSigner);
   return signature;
 }
 
@@ -417,16 +394,12 @@ async function computeInputSignaturesKMS(
   contractAddress: string,
 ): Promise<string[]> {
   const signatures: string[] = [];
-  const numSigners = +process.env.NUM_KMS_SIGNERS!;
+  const numSigners = 1; // @note: only 1 KMS signer in mocked mode for now
   for (let idx = 0; idx < numSigners; idx++) {
-    const privKeySigner = process.env[`PRIVATE_KEY_KMS_SIGNER_${idx}`];
-    if (privKeySigner) {
-      const kmsSigner = new ethers.Wallet(privKeySigner).connect(ethers.provider);
-      const signature = await kmsSign(hash, userAddress, contractAddress, kmsSigner);
-      signatures.push(signature);
-    } else {
-      throw new Error(`Private key for signer ${idx} not found in environment variables`);
-    }
+    const privKeySigner = PRIVATE_KEY_KMS_SIGNER;
+    const kmsSigner = new ethers.Wallet(privKeySigner).connect(ethers.provider);
+    const signature = await kmsSign(hash, userAddress, contractAddress, kmsSigner);
+    signatures.push(signature);
   }
   return signatures;
 }
@@ -438,13 +411,9 @@ async function coprocSign(
   contractAddress: string,
   signer: Wallet,
 ): Promise<string> {
-  const inputAdd = dotenv.parse(
-    fs.readFileSync("node_modules/fhevm-core-contracts/addresses/.env.inputverifier"),
-  ).INPUT_VERIFIER_CONTRACT_ADDRESS;
+  const inputAdd = INPUTVERIFIER_ADDRESS;
   const chainId = hre.__SOLIDITY_COVERAGE_RUNNING ? 31337 : network.config.chainId;
-  const aclAdd = dotenv.parse(
-    fs.readFileSync("node_modules/fhevm-core-contracts/addresses/.env.acl"),
-  ).ACL_CONTRACT_ADDRESS;
+  const aclAdd = ACL_ADDRESS;
 
   const domain = {
     name: "InputVerifier",
@@ -501,13 +470,9 @@ async function kmsSign(
   contractAddress: string,
   signer: Wallet,
 ): Promise<string> {
-  const kmsVerifierAdd = dotenv.parse(
-    fs.readFileSync("node_modules/fhevm-core-contracts/addresses/.env.kmsverifier"),
-  ).KMS_VERIFIER_CONTRACT_ADDRESS;
+  const kmsVerifierAdd = KMSVERIFIER_ADDRESS;
   const chainId = hre.__SOLIDITY_COVERAGE_RUNNING ? 31337 : network.config.chainId;
-  const aclAdd = dotenv.parse(
-    fs.readFileSync("node_modules/fhevm-core-contracts/addresses/.env.acl"),
-  ).ACL_CONTRACT_ADDRESS;
+  const aclAdd = ACL_ADDRESS;
 
   const domain = {
     name: "KMSVerifier",

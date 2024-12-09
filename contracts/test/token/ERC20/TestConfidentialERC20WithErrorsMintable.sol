@@ -4,9 +4,9 @@ pragma solidity ^0.8.24;
 import {
     ConfidentialERC20WithErrorsMintable
 } from "../../../token/ERC20/extensions/ConfidentialERC20WithErrorsMintable.sol";
-import { MockZamaFHEVMConfig } from "fhevm/config/ZamaFHEVMConfig.sol";
+import { SepoliaZamaFHEVMConfig } from "fhevm/config/ZamaFHEVMConfig.sol";
 
-contract TestConfidentialERC20WithErrorsMintable is MockZamaFHEVMConfig, ConfidentialERC20WithErrorsMintable {
+contract TestConfidentialERC20WithErrorsMintable is SepoliaZamaFHEVMConfig, ConfidentialERC20WithErrorsMintable {
     constructor(
         string memory name_,
         string memory symbol_,

@@ -1,4 +1,3 @@
-import { ethers } from "ethers";
 import { ProviderWrapper } from "hardhat/plugins";
 import type { EIP1193Provider, RequestArguments } from "hardhat/types";
 
@@ -19,11 +18,6 @@ class CustomProvider extends ProviderWrapper implements Test {
   }
 
   async request(args: RequestArguments): ReturnType<EIP1193Provider["request"]> {
-    if (args.method === "eth_estimateGas") {
-      const estimatedGasLimit = BigInt((await this._wrappedProvider.request(args)) as bigint);
-      const increasedGasLimit = ethers.toBeHex((estimatedGasLimit * 120n) / 100n); // override estimated gasLimit by 120%, to avoid some edge case with ethermint gas estimation
-      return increasedGasLimit;
-    }
     if (args.method === "evm_revert") {
       const result = await this._wrappedProvider.request(args);
       const blockNumberHex = (await this._wrappedProvider.request({ method: "eth_blockNumber" })) as string;

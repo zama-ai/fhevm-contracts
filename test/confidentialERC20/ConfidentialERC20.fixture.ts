@@ -1,45 +1,41 @@
+import { Signer } from "ethers";
+import { FhevmInstance } from "fhevmjs/node";
 import { ethers } from "hardhat";
 
 import type { IConfidentialERC20, TestConfidentialERC20Mintable } from "../../types";
 import { reencryptEuint64 } from "../reencrypt";
-import { Signers } from "../signers";
-import { FhevmInstances } from "../types";
 
 export async function deployConfidentialERC20Fixture(
-  signers: Signers,
+  account: Signer,
   name: string,
   symbol: string,
-  owner: string,
+  ownerAddress: string,
 ): Promise<TestConfidentialERC20Mintable> {
   const contractFactory = await ethers.getContractFactory("TestConfidentialERC20Mintable");
-  const contract = await contractFactory
-    .connect(signers[owner as keyof Signers])
-    .deploy(name, symbol, signers[owner as keyof Signers].address);
+  const contract = await contractFactory.connect(account).deploy(name, symbol, ownerAddress);
   await contract.waitForDeployment();
   return contract;
 }
 
 export async function reencryptAllowance(
-  signers: Signers,
-  instances: FhevmInstances,
-  account: string,
-  spender: string,
+  account: Signer,
+  spender: Signer,
+  instance: FhevmInstance,
   token: IConfidentialERC20,
   tokenAddress: string,
 ): Promise<bigint> {
-  const allowanceHandle = await token.allowance(signers[account as keyof Signers], signers[spender as keyof Signers]);
-  const allowance = await reencryptEuint64(signers, instances, account, allowanceHandle, tokenAddress);
+  const allowanceHandle = await token.allowance(account, spender);
+  const allowance = await reencryptEuint64(account, instance, allowanceHandle, tokenAddress);
   return allowance;
 }
 
 export async function reencryptBalance(
-  signers: Signers,
-  instances: FhevmInstances,
-  account: string,
+  account: Signer,
+  instance: FhevmInstance,
   token: IConfidentialERC20,
   tokenAddress: string,
 ): Promise<bigint> {
-  const balanceHandle = await token.balanceOf(signers[account as keyof Signers]);
-  const balance = await reencryptEuint64(signers, instances, account, balanceHandle, tokenAddress);
+  const balanceHandle = await token.balanceOf(account);
+  const balance = await reencryptEuint64(account, instance, balanceHandle, tokenAddress);
   return balance;
 }
