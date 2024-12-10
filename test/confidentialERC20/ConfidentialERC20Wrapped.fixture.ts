@@ -1,10 +1,10 @@
+import { Signer } from "ethers";
 import { ethers } from "hardhat";
 
 import type { ConfidentialERC20Wrapped, ERC20Mintable, TestConfidentialERC20Wrapped } from "../../types";
-import { Signers } from "../signers";
 
 export async function deployERC20AndConfidentialERC20WrappedFixture(
-  signers: Signers,
+  account: Signer,
   name: string,
   symbol: string,
   decimals: number,
@@ -13,13 +13,13 @@ export async function deployERC20AndConfidentialERC20WrappedFixture(
   const maxDecryptionDelay = 60 * 5;
   const contractFactoryERC20Mintable = await ethers.getContractFactory("ERC20Mintable");
   const contractERC20 = await contractFactoryERC20Mintable
-    .connect(signers.alice)
-    .deploy(name, symbol, decimals, signers.alice.address);
+    .connect(account)
+    .deploy(name, symbol, decimals, await account.getAddress());
   await contractERC20.waitForDeployment();
 
   const contractFactory = await ethers.getContractFactory("TestConfidentialERC20Wrapped");
   const contractConfidentialERC20Wrapped = await contractFactory
-    .connect(signers.alice)
+    .connect(account)
     .deploy(contractERC20.getAddress(), maxDecryptionDelay);
   await contractConfidentialERC20Wrapped.waitForDeployment();
 
@@ -27,19 +27,18 @@ export async function deployERC20AndConfidentialERC20WrappedFixture(
 }
 
 export async function mintAndWrap(
-  signers: Signers,
-  user: string,
+  account: Signer,
   plainToken: ERC20Mintable,
   token: ConfidentialERC20Wrapped,
   tokenAddress: string,
   amount: bigint,
 ): Promise<void> {
-  let tx = await plainToken.connect(signers[user as keyof Signers]).mint(amount);
+  let tx = await plainToken.connect(account).mint(amount);
   await tx.wait();
 
-  tx = await plainToken.connect(signers[user as keyof Signers]).approve(tokenAddress, amount);
+  tx = await plainToken.connect(account).approve(tokenAddress, amount);
   await tx.wait();
 
-  tx = await token.connect(signers[user as keyof Signers]).wrap(amount);
+  tx = await token.connect(account).wrap(amount);
   await tx.wait();
 }

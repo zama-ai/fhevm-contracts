@@ -1,22 +1,21 @@
 import { expect } from "chai";
-import { parseUnits } from "ethers";
 import { ethers } from "hardhat";
 
 import { awaitAllDecryptionResults } from "../asyncDecrypt";
-import { createInstances } from "../instance";
+import { createInstance } from "../instance";
 import { getSigners, initSigners } from "../signers";
 import { reencryptBalance } from "./ConfidentialERC20.fixture";
 import { deployConfidentialWETHFixture } from "./ConfidentialWETH.fixture";
 
 describe("ConfidentialWETH", function () {
   before(async function () {
-    await initSigners(3);
+    await initSigners();
     this.signers = await getSigners();
-    this.instances = await createInstances(this.signers);
+    this.instance = await createInstance();
   });
 
   beforeEach(async function () {
-    const confidentialWETH = await deployConfidentialWETHFixture(this.signers);
+    const confidentialWETH = await deployConfidentialWETHFixture(this.signers.alice);
     this.confidentialWETH = confidentialWETH;
     this.confidentialWETHAddress = await confidentialWETH.getAddress();
   });
@@ -40,13 +39,7 @@ describe("ConfidentialWETH", function () {
 
     // Check encrypted balance
     expect(
-      await reencryptBalance(
-        this.signers,
-        this.instances,
-        "alice",
-        this.confidentialWETH,
-        this.confidentialWETHAddress,
-      ),
+      await reencryptBalance(this.signers.alice, this.instance, this.confidentialWETH, this.confidentialWETHAddress),
     ).to.equal(amountToWrap6Decimals);
   });
 
@@ -70,13 +63,7 @@ describe("ConfidentialWETH", function () {
 
     // Check encrypted balance
     expect(
-      await reencryptBalance(
-        this.signers,
-        this.instances,
-        "alice",
-        this.confidentialWETH,
-        this.confidentialWETHAddress,
-      ),
+      await reencryptBalance(this.signers.alice, this.instance, this.confidentialWETH, this.confidentialWETHAddress),
     ).to.equal(amountToWrap6Decimals - amountToUnwrap6Decimals);
 
     // Unwrap all
@@ -85,13 +72,7 @@ describe("ConfidentialWETH", function () {
     await awaitAllDecryptionResults();
 
     expect(
-      await reencryptBalance(
-        this.signers,
-        this.instances,
-        "alice",
-        this.confidentialWETH,
-        this.confidentialWETHAddress,
-      ),
+      await reencryptBalance(this.signers.alice, this.instance, this.confidentialWETH, this.confidentialWETHAddress),
     ).to.equal(BigInt("0"));
   });
 
@@ -136,7 +117,7 @@ describe("ConfidentialWETH", function () {
     tx = await this.confidentialWETH.connect(this.signers.alice).unwrap(amountToUnwrap);
     await tx.wait();
 
-    const input = this.instances.alice.createEncryptedInput(this.confidentialWETHAddress, this.signers.alice.address);
+    const input = this.instance.createEncryptedInput(this.confidentialWETHAddress, this.signers.alice.address);
     input.add64(transferAmount);
     const encryptedTransferAmount = await input.encrypt();
 
@@ -187,13 +168,7 @@ describe("ConfidentialWETH", function () {
     expect(await ethers.provider.getBalance(this.confidentialWETHAddress)).to.equal(amountToWrap18Decimals);
     expect(await this.confidentialWETH.totalSupply()).to.equal(amountToWrap6Decimals);
     expect(
-      await reencryptBalance(
-        this.signers,
-        this.instances,
-        "alice",
-        this.confidentialWETH,
-        this.confidentialWETHAddress,
-      ),
+      await reencryptBalance(this.signers.alice, this.instance, this.confidentialWETH, this.confidentialWETHAddress),
     ).to.equal(amountToWrap6Decimals);
   });
 
@@ -208,7 +183,7 @@ describe("ConfidentialWETH", function () {
     await tx.wait();
 
     let transferAmount = ethers.parseUnits("3000", 6);
-    let input = this.instances.alice.createEncryptedInput(this.confidentialWETHAddress, this.signers.alice.address);
+    let input = this.instance.createEncryptedInput(this.confidentialWETHAddress, this.signers.alice.address);
     input.add64(transferAmount);
     let encryptedTransferAmount = await input.encrypt();
 
@@ -223,7 +198,7 @@ describe("ConfidentialWETH", function () {
     await awaitAllDecryptionResults();
 
     transferAmount = ethers.parseUnits("1000", 6);
-    input = this.instances.bob.createEncryptedInput(this.confidentialWETHAddress, this.signers.bob.address);
+    input = this.instance.createEncryptedInput(this.confidentialWETHAddress, this.signers.bob.address);
     input.add64(transferAmount);
     encryptedTransferAmount = await input.encrypt();
 
