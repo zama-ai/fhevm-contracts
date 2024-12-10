@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
-import { createInstances } from "../instance";
+import { createInstance } from "../instance";
 import { reencryptEuint8 } from "../reencrypt";
 import { getSigners, initSigners } from "../signers";
 import { deployEncryptedErrors } from "./EncryptedErrors.fixture";
@@ -10,14 +10,14 @@ describe("EncryptedErrors", function () {
   const NO_ERROR_CODE = 0n;
 
   before(async function () {
-    await initSigners(3);
+    await initSigners();
     this.signers = await getSigners();
-    this.instances = await createInstances(this.signers);
+    this.instance = await createInstance();
   });
 
   beforeEach(async function () {
     this.numberErrors = 3;
-    const contract = await deployEncryptedErrors(this.signers, this.numberErrors);
+    const contract = await deployEncryptedErrors(this.signers.alice, this.numberErrors);
     this.encryptedErrorsAddress = await contract.getAddress();
     this.encryptedErrors = contract;
   });
@@ -28,9 +28,7 @@ describe("EncryptedErrors", function () {
 
     for (let i = 0; i < 3; i++) {
       const handle = await this.encryptedErrors.connect(this.signers.alice).errorGetCodeDefinition(i);
-      expect(
-        await reencryptEuint8(this.signers, this.instances, "alice", handle, this.encryptedErrorsAddress),
-      ).to.be.eq(i);
+      expect(await reencryptEuint8(this.signers.alice, this.instance, handle, this.encryptedErrorsAddress)).to.be.eq(i);
     }
   });
 
@@ -39,7 +37,7 @@ describe("EncryptedErrors", function () {
     const condition = true;
     const targetErrorCode = 2;
 
-    const input = this.instances.alice.createEncryptedInput(this.encryptedErrorsAddress, this.signers.alice.address);
+    const input = this.instance.createEncryptedInput(this.encryptedErrorsAddress, this.signers.alice.address);
     const encryptedData = await input.addBool(condition).encrypt();
 
     await this.encryptedErrors
@@ -47,7 +45,7 @@ describe("EncryptedErrors", function () {
       .errorDefineIf(encryptedData.handles[0], encryptedData.inputProof, targetErrorCode);
 
     const handle = await this.encryptedErrors.connect(this.signers.alice).errorGetCodeEmitted(0);
-    expect(await reencryptEuint8(this.signers, this.instances, "alice", handle, this.encryptedErrorsAddress)).to.be.eq(
+    expect(await reencryptEuint8(this.signers.alice, this.instance, handle, this.encryptedErrorsAddress)).to.be.eq(
       targetErrorCode,
     );
     expect(await this.encryptedErrors.errorGetCounter()).to.be.eq(BigInt("1"));
@@ -58,7 +56,7 @@ describe("EncryptedErrors", function () {
     const condition = false;
     const targetErrorCode = 2;
 
-    const input = this.instances.alice.createEncryptedInput(this.encryptedErrorsAddress, this.signers.alice.address);
+    const input = this.instance.createEncryptedInput(this.encryptedErrorsAddress, this.signers.alice.address);
     const encryptedData = await input.addBool(condition).encrypt();
 
     await this.encryptedErrors
@@ -66,7 +64,7 @@ describe("EncryptedErrors", function () {
       .errorDefineIf(encryptedData.handles[0], encryptedData.inputProof, targetErrorCode);
 
     const handle = await this.encryptedErrors.connect(this.signers.alice).errorGetCodeEmitted(0);
-    expect(await reencryptEuint8(this.signers, this.instances, "alice", handle, this.encryptedErrorsAddress)).to.be.eq(
+    expect(await reencryptEuint8(this.signers.alice, this.instance, handle, this.encryptedErrorsAddress)).to.be.eq(
       NO_ERROR_CODE,
     );
     expect(await this.encryptedErrors.errorGetCounter()).to.be.eq(BigInt("1"));
@@ -77,7 +75,7 @@ describe("EncryptedErrors", function () {
     const condition = true;
     const targetErrorCode = 2;
 
-    const input = this.instances.alice.createEncryptedInput(this.encryptedErrorsAddress, this.signers.alice.address);
+    const input = this.instance.createEncryptedInput(this.encryptedErrorsAddress, this.signers.alice.address);
     const encryptedData = await input.addBool(condition).encrypt();
 
     await this.encryptedErrors
@@ -85,7 +83,7 @@ describe("EncryptedErrors", function () {
       .errorDefineIfNot(encryptedData.handles[0], encryptedData.inputProof, targetErrorCode);
 
     const handle = await this.encryptedErrors.connect(this.signers.alice).errorGetCodeEmitted(0);
-    expect(await reencryptEuint8(this.signers, this.instances, "alice", handle, this.encryptedErrorsAddress)).to.be.eq(
+    expect(await reencryptEuint8(this.signers.alice, this.instance, handle, this.encryptedErrorsAddress)).to.be.eq(
       NO_ERROR_CODE,
     );
     expect(await this.encryptedErrors.errorGetCounter()).to.be.eq(BigInt("1"));
@@ -96,7 +94,7 @@ describe("EncryptedErrors", function () {
     const condition = false;
     const targetErrorCode = 2;
 
-    const input = this.instances.alice.createEncryptedInput(this.encryptedErrorsAddress, this.signers.alice.address);
+    const input = this.instance.createEncryptedInput(this.encryptedErrorsAddress, this.signers.alice.address);
     const encryptedData = await input.addBool(condition).encrypt();
 
     await this.encryptedErrors
@@ -104,7 +102,7 @@ describe("EncryptedErrors", function () {
       .errorDefineIfNot(encryptedData.handles[0], encryptedData.inputProof, targetErrorCode);
 
     const handle = await this.encryptedErrors.connect(this.signers.alice).errorGetCodeEmitted(0);
-    expect(await reencryptEuint8(this.signers, this.instances, "alice", handle, this.encryptedErrorsAddress)).to.be.eq(
+    expect(await reencryptEuint8(this.signers.alice, this.instance, handle, this.encryptedErrorsAddress)).to.be.eq(
       targetErrorCode,
     );
     expect(await this.encryptedErrors.errorGetCounter()).to.be.eq(BigInt("1"));
@@ -116,7 +114,7 @@ describe("EncryptedErrors", function () {
     const errorCode = 1;
     const targetErrorCode = 2;
 
-    const input = this.instances.alice.createEncryptedInput(this.encryptedErrorsAddress, this.signers.alice.address);
+    const input = this.instance.createEncryptedInput(this.encryptedErrorsAddress, this.signers.alice.address);
     const encryptedData = await input.addBool(condition).add8(errorCode).encrypt();
 
     await this.encryptedErrors
@@ -124,7 +122,7 @@ describe("EncryptedErrors", function () {
       .errorChangeIf(encryptedData.handles[0], encryptedData.handles[1], encryptedData.inputProof, targetErrorCode);
 
     const handle = await this.encryptedErrors.connect(this.signers.alice).errorGetCodeEmitted(0);
-    expect(await reencryptEuint8(this.signers, this.instances, "alice", handle, this.encryptedErrorsAddress)).to.be.eq(
+    expect(await reencryptEuint8(this.signers.alice, this.instance, handle, this.encryptedErrorsAddress)).to.be.eq(
       targetErrorCode,
     );
     expect(await this.encryptedErrors.errorGetCounter()).to.be.eq(BigInt("1"));
@@ -136,7 +134,7 @@ describe("EncryptedErrors", function () {
     const errorCode = 1;
     const targetErrorCode = 2;
 
-    const input = this.instances.alice.createEncryptedInput(this.encryptedErrorsAddress, this.signers.alice.address);
+    const input = this.instance.createEncryptedInput(this.encryptedErrorsAddress, this.signers.alice.address);
     const encryptedData = await input.addBool(condition).add8(errorCode).encrypt();
 
     await this.encryptedErrors
@@ -144,7 +142,7 @@ describe("EncryptedErrors", function () {
       .errorChangeIf(encryptedData.handles[0], encryptedData.handles[1], encryptedData.inputProof, targetErrorCode);
 
     const handle = await this.encryptedErrors.connect(this.signers.alice).errorGetCodeEmitted(0);
-    expect(await reencryptEuint8(this.signers, this.instances, "alice", handle, this.encryptedErrorsAddress)).to.be.eq(
+    expect(await reencryptEuint8(this.signers.alice, this.instance, handle, this.encryptedErrorsAddress)).to.be.eq(
       errorCode,
     );
     expect(await this.encryptedErrors.errorGetCounter()).to.be.eq(BigInt("1"));
@@ -156,7 +154,7 @@ describe("EncryptedErrors", function () {
     const errorCode = 1;
     const targetErrorCode = 2;
 
-    const input = this.instances.alice.createEncryptedInput(this.encryptedErrorsAddress, this.signers.alice.address);
+    const input = this.instance.createEncryptedInput(this.encryptedErrorsAddress, this.signers.alice.address);
     const encryptedData = await input.addBool(condition).add8(errorCode).encrypt();
 
     await this.encryptedErrors
@@ -164,7 +162,7 @@ describe("EncryptedErrors", function () {
       .errorChangeIfNot(encryptedData.handles[0], encryptedData.handles[1], encryptedData.inputProof, targetErrorCode);
 
     const handle = await this.encryptedErrors.connect(this.signers.alice).errorGetCodeEmitted(0);
-    expect(await reencryptEuint8(this.signers, this.instances, "alice", handle, this.encryptedErrorsAddress)).to.be.eq(
+    expect(await reencryptEuint8(this.signers.alice, this.instance, handle, this.encryptedErrorsAddress)).to.be.eq(
       errorCode,
     );
     expect(await this.encryptedErrors.errorGetCounter()).to.be.eq(BigInt("1"));
@@ -176,7 +174,7 @@ describe("EncryptedErrors", function () {
     const errorCode = 1;
     const targetErrorCode = 2;
 
-    const input = this.instances.alice.createEncryptedInput(this.encryptedErrorsAddress, this.signers.alice.address);
+    const input = this.instance.createEncryptedInput(this.encryptedErrorsAddress, this.signers.alice.address);
     const encryptedData = await input.addBool(condition).add8(errorCode).encrypt();
 
     await this.encryptedErrors
@@ -184,7 +182,7 @@ describe("EncryptedErrors", function () {
       .errorChangeIfNot(encryptedData.handles[0], encryptedData.handles[1], encryptedData.inputProof, targetErrorCode);
 
     const handle = await this.encryptedErrors.connect(this.signers.alice).errorGetCodeEmitted(0);
-    expect(await reencryptEuint8(this.signers, this.instances, "alice", handle, this.encryptedErrorsAddress)).to.be.eq(
+    expect(await reencryptEuint8(this.signers.alice, this.instance, handle, this.encryptedErrorsAddress)).to.be.eq(
       targetErrorCode,
     );
     expect(await this.encryptedErrors.errorGetCounter()).to.be.eq(BigInt("1"));
@@ -203,7 +201,7 @@ describe("EncryptedErrors", function () {
     const condition = true;
     const targetErrorCode = (await this.encryptedErrors.errorGetNumCodesDefined()) + 1n;
 
-    const input = this.instances.alice.createEncryptedInput(this.encryptedErrorsAddress, this.signers.alice.address);
+    const input = this.instance.createEncryptedInput(this.encryptedErrorsAddress, this.signers.alice.address);
     const encryptedData = await input.addBool(condition).encrypt();
 
     await expect(
@@ -223,7 +221,7 @@ describe("EncryptedErrors", function () {
     const condition = true;
     const targetErrorCode = 0;
 
-    const input = this.instances.alice.createEncryptedInput(this.encryptedErrorsAddress, this.signers.alice.address);
+    const input = this.instance.createEncryptedInput(this.encryptedErrorsAddress, this.signers.alice.address);
     const encryptedData = await input.addBool(condition).encrypt();
 
     await expect(
@@ -244,7 +242,7 @@ describe("EncryptedErrors", function () {
     const errorCode = 1;
     const targetErrorCode = (await this.encryptedErrors.errorGetNumCodesDefined()) + 1n;
 
-    const input = this.instances.alice.createEncryptedInput(this.encryptedErrorsAddress, this.signers.alice.address);
+    const input = this.instance.createEncryptedInput(this.encryptedErrorsAddress, this.signers.alice.address);
     const encryptedData = await input.addBool(condition).add8(errorCode).encrypt();
 
     await expect(

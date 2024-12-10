@@ -3,7 +3,7 @@ import { parseUnits } from "ethers";
 import { ethers, network } from "hardhat";
 
 import { reencryptBalance } from "../confidentialERC20/ConfidentialERC20.fixture";
-import { createInstances } from "../instance";
+import { createInstance } from "../instance";
 import { reencryptEuint64 } from "../reencrypt";
 import { getSigners, initSigners } from "../signers";
 import { waitNBlocks } from "../utils";
@@ -20,24 +20,22 @@ describe("ConfidentialERC20Votes", function () {
   const NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
 
   before(async function () {
-    await initSigners(3);
+    await initSigners();
     this.signers = await getSigners();
+    this.instance = await createInstance();
   });
 
   beforeEach(async function () {
-    const contract = await deployConfidentialERC20Votes(this.signers);
+    const contract = await deployConfidentialERC20Votes(this.signers.alice);
     this.confidentialERC20VotesAddress = await contract.getAddress();
     this.confidentialERC20Votes = contract;
-    this.instances = await createInstances(this.signers);
   });
 
   it("should transfer tokens", async function () {
     const transferAmount = parseUnits(String(2_000_000), 6);
 
-    const input = this.instances.alice.createEncryptedInput(
-      this.confidentialERC20VotesAddress,
-      this.signers.alice.address,
-    );
+    const input = this.instance.createEncryptedInput(this.confidentialERC20VotesAddress, this.signers.alice.address);
+
     input.add64(transferAmount);
     const encryptedTransferAmount = await input.encrypt();
 
@@ -54,9 +52,8 @@ describe("ConfidentialERC20Votes", function () {
     // Decrypt Alice's balance
     expect(
       await reencryptBalance(
-        this.signers,
-        this.instances,
-        "alice",
+        this.signers.alice,
+        this.instance,
         this.confidentialERC20Votes,
         this.confidentialERC20VotesAddress,
       ),
@@ -65,9 +62,8 @@ describe("ConfidentialERC20Votes", function () {
     // Decrypt Bob's balance
     expect(
       await reencryptBalance(
-        this.signers,
-        this.instances,
-        "bob",
+        this.signers.bob,
+        this.instance,
         this.confidentialERC20Votes,
         this.confidentialERC20VotesAddress,
       ),
@@ -85,9 +81,8 @@ describe("ConfidentialERC20Votes", function () {
 
     expect(
       await reencryptPriorVotes(
-        this.signers,
-        this.instances,
-        "bob",
+        this.signers.bob,
+        this.instance,
         latestBlockNumber,
         this.confidentialERC20Votes,
         this.confidentialERC20VotesAddress,
@@ -97,18 +92,16 @@ describe("ConfidentialERC20Votes", function () {
     // Verify the two functions return the same.
     expect(
       await reencryptPriorVotes(
-        this.signers,
-        this.instances,
-        "bob",
+        this.signers.bob,
+        this.instance,
         latestBlockNumber,
         this.confidentialERC20Votes,
         this.confidentialERC20VotesAddress,
       ),
     ).to.equal(
       await reencryptCurrentVotes(
-        this.signers,
-        this.instances,
-        "bob",
+        this.signers.bob,
+        this.instance,
         this.confidentialERC20Votes,
         this.confidentialERC20VotesAddress,
       ),
@@ -137,9 +130,8 @@ describe("ConfidentialERC20Votes", function () {
 
     expect(
       await reencryptPriorVotes(
-        this.signers,
-        this.instances,
-        "bob",
+        this.signers.bob,
+        this.instance,
         latestBlockNumber,
         this.confidentialERC20Votes,
         this.confidentialERC20VotesAddress,
@@ -149,18 +141,16 @@ describe("ConfidentialERC20Votes", function () {
     // Verify the two functions return the same.
     expect(
       await reencryptPriorVotes(
-        this.signers,
-        this.instances,
-        "bob",
+        this.signers.bob,
+        this.instance,
         latestBlockNumber,
         this.confidentialERC20Votes,
         this.confidentialERC20VotesAddress,
       ),
     ).to.equal(
       await reencryptCurrentVotes(
-        this.signers,
-        this.instances,
-        "bob",
+        this.signers.bob,
+        this.instance,
         this.confidentialERC20Votes,
         this.confidentialERC20VotesAddress,
       ),
@@ -176,9 +166,8 @@ describe("ConfidentialERC20Votes", function () {
 
     expect(
       await reencryptPriorVotes(
-        this.signers,
-        this.instances,
-        "alice",
+        this.signers.alice,
+        this.instance,
         latestBlockNumber,
         this.confidentialERC20Votes,
         this.confidentialERC20VotesAddress,
@@ -186,10 +175,7 @@ describe("ConfidentialERC20Votes", function () {
     ).to.equal(parseUnits(String(10_000_000), 6));
 
     const transferAmount = parseUnits(String(10_000_000), 6);
-    const input = this.instances.alice.createEncryptedInput(
-      this.confidentialERC20VotesAddress,
-      this.signers.alice.address,
-    );
+    const input = this.instance.createEncryptedInput(this.confidentialERC20VotesAddress, this.signers.alice.address);
     input.add64(transferAmount);
     const encryptedTransferAmount = await input.encrypt();
 
@@ -206,9 +192,8 @@ describe("ConfidentialERC20Votes", function () {
 
     expect(
       await reencryptPriorVotes(
-        this.signers,
-        this.instances,
-        "alice",
+        this.signers.alice,
+        this.instance,
         latestBlockNumber,
         this.confidentialERC20Votes,
         this.confidentialERC20VotesAddress,
@@ -311,10 +296,7 @@ describe("ConfidentialERC20Votes", function () {
     // Alice transfers 1M tokens to Bob, 1M tokens to Carol, 1M tokens to Dave
     const transferAmount = parseUnits(String(1_000_000), 6);
 
-    const input = this.instances.alice.createEncryptedInput(
-      this.confidentialERC20VotesAddress,
-      this.signers.alice.address,
-    );
+    const input = this.instance.createEncryptedInput(this.confidentialERC20VotesAddress, this.signers.alice.address);
     input.add64(transferAmount);
     const encryptedTransferAmount = await input.encrypt();
 
@@ -356,9 +338,8 @@ describe("ConfidentialERC20Votes", function () {
 
     expect(
       await reencryptPriorVotes(
-        this.signers,
-        this.instances,
-        "dave",
+        this.signers.dave,
+        this.instance,
         firstCheckPointBlockNumber,
         this.confidentialERC20Votes,
         this.confidentialERC20VotesAddress,
@@ -367,9 +348,8 @@ describe("ConfidentialERC20Votes", function () {
 
     expect(
       await reencryptPriorVotes(
-        this.signers,
-        this.instances,
-        "dave",
+        this.signers.dave,
+        this.instance,
         secondCheckPointBlockNumber,
         this.confidentialERC20Votes,
         this.confidentialERC20VotesAddress,
@@ -398,7 +378,7 @@ describe("ConfidentialERC20Votes", function () {
     expect(currentVoteHandle).to.be.eq(0n);
 
     await expect(
-      reencryptEuint64(this.signers, this.instances, "bob", currentVoteHandle, this.confidentialERC20Votes),
+      reencryptEuint64(this.signers.bob, this.instance, currentVoteHandle, this.confidentialERC20Votes),
     ).to.be.rejectedWith("Handle is not initialized");
 
     // 2. If no checkpoint exists using getPriorVotes
@@ -413,7 +393,7 @@ describe("ConfidentialERC20Votes", function () {
     expect(currentVoteHandle).not.to.be.eq(0n);
 
     await expect(
-      reencryptEuint64(this.signers, this.instances, "bob", currentVoteHandle, this.confidentialERC20Votes),
+      reencryptEuint64(this.signers.bob, this.instance, currentVoteHandle, this.confidentialERC20Votes),
     ).to.be.rejectedWith("Invalid contract address.");
 
     // 3. If a checkpoint exists using getPriorVotes but block.number < block of first checkpoint
@@ -431,7 +411,7 @@ describe("ConfidentialERC20Votes", function () {
     expect(currentVoteHandle).not.to.be.eq(0n);
 
     await expect(
-      reencryptEuint64(this.signers, this.instances, "bob", currentVoteHandle, this.confidentialERC20Votes),
+      reencryptEuint64(this.signers.bob, this.instance, currentVoteHandle, this.confidentialERC20Votes),
     ).to.be.rejectedWith("Invalid contract address.");
   });
 
@@ -467,9 +447,8 @@ describe("ConfidentialERC20Votes", function () {
       if (blockNumbers[i] % 2 === 0) {
         expect(
           await reencryptPriorVotes(
-            this.signers,
-            this.instances,
-            startWithAlice ? "alice" : "carol",
+            startWithAlice ? this.signers.alice : this.signers.carol,
+            this.instance,
             blockNumbers[i],
             this.confidentialERC20Votes,
             this.confidentialERC20VotesAddress,
@@ -478,9 +457,8 @@ describe("ConfidentialERC20Votes", function () {
       } else {
         expect(
           await reencryptPriorVotes(
-            this.signers,
-            this.instances,
-            startWithAlice ? "carol" : "alice",
+            startWithAlice ? this.signers.carol : this.signers.alice,
+            this.instance,
             blockNumbers[i],
             this.confidentialERC20Votes,
             this.confidentialERC20VotesAddress,
@@ -515,10 +493,7 @@ describe("ConfidentialERC20Votes", function () {
   it("different voters can delegate to same delegatee", async function () {
     const transferAmount = parseUnits(String(2_000_000), 6);
 
-    const input = this.instances.alice.createEncryptedInput(
-      this.confidentialERC20VotesAddress,
-      this.signers.alice.address,
-    );
+    const input = this.instance.createEncryptedInput(this.confidentialERC20VotesAddress, this.signers.alice.address);
     input.add64(transferAmount);
     const encryptedTransferAmount = await input.encrypt();
 
@@ -541,9 +516,8 @@ describe("ConfidentialERC20Votes", function () {
 
     expect(
       await reencryptCurrentVotes(
-        this.signers,
-        this.instances,
-        "carol",
+        this.signers.carol,
+        this.instance,
         this.confidentialERC20Votes,
         this.confidentialERC20VotesAddress,
       ),
@@ -551,18 +525,16 @@ describe("ConfidentialERC20Votes", function () {
 
     expect(
       await reencryptPriorVotes(
-        this.signers,
-        this.instances,
-        "carol",
+        this.signers.carol,
+        this.instance,
         latestBlockNumber,
         this.confidentialERC20Votes,
         this.confidentialERC20VotesAddress,
       ),
     ).to.equal(
       await reencryptCurrentVotes(
-        this.signers,
-        this.instances,
-        "carol",
+        this.signers.carol,
+        this.instance,
         this.confidentialERC20Votes,
         this.confidentialERC20VotesAddress,
       ),
@@ -588,9 +560,8 @@ describe("ConfidentialERC20Votes", function () {
 
     expect(
       await reencryptCurrentVotes(
-        this.signers,
-        this.instances,
-        "bob",
+        this.signers.bob,
+        this.instance,
         this.confidentialERC20Votes,
         this.confidentialERC20VotesAddress,
       ),
@@ -598,9 +569,8 @@ describe("ConfidentialERC20Votes", function () {
 
     expect(
       await reencryptCurrentVotes(
-        this.signers,
-        this.instances,
-        "carol",
+        this.signers.carol,
+        this.instance,
         this.confidentialERC20Votes,
         this.confidentialERC20VotesAddress,
       ),

@@ -2,9 +2,9 @@
 pragma solidity ^0.8.24;
 
 import { ConfidentialERC20Votes } from "../../governance/ConfidentialERC20Votes.sol";
-import { MockZamaFHEVMConfig } from "fhevm/config/ZamaFHEVMConfig.sol";
+import { SepoliaZamaFHEVMConfig } from "fhevm/config/ZamaFHEVMConfig.sol";
 
-contract TestConfidentialERC20Votes is MockZamaFHEVMConfig, ConfidentialERC20Votes {
+contract TestConfidentialERC20Votes is SepoliaZamaFHEVMConfig, ConfidentialERC20Votes {
     constructor(
         address owner_,
         string memory name_,

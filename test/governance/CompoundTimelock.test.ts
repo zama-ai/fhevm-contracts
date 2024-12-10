@@ -6,12 +6,12 @@ import { deployTimelockFixture } from "./ConfidentialGovernorAlpha.fixture";
 
 describe("CompoundTimelock", function () {
   before(async function () {
-    await initSigners(3);
+    await initSigners();
     this.signers = await getSigners();
   });
 
   beforeEach(async function () {
-    this.timelock = await deployTimelockFixture(this.signers.alice.address);
+    this.timelock = await deployTimelockFixture(this.signers.alice, this.signers.alice.address);
   });
 
   it("non-timelock account could not call setPendingAdmin", async function () {

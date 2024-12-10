@@ -1,14 +1,12 @@
-import dotenv from "dotenv";
 import { log2 } from "extra-bigint";
-import * as fs from "fs";
 import { ethers } from "hardhat";
 import hre from "hardhat";
 import { Database } from "sqlite3";
 
-import operatorsPrices from "./operatorsPrices.json";
+import { TFHEEXECUTOR_ADDRESS } from "./constants";
+import operatorPrices from "./operatorPrices.json";
 
-const parsedEnvCoprocessor = dotenv.parse(fs.readFileSync("node_modules/fhevm-core-contracts/addresses/.env.exec"));
-const coprocAddress = parsedEnvCoprocessor.TFHE_EXECUTOR_CONTRACT_ADDRESS;
+const executorAddress = TFHEEXECUTOR_ADDRESS;
 
 let firstBlockListening = 0;
 let lastBlockSnapshot = 0;
@@ -18,7 +16,7 @@ let counterRand = 0;
 //const db = new Database('./sql.db'); // on-disk db for debugging
 const db = new Database(":memory:");
 
-export function insertSQL(handle: string, clearText: BigInt, replace: boolean = false) {
+export function insertSQL(handle: string, clearText: bigint, replace: boolean = false) {
   if (replace) {
     // this is useful if using snapshots while sampling different random numbers on each revert
     db.run("INSERT OR REPLACE INTO ciphertexts (handle, clearText) VALUES (?, ?)", [handle, clearText.toString()]);
@@ -29,7 +27,7 @@ export function insertSQL(handle: string, clearText: BigInt, replace: boolean = 
 
 // Decrypt any handle, bypassing ACL
 // WARNING : only for testing or internal use
-export const getClearText = async (handle: BigInt): Promise<string> => {
+export const getClearText = async (handle: bigint): Promise<string> => {
   const handleStr = "0x" + handle.toString(16).padStart(64, "0");
 
   return new Promise((resolve, reject) => {
@@ -104,7 +102,7 @@ function getRandomBigInt(numBits: number): bigint {
   return randomBigInt;
 }
 
-function bitwiseNotUintBits(value: BigInt, numBits: number) {
+function bitwiseNotUintBits(value: bigint, numBits: number) {
   if (typeof value !== "bigint") {
     throw new TypeError("The input value must be a BigInt.");
   }
@@ -167,11 +165,11 @@ async function processAllPastTFHEExecutorEvents() {
     }
   }
 
-  const contract = new ethers.Contract(coprocAddress, abi, provider);
+  const contract = new ethers.Contract(executorAddress, abi, provider);
 
   // Fetch all events emitted by the contract
   const filter = {
-    address: coprocAddress,
+    address: executorAddress,
     fromBlock: firstBlockListening,
     toBlock: latestBlockNumber,
   };
@@ -605,9 +603,9 @@ export function getFHEGasFromTxReceipt(receipt: ethers.TransactionReceipt): numb
   if (receipt.status === 0) {
     throw new Error("Transaction reverted");
   }
-  const contract = new ethers.Contract(coprocAddress, abi, ethers.provider);
+  const contract = new ethers.Contract(executorAddress, abi, ethers.provider);
   const relevantLogs = receipt.logs.filter((log: ethers.Log) => {
-    if (log.address.toLowerCase() !== coprocAddress.toLowerCase()) {
+    if (log.address.toLowerCase() !== executorAddress.toLowerCase()) {
       return false;
     }
     try {
@@ -637,21 +635,21 @@ export function getFHEGasFromTxReceipt(receipt: ethers.TransactionReceipt): numb
     switch (event.name) {
       case "TrivialEncrypt":
         type = parseInt(event.args[1], 16);
-        FHEGasConsumed += operatorsPrices["trivialEncrypt"].types[type];
+        FHEGasConsumed += operatorPrices["trivialEncrypt"].types[type];
         break;
 
       case "TrivialEncryptBytes":
         type = parseInt(event.args[1], 16);
-        FHEGasConsumed += operatorsPrices["trivialEncrypt"].types[type];
+        FHEGasConsumed += operatorPrices["trivialEncrypt"].types[type];
         break;
 
       case "FheAdd":
         handle = ethers.toBeHex(event.args[0], 32);
         type = parseInt(handle.slice(-4, -2), 16);
         if (event.args[2] === "0x01") {
-          FHEGasConsumed += operatorsPrices["fheAdd"].scalar[type];
+          FHEGasConsumed += operatorPrices["fheAdd"].scalar[type];
         } else {
-          FHEGasConsumed += operatorsPrices["fheAdd"].nonScalar[type];
+          FHEGasConsumed += operatorPrices["fheAdd"].nonScalar[type];
         }
         break;
 
@@ -659,9 +657,9 @@ export function getFHEGasFromTxReceipt(receipt: ethers.TransactionReceipt): numb
         handle = ethers.toBeHex(event.args[0], 32);
         type = parseInt(handle.slice(-4, -2), 16);
         if (event.args[2] === "0x01") {
-          FHEGasConsumed += operatorsPrices["fheSub"].scalar[type];
+          FHEGasConsumed += operatorPrices["fheSub"].scalar[type];
         } else {
-          FHEGasConsumed += operatorsPrices["fheSub"].nonScalar[type];
+          FHEGasConsumed += operatorPrices["fheSub"].nonScalar[type];
         }
         break;
 
@@ -669,9 +667,9 @@ export function getFHEGasFromTxReceipt(receipt: ethers.TransactionReceipt): numb
         handle = ethers.toBeHex(event.args[0], 32);
         type = parseInt(handle.slice(-4, -2), 16);
         if (event.args[2] === "0x01") {
-          FHEGasConsumed += operatorsPrices["fheMul"].scalar[type];
+          FHEGasConsumed += operatorPrices["fheMul"].scalar[type];
         } else {
-          FHEGasConsumed += operatorsPrices["fheMul"].nonScalar[type];
+          FHEGasConsumed += operatorPrices["fheMul"].nonScalar[type];
         }
         break;
 
@@ -679,7 +677,7 @@ export function getFHEGasFromTxReceipt(receipt: ethers.TransactionReceipt): numb
         handle = ethers.toBeHex(event.args[0], 32);
         type = parseInt(handle.slice(-4, -2), 16);
         if (event.args[2] === "0x01") {
-          FHEGasConsumed += operatorsPrices["fheDiv"].scalar[type];
+          FHEGasConsumed += operatorPrices["fheDiv"].scalar[type];
         } else {
           throw new Error("Non-scalar div not implemented yet");
         }
@@ -689,7 +687,7 @@ export function getFHEGasFromTxReceipt(receipt: ethers.TransactionReceipt): numb
         handle = ethers.toBeHex(event.args[0], 32);
         type = parseInt(handle.slice(-4, -2), 16);
         if (event.args[2] === "0x01") {
-          FHEGasConsumed += operatorsPrices["fheRem"].scalar[type];
+          FHEGasConsumed += operatorPrices["fheRem"].scalar[type];
         } else {
           throw new Error("Non-scalar rem not implemented yet");
         }
@@ -699,9 +697,9 @@ export function getFHEGasFromTxReceipt(receipt: ethers.TransactionReceipt): numb
         handle = ethers.toBeHex(event.args[0], 32);
         type = parseInt(handle.slice(-4, -2), 16);
         if (event.args[2] === "0x01") {
-          FHEGasConsumed += operatorsPrices["fheBitAnd"].scalar[type];
+          FHEGasConsumed += operatorPrices["fheBitAnd"].scalar[type];
         } else {
-          FHEGasConsumed += operatorsPrices["fheBitAnd"].nonScalar[type];
+          FHEGasConsumed += operatorPrices["fheBitAnd"].nonScalar[type];
         }
         break;
 
@@ -709,9 +707,9 @@ export function getFHEGasFromTxReceipt(receipt: ethers.TransactionReceipt): numb
         handle = ethers.toBeHex(event.args[0], 32);
         type = parseInt(handle.slice(-4, -2), 16);
         if (event.args[2] === "0x01") {
-          FHEGasConsumed += operatorsPrices["fheBitOr"].scalar[type];
+          FHEGasConsumed += operatorPrices["fheBitOr"].scalar[type];
         } else {
-          FHEGasConsumed += operatorsPrices["fheBitOr"].nonScalar[type];
+          FHEGasConsumed += operatorPrices["fheBitOr"].nonScalar[type];
         }
         break;
 
@@ -719,9 +717,9 @@ export function getFHEGasFromTxReceipt(receipt: ethers.TransactionReceipt): numb
         handle = ethers.toBeHex(event.args[0], 32);
         type = parseInt(handle.slice(-4, -2), 16);
         if (event.args[2] === "0x01") {
-          FHEGasConsumed += operatorsPrices["fheBitXor"].scalar[type];
+          FHEGasConsumed += operatorPrices["fheBitXor"].scalar[type];
         } else {
-          FHEGasConsumed += operatorsPrices["fheBitXor"].nonScalar[type];
+          FHEGasConsumed += operatorPrices["fheBitXor"].nonScalar[type];
         }
         break;
 
@@ -729,9 +727,9 @@ export function getFHEGasFromTxReceipt(receipt: ethers.TransactionReceipt): numb
         handle = ethers.toBeHex(event.args[0], 32);
         type = parseInt(handle.slice(-4, -2), 16);
         if (event.args[2] === "0x01") {
-          FHEGasConsumed += operatorsPrices["fheBitShl"].scalar[type];
+          FHEGasConsumed += operatorPrices["fheBitShl"].scalar[type];
         } else {
-          FHEGasConsumed += operatorsPrices["fheBitShl"].nonScalar[type];
+          FHEGasConsumed += operatorPrices["fheBitShl"].nonScalar[type];
         }
         break;
 
@@ -739,9 +737,9 @@ export function getFHEGasFromTxReceipt(receipt: ethers.TransactionReceipt): numb
         handle = ethers.toBeHex(event.args[0], 32);
         type = parseInt(handle.slice(-4, -2), 16);
         if (event.args[2] === "0x01") {
-          FHEGasConsumed += operatorsPrices["fheBitShr"].scalar[type];
+          FHEGasConsumed += operatorPrices["fheBitShr"].scalar[type];
         } else {
-          FHEGasConsumed += operatorsPrices["fheBitShr"].nonScalar[type];
+          FHEGasConsumed += operatorPrices["fheBitShr"].nonScalar[type];
         }
         break;
 
@@ -749,9 +747,9 @@ export function getFHEGasFromTxReceipt(receipt: ethers.TransactionReceipt): numb
         handle = ethers.toBeHex(event.args[0], 32);
         type = parseInt(handle.slice(-4, -2), 16);
         if (event.args[2] === "0x01") {
-          FHEGasConsumed += operatorsPrices["fheRotl"].scalar[type];
+          FHEGasConsumed += operatorPrices["fheRotl"].scalar[type];
         } else {
-          FHEGasConsumed += operatorsPrices["fheRotl"].nonScalar[type];
+          FHEGasConsumed += operatorPrices["fheRotl"].nonScalar[type];
         }
         break;
 
@@ -759,9 +757,9 @@ export function getFHEGasFromTxReceipt(receipt: ethers.TransactionReceipt): numb
         handle = ethers.toBeHex(event.args[0], 32);
         type = parseInt(handle.slice(-4, -2), 16);
         if (event.args[2] === "0x01") {
-          FHEGasConsumed += operatorsPrices["fheRotr"].scalar[type];
+          FHEGasConsumed += operatorPrices["fheRotr"].scalar[type];
         } else {
-          FHEGasConsumed += operatorsPrices["fheRotr"].nonScalar[type];
+          FHEGasConsumed += operatorPrices["fheRotr"].nonScalar[type];
         }
         break;
 
@@ -769,9 +767,9 @@ export function getFHEGasFromTxReceipt(receipt: ethers.TransactionReceipt): numb
         handle = ethers.toBeHex(event.args[0], 32);
         type = parseInt(handle.slice(-4, -2), 16);
         if (event.args[2] === "0x01") {
-          FHEGasConsumed += operatorsPrices["fheEq"].scalar[type];
+          FHEGasConsumed += operatorPrices["fheEq"].scalar[type];
         } else {
-          FHEGasConsumed += operatorsPrices["fheEq"].nonScalar[type];
+          FHEGasConsumed += operatorPrices["fheEq"].nonScalar[type];
         }
         break;
 
@@ -779,18 +777,18 @@ export function getFHEGasFromTxReceipt(receipt: ethers.TransactionReceipt): numb
         handle = ethers.toBeHex(event.args[0], 32);
         type = parseInt(handle.slice(-4, -2), 16);
         if (event.args[2] === "0x01") {
-          FHEGasConsumed += operatorsPrices["fheEq"].scalar[type];
+          FHEGasConsumed += operatorPrices["fheEq"].scalar[type];
         } else {
-          FHEGasConsumed += operatorsPrices["fheEq"].nonScalar[type];
+          FHEGasConsumed += operatorPrices["fheEq"].nonScalar[type];
         }
 
       case "FheNe":
         handle = ethers.toBeHex(event.args[0], 32);
         type = parseInt(handle.slice(-4, -2), 16);
         if (event.args[2] === "0x01") {
-          FHEGasConsumed += operatorsPrices["fheNe"].scalar[type];
+          FHEGasConsumed += operatorPrices["fheNe"].scalar[type];
         } else {
-          FHEGasConsumed += operatorsPrices["fheNe"].nonScalar[type];
+          FHEGasConsumed += operatorPrices["fheNe"].nonScalar[type];
         }
         break;
 
@@ -798,9 +796,9 @@ export function getFHEGasFromTxReceipt(receipt: ethers.TransactionReceipt): numb
         handle = ethers.toBeHex(event.args[0], 32);
         type = parseInt(handle.slice(-4, -2), 16);
         if (event.args[2] === "0x01") {
-          FHEGasConsumed += operatorsPrices["fheNe"].scalar[type];
+          FHEGasConsumed += operatorPrices["fheNe"].scalar[type];
         } else {
-          FHEGasConsumed += operatorsPrices["fheNe"].nonScalar[type];
+          FHEGasConsumed += operatorPrices["fheNe"].nonScalar[type];
         }
         break;
 
@@ -808,9 +806,9 @@ export function getFHEGasFromTxReceipt(receipt: ethers.TransactionReceipt): numb
         handle = ethers.toBeHex(event.args[0], 32);
         type = parseInt(handle.slice(-4, -2), 16);
         if (event.args[2] === "0x01") {
-          FHEGasConsumed += operatorsPrices["fheGe"].scalar[type];
+          FHEGasConsumed += operatorPrices["fheGe"].scalar[type];
         } else {
-          FHEGasConsumed += operatorsPrices["fheGe"].nonScalar[type];
+          FHEGasConsumed += operatorPrices["fheGe"].nonScalar[type];
         }
         break;
 
@@ -818,9 +816,9 @@ export function getFHEGasFromTxReceipt(receipt: ethers.TransactionReceipt): numb
         handle = ethers.toBeHex(event.args[0], 32);
         type = parseInt(handle.slice(-4, -2), 16);
         if (event.args[2] === "0x01") {
-          FHEGasConsumed += operatorsPrices["fheGt"].scalar[type];
+          FHEGasConsumed += operatorPrices["fheGt"].scalar[type];
         } else {
-          FHEGasConsumed += operatorsPrices["fheGt"].nonScalar[type];
+          FHEGasConsumed += operatorPrices["fheGt"].nonScalar[type];
         }
         break;
 
@@ -828,9 +826,9 @@ export function getFHEGasFromTxReceipt(receipt: ethers.TransactionReceipt): numb
         handle = ethers.toBeHex(event.args[0], 32);
         type = parseInt(handle.slice(-4, -2), 16);
         if (event.args[2] === "0x01") {
-          FHEGasConsumed += operatorsPrices["fheLe"].scalar[type];
+          FHEGasConsumed += operatorPrices["fheLe"].scalar[type];
         } else {
-          FHEGasConsumed += operatorsPrices["fheLe"].nonScalar[type];
+          FHEGasConsumed += operatorPrices["fheLe"].nonScalar[type];
         }
         break;
 
@@ -838,9 +836,9 @@ export function getFHEGasFromTxReceipt(receipt: ethers.TransactionReceipt): numb
         handle = ethers.toBeHex(event.args[0], 32);
         type = parseInt(handle.slice(-4, -2), 16);
         if (event.args[2] === "0x01") {
-          FHEGasConsumed += operatorsPrices["fheLt"].scalar[type];
+          FHEGasConsumed += operatorPrices["fheLt"].scalar[type];
         } else {
-          FHEGasConsumed += operatorsPrices["fheLt"].nonScalar[type];
+          FHEGasConsumed += operatorPrices["fheLt"].nonScalar[type];
         }
         break;
 
@@ -848,9 +846,9 @@ export function getFHEGasFromTxReceipt(receipt: ethers.TransactionReceipt): numb
         handle = ethers.toBeHex(event.args[0], 32);
         type = parseInt(handle.slice(-4, -2), 16);
         if (event.args[2] === "0x01") {
-          FHEGasConsumed += operatorsPrices["fheMax"].scalar[type];
+          FHEGasConsumed += operatorPrices["fheMax"].scalar[type];
         } else {
-          FHEGasConsumed += operatorsPrices["fheMax"].nonScalar[type];
+          FHEGasConsumed += operatorPrices["fheMax"].nonScalar[type];
         }
         break;
 
@@ -858,44 +856,44 @@ export function getFHEGasFromTxReceipt(receipt: ethers.TransactionReceipt): numb
         handle = ethers.toBeHex(event.args[0], 32);
         type = parseInt(handle.slice(-4, -2), 16);
         if (event.args[2] === "0x01") {
-          FHEGasConsumed += operatorsPrices["fheMin"].scalar[type];
+          FHEGasConsumed += operatorPrices["fheMin"].scalar[type];
         } else {
-          FHEGasConsumed += operatorsPrices["fheMin"].nonScalar[type];
+          FHEGasConsumed += operatorPrices["fheMin"].nonScalar[type];
         }
         break;
 
       case "Cast":
         handle = ethers.toBeHex(event.args[0], 32);
         type = parseInt(handle.slice(-4, -2), 16);
-        FHEGasConsumed += operatorsPrices["cast"].types[type];
+        FHEGasConsumed += operatorPrices["cast"].types[type];
         break;
 
       case "FheNot":
         handle = ethers.toBeHex(event.args[0], 32);
         type = parseInt(handle.slice(-4, -2), 16);
-        FHEGasConsumed += operatorsPrices["fheNot"].types[type];
+        FHEGasConsumed += operatorPrices["fheNot"].types[type];
         break;
 
       case "FheNeg":
         handle = ethers.toBeHex(event.args[0], 32);
         type = parseInt(handle.slice(-4, -2), 16);
-        FHEGasConsumed += operatorsPrices["fheNeg"].types[type];
+        FHEGasConsumed += operatorPrices["fheNeg"].types[type];
         break;
 
       case "FheIfThenElse":
         handle = ethers.toBeHex(event.args[3], 32);
         type = parseInt(handle.slice(-4, -2), 16);
-        FHEGasConsumed += operatorsPrices["ifThenElse"].types[type];
+        FHEGasConsumed += operatorPrices["ifThenElse"].types[type];
         break;
 
       case "FheRand":
         type = parseInt(event.args[0], 16);
-        FHEGasConsumed += operatorsPrices["fheRand"].types[type];
+        FHEGasConsumed += operatorPrices["fheRand"].types[type];
         break;
 
       case "FheRandBounded":
         type = parseInt(event.args[1], 16);
-        FHEGasConsumed += operatorsPrices["fheRandBounded"].types[type];
+        FHEGasConsumed += operatorPrices["fheRandBounded"].types[type];
         break;
     }
   }

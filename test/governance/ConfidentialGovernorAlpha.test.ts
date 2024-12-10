@@ -3,7 +3,7 @@ import { parseUnits } from "ethers";
 import { ethers, network } from "hardhat";
 
 import { awaitAllDecryptionResults } from "../asyncDecrypt";
-import { createInstances } from "../instance";
+import { createInstance } from "../instance";
 import { getSigners, initSigners } from "../signers";
 import { mineNBlocks } from "../utils";
 import { deployConfidentialERC20Votes, transferTokensAndDelegate } from "./ConfidentialERC20Votes.fixture";
@@ -15,30 +15,31 @@ import {
 
 describe("ConfidentialGovernorAlpha", function () {
   before(async function () {
-    await initSigners(4);
+    await initSigners();
     this.signers = await getSigners();
+    this.instance = await createInstance();
   });
 
   beforeEach(async function () {
-    const contract = await deployConfidentialERC20Votes(this.signers);
+    const contract = await deployConfidentialERC20Votes(this.signers.alice);
     this.confidentialERC20Votes = contract;
     this.confidentialERC20VotesAddress = await contract.getAddress();
-    this.instances = await createInstances(this.signers);
 
     const precomputedGovernorAddress = ethers.getCreateAddress({
       from: this.signers.alice.address,
       nonce: (await this.signers.alice.getNonce()) + 1,
     });
 
-    const timelock = await deployTimelockFixture(precomputedGovernorAddress);
+    const timelock = await deployTimelockFixture(this.signers.alice, precomputedGovernorAddress);
     this.timelock = timelock;
     this.timelockAddress = await timelock.getAddress();
 
     const governor = await deployConfidentialGovernorAlphaFixture(
-      this.signers,
+      this.signers.alice,
       this.confidentialERC20VotesAddress,
       this.timelockAddress,
     );
+
     this.governor = governor;
     this.governorAddress = await governor.getAddress();
 
@@ -59,11 +60,11 @@ describe("ConfidentialGovernorAlpha", function () {
     const description = "description";
 
     await transferTokensAndDelegate(
-      this.signers,
-      this.instances,
+      this.signers.alice,
+      this.signers.bob,
+      await this.signers.bob.getAddress(),
+      this.instance,
       transferAmount,
-      "bob",
-      "bob",
       this.confidentialERC20Votes,
       this.confidentialERC20VotesAddress,
     );
@@ -115,15 +116,14 @@ describe("ConfidentialGovernorAlpha", function () {
     const description = "description";
 
     await transferTokensAndDelegate(
-      this.signers,
-      this.instances,
+      this.signers.alice,
+      this.signers.bob,
+      await this.signers.bob.getAddress(),
+      this.instance,
       transferAmount,
-      "bob",
-      "bob",
       this.confidentialERC20Votes,
       this.confidentialERC20VotesAddress,
     );
-
     const tx = await this.governor
       .connect(this.signers.bob)
       .propose(targets, values, signatures, calldatas, description);
@@ -155,21 +155,21 @@ describe("ConfidentialGovernorAlpha", function () {
 
     // Bob and Carol receive 200k tokens and delegate to themselves.
     await transferTokensAndDelegate(
-      this.signers,
-      this.instances,
+      this.signers.alice,
+      this.signers.bob,
+      await this.signers.bob.getAddress(),
+      this.instance,
       transferAmount,
-      "bob",
-      "bob",
       this.confidentialERC20Votes,
       this.confidentialERC20VotesAddress,
     );
 
     await transferTokensAndDelegate(
-      this.signers,
-      this.instances,
+      this.signers.alice,
+      this.signers.carol,
+      await this.signers.carol.getAddress(),
+      this.instance,
       transferAmount,
-      "carol",
-      "carol",
       this.confidentialERC20Votes,
       this.confidentialERC20VotesAddress,
     );
@@ -184,7 +184,7 @@ describe("ConfidentialGovernorAlpha", function () {
 
     // VOTE
     // Bob and Carol vote for
-    let input = this.instances.bob.createEncryptedInput(this.governorAddress, this.signers.bob.address);
+    let input = this.instance.createEncryptedInput(this.governorAddress, this.signers.bob.address);
     input.addBool(true);
     let encryptedVote = await input.encrypt();
     tx = await this.governor
@@ -196,7 +196,7 @@ describe("ConfidentialGovernorAlpha", function () {
       1n, // @dev proposalId
     );
 
-    input = this.instances.carol.createEncryptedInput(this.governorAddress, this.signers.carol.address);
+    input = this.instance.createEncryptedInput(this.governorAddress, this.signers.carol.address);
     input.addBool(true);
     encryptedVote = await input.encrypt();
     tx = await this.governor
@@ -210,10 +210,9 @@ describe("ConfidentialGovernorAlpha", function () {
 
     // Bob/Carol can reeencrypt his/her receipt
     let [hasVoted, support, votes] = await reencryptVoteReceipt(
-      this.signers,
-      this.instances,
+      this.signers.bob,
+      this.instance,
       proposalId,
-      "bob",
       this.governor,
       this.governorAddress,
     );
@@ -223,10 +222,9 @@ describe("ConfidentialGovernorAlpha", function () {
     expect(votes).to.be.eq(transferAmount);
 
     [hasVoted, support, votes] = await reencryptVoteReceipt(
-      this.signers,
-      this.instances,
+      this.signers.carol,
+      this.instance,
       proposalId,
-      "carol",
       this.governor,
       this.governorAddress,
     );
@@ -304,11 +302,11 @@ describe("ConfidentialGovernorAlpha", function () {
 
     // Bob receives enough to create a proposal but not enough to match the quorum.
     await transferTokensAndDelegate(
-      this.signers,
-      this.instances,
+      this.signers.alice,
+      this.signers.bob,
+      await this.signers.bob.getAddress(),
+      this.instance,
       transferAmount,
-      "bob",
-      "bob",
       this.confidentialERC20Votes,
       this.confidentialERC20VotesAddress,
     );
@@ -322,7 +320,7 @@ describe("ConfidentialGovernorAlpha", function () {
     const proposalId = await this.governor.latestProposalIds(this.signers.bob.address);
 
     // VOTE
-    const input = this.instances.bob.createEncryptedInput(this.governorAddress, this.signers.bob.address);
+    const input = this.instance.createEncryptedInput(this.governorAddress, this.signers.bob.address);
     input.addBool(true);
     const encryptedVote = await input.encrypt();
     tx = await this.governor
@@ -332,10 +330,9 @@ describe("ConfidentialGovernorAlpha", function () {
 
     // Bob reeencrypts his receipt
     const [hasVoted, support, votes] = await reencryptVoteReceipt(
-      this.signers,
-      this.instances,
+      this.signers.bob,
+      this.instance,
       proposalId,
-      "bob",
       this.governor,
       this.governorAddress,
     );
@@ -378,25 +375,24 @@ describe("ConfidentialGovernorAlpha", function () {
 
     // Bob and Carol receive 200k tokens and delegate to themselves.
     await transferTokensAndDelegate(
-      this.signers,
-      this.instances,
+      this.signers.alice,
+      this.signers.bob,
+      await this.signers.bob.getAddress(),
+      this.instance,
       transferAmountFor,
-      "bob",
-      "bob",
       this.confidentialERC20Votes,
       this.confidentialERC20VotesAddress,
     );
 
     await transferTokensAndDelegate(
-      this.signers,
-      this.instances,
+      this.signers.alice,
+      this.signers.carol,
+      await this.signers.carol.getAddress(),
+      this.instance,
       transferAmountAgainst,
-      "carol",
-      "carol",
       this.confidentialERC20Votes,
       this.confidentialERC20VotesAddress,
     );
-
     // INITIATE A PROPOSAL
     let tx = await this.governor.connect(this.signers.bob).propose(targets, values, signatures, calldatas, description);
     await tx.wait();
@@ -407,7 +403,7 @@ describe("ConfidentialGovernorAlpha", function () {
 
     // VOTE
     // Bob votes for but Carol votes against
-    let input = this.instances.bob.createEncryptedInput(this.governorAddress, this.signers.bob.address);
+    let input = this.instance.createEncryptedInput(this.governorAddress, this.signers.bob.address);
     input.addBool(true);
     let encryptedVote = await input.encrypt();
     tx = await this.governor
@@ -415,7 +411,7 @@ describe("ConfidentialGovernorAlpha", function () {
       ["castVote(uint256,bytes32,bytes)"](proposalId, encryptedVote.handles[0], encryptedVote.inputProof);
     await tx.wait();
 
-    input = this.instances.carol.createEncryptedInput(this.governorAddress, this.signers.carol.address);
+    input = this.instance.createEncryptedInput(this.governorAddress, this.signers.carol.address);
     input.addBool(false);
     encryptedVote = await input.encrypt();
     tx = await this.governor
@@ -425,10 +421,9 @@ describe("ConfidentialGovernorAlpha", function () {
 
     // Bob/Carol can reeencrypt his/her receipt
     let [hasVoted, support, votes] = await reencryptVoteReceipt(
-      this.signers,
-      this.instances,
+      this.signers.bob,
+      this.instance,
       proposalId,
-      "bob",
       this.governor,
       this.governorAddress,
     );
@@ -438,10 +433,9 @@ describe("ConfidentialGovernorAlpha", function () {
     expect(votes).to.be.eq(transferAmountFor);
 
     [hasVoted, support, votes] = await reencryptVoteReceipt(
-      this.signers,
-      this.instances,
+      this.signers.carol,
+      this.instance,
       proposalId,
-      "carol",
       this.governor,
       this.governorAddress,
     );
@@ -620,15 +614,14 @@ describe("ConfidentialGovernorAlpha", function () {
     const transferAmount = await this.governor.QUORUM_VOTES();
 
     await transferTokensAndDelegate(
-      this.signers,
-      this.instances,
+      this.signers.alice,
+      this.signers.bob,
+      await this.signers.bob.getAddress(),
+      this.instance,
       transferAmount,
-      "bob",
-      "bob",
       this.confidentialERC20Votes,
       this.confidentialERC20VotesAddress,
     );
-
     const tx = await this.governor
       .connect(this.signers.bob)
       .propose(targets, values, signatures, calldatas, description);
@@ -650,11 +643,11 @@ describe("ConfidentialGovernorAlpha", function () {
     const transferAmount = await this.governor.QUORUM_VOTES();
 
     await transferTokensAndDelegate(
-      this.signers,
-      this.instances,
+      this.signers.alice,
+      this.signers.bob,
+      await this.signers.bob.getAddress(),
+      this.instance,
       transferAmount,
-      "bob",
-      "bob",
       this.confidentialERC20Votes,
       this.confidentialERC20VotesAddress,
     );
@@ -679,11 +672,11 @@ describe("ConfidentialGovernorAlpha", function () {
 
     // Bob receives 400k tokens and delegates to himself.
     await transferTokensAndDelegate(
-      this.signers,
-      this.instances,
+      this.signers.alice,
+      this.signers.bob,
+      await this.signers.bob.getAddress(),
+      this.instance,
       transferAmount,
-      "bob",
-      "bob",
       this.confidentialERC20Votes,
       this.confidentialERC20VotesAddress,
     );
@@ -698,7 +691,7 @@ describe("ConfidentialGovernorAlpha", function () {
 
     // VOTE
     // Bob casts a vote
-    const input = this.instances.bob.createEncryptedInput(this.governorAddress, this.signers.bob.address);
+    const input = this.instance.createEncryptedInput(this.governorAddress, this.signers.bob.address);
     input.addBool(true);
     const encryptedVote = await input.encrypt();
     tx = await this.governor
@@ -740,15 +733,14 @@ describe("ConfidentialGovernorAlpha", function () {
 
     // CANNOT CANCEL IF REJECTED
     await transferTokensAndDelegate(
-      this.signers,
-      this.instances,
+      this.signers.alice,
+      this.signers.bob,
+      await this.signers.bob.getAddress(),
+      this.instance,
       transferAmount,
-      "bob",
-      "bob",
       this.confidentialERC20Votes,
       this.confidentialERC20VotesAddress,
     );
-
     let tx = await this.governor.connect(this.signers.bob).propose(targets, values, signatures, calldatas, description);
     await tx.wait();
     await awaitAllDecryptionResults();
@@ -764,11 +756,11 @@ describe("ConfidentialGovernorAlpha", function () {
     transferAmount = (await this.governor.QUORUM_VOTES()) - 1n;
 
     await transferTokensAndDelegate(
-      this.signers,
-      this.instances,
+      this.signers.alice,
+      this.signers.carol,
+      await this.signers.carol.getAddress(),
+      this.instance,
       transferAmount,
-      "carol",
-      "carol",
       this.confidentialERC20Votes,
       this.confidentialERC20VotesAddress,
     );
@@ -779,7 +771,7 @@ describe("ConfidentialGovernorAlpha", function () {
 
     proposalId = await this.governor.latestProposalIds(this.signers.carol.address);
 
-    let input = this.instances.carol.createEncryptedInput(this.governorAddress, this.signers.carol.address);
+    let input = this.instance.createEncryptedInput(this.governorAddress, this.signers.carol.address);
     input.addBool(true);
     let encryptedVote = await input.encrypt();
     tx = await this.governor
@@ -803,11 +795,11 @@ describe("ConfidentialGovernorAlpha", function () {
     transferAmount = await this.governor.QUORUM_VOTES();
 
     await transferTokensAndDelegate(
-      this.signers,
-      this.instances,
+      this.signers.alice,
+      this.signers.dave,
+      this.signers.dave.address,
+      this.instance,
       transferAmount,
-      "dave",
-      "dave",
       this.confidentialERC20Votes,
       this.confidentialERC20VotesAddress,
     );
@@ -818,7 +810,7 @@ describe("ConfidentialGovernorAlpha", function () {
 
     proposalId = await this.governor.latestProposalIds(this.signers.dave.address);
 
-    input = this.instances.dave.createEncryptedInput(this.governorAddress, this.signers.dave.address);
+    input = this.instance.createEncryptedInput(this.governorAddress, this.signers.dave.address);
     input.addBool(true);
     encryptedVote = await input.encrypt();
     tx = await this.governor
@@ -872,11 +864,11 @@ describe("ConfidentialGovernorAlpha", function () {
     const transferAmount = await this.governor.QUORUM_VOTES();
 
     await transferTokensAndDelegate(
-      this.signers,
-      this.instances,
+      this.signers.alice,
+      this.signers.bob,
+      await this.signers.bob.getAddress(),
+      this.instance,
       transferAmount,
-      "bob",
-      "bob",
       this.confidentialERC20Votes,
       this.confidentialERC20VotesAddress,
     );
@@ -891,7 +883,7 @@ describe("ConfidentialGovernorAlpha", function () {
 
     // VOTE
     // Bob votes for
-    const input = this.instances.bob.createEncryptedInput(this.governorAddress, this.signers.bob.address);
+    const input = this.instance.createEncryptedInput(this.governorAddress, this.signers.bob.address);
     input.addBool(true);
     const encryptedVote = await input.encrypt();
     tx = await this.governor
@@ -937,11 +929,11 @@ describe("ConfidentialGovernorAlpha", function () {
     const transferAmount = await this.governor.QUORUM_VOTES();
 
     await transferTokensAndDelegate(
-      this.signers,
-      this.instances,
+      this.signers.alice,
+      this.signers.bob,
+      await this.signers.bob.getAddress(),
+      this.instance,
       transferAmount,
-      "bob",
-      "bob",
       this.confidentialERC20Votes,
       this.confidentialERC20VotesAddress,
     );
@@ -956,7 +948,7 @@ describe("ConfidentialGovernorAlpha", function () {
 
     // VOTE
     // Bob votes for
-    const input = this.instances.bob.createEncryptedInput(this.governorAddress, this.signers.bob.address);
+    const input = this.instance.createEncryptedInput(this.governorAddress, this.signers.bob.address);
     input.addBool(true);
     const encryptedVote = await input.encrypt();
     tx = await this.governor
@@ -981,11 +973,11 @@ describe("ConfidentialGovernorAlpha", function () {
     const transferAmount = await this.governor.QUORUM_VOTES();
 
     await transferTokensAndDelegate(
-      this.signers,
-      this.instances,
+      this.signers.alice,
+      this.signers.bob,
+      await this.signers.bob.getAddress(),
+      this.instance,
       transferAmount,
-      "bob",
-      "bob",
       this.confidentialERC20Votes,
       this.confidentialERC20VotesAddress,
     );
@@ -993,7 +985,7 @@ describe("ConfidentialGovernorAlpha", function () {
     let tx = await this.governor.connect(this.signers.bob).propose(targets, values, signatures, calldatas, description);
     const proposalId = await this.governor.latestProposalIds(this.signers.bob.address);
 
-    const input = this.instances.bob.createEncryptedInput(this.governorAddress, this.signers.bob.address);
+    const input = this.instance.createEncryptedInput(this.governorAddress, this.signers.bob.address);
     input.addBool(true);
     const encryptedVote = await input.encrypt();
 
@@ -1034,11 +1026,11 @@ describe("ConfidentialGovernorAlpha", function () {
 
     // Bob receives 400k tokens and delegates to himself.
     await transferTokensAndDelegate(
-      this.signers,
-      this.instances,
+      this.signers.alice,
+      this.signers.bob,
+      await this.signers.bob.getAddress(),
+      this.instance,
       transferAmount,
-      "bob",
-      "bob",
       this.confidentialERC20Votes,
       this.confidentialERC20VotesAddress,
     );
@@ -1053,7 +1045,7 @@ describe("ConfidentialGovernorAlpha", function () {
 
     // VOTE
     // Bob casts a vote
-    const input = this.instances.bob.createEncryptedInput(this.governorAddress, this.signers.bob.address);
+    const input = this.instance.createEncryptedInput(this.governorAddress, this.signers.bob.address);
     input.addBool(true);
     const encryptedVote = await input.encrypt();
     tx = await this.governor
@@ -1078,11 +1070,11 @@ describe("ConfidentialGovernorAlpha", function () {
 
     // Bob receives 400k tokens and delegates to himself.
     await transferTokensAndDelegate(
-      this.signers,
-      this.instances,
+      this.signers.alice,
+      this.signers.bob,
+      await this.signers.bob.getAddress(),
+      this.instance,
       transferAmount,
-      "bob",
-      "bob",
       this.confidentialERC20Votes,
       this.confidentialERC20VotesAddress,
     );
@@ -1097,7 +1089,7 @@ describe("ConfidentialGovernorAlpha", function () {
 
     // VOTE
     // Bob casts a vote
-    const input = this.instances.bob.createEncryptedInput(this.governorAddress, this.signers.bob.address);
+    const input = this.instance.createEncryptedInput(this.governorAddress, this.signers.bob.address);
     input.addBool(true);
     const encryptedVote = await input.encrypt();
     tx = await this.governor

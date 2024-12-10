@@ -3,9 +3,9 @@ pragma solidity ^0.8.24;
 
 import "fhevm/lib/TFHE.sol";
 import { EncryptedErrors } from "../../utils/EncryptedErrors.sol";
-import { MockZamaFHEVMConfig } from "fhevm/config/ZamaFHEVMConfig.sol";
+import { SepoliaZamaFHEVMConfig } from "fhevm/config/ZamaFHEVMConfig.sol";
 
-contract TestEncryptedErrors is MockZamaFHEVMConfig, EncryptedErrors {
+contract TestEncryptedErrors is SepoliaZamaFHEVMConfig, EncryptedErrors {
     constructor(uint8 totalNumberErrorCodes_) EncryptedErrors(totalNumberErrorCodes_) {
         for (uint8 i; i <= totalNumberErrorCodes_; i++) {
             /// @dev It is not possible to access the _errorCodeDefinitions since it is private.

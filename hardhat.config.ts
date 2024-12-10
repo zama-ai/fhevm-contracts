@@ -1,22 +1,14 @@
 import "@nomicfoundation/hardhat-toolbox";
 import "@openzeppelin/hardhat-upgrades";
 import dotenv from "dotenv";
-import * as fs from "fs-extra";
 import "hardhat-ignore-warnings";
-import type { HardhatUserConfig } from "hardhat/config";
-import { extendProvider, task } from "hardhat/config";
+import { HardhatUserConfig, extendProvider } from "hardhat/config";
+import { task } from "hardhat/config";
 import type { NetworkUserConfig } from "hardhat/types";
 import { resolve } from "path";
-import * as path from "path";
-import "solidity-docgen";
 
 import CustomProvider from "./CustomProvider";
-// Adjust the import path as needed
-import "./tasks/accounts";
-import "./tasks/getEthereumAddress";
-import "./tasks/taskDeploy";
-import "./tasks/taskGatewayRelayer";
-import "./tasks/taskTFHE";
+import { setCodeMocked } from "./test/mockedSetup";
 
 extendProvider(async (provider) => {
   const newProvider = new CustomProvider(provider);
@@ -36,10 +28,7 @@ const dotenvConfigPath: string = process.env.DOTENV_CONFIG_PATH || "./.env";
 dotenv.config({ path: resolve(__dirname, dotenvConfigPath) });
 
 // Ensure that we have all the environment variables we need.
-const mnemonic: string | undefined = process.env.MNEMONIC;
-if (!mnemonic) {
-  throw new Error("Please set your MNEMONIC in a .env file");
-}
+const mnemonic: string = process.env.MNEMONIC!;
 
 const chainIds = {
   zama: 8009,
@@ -77,59 +66,14 @@ function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
 task("coverage").setAction(async (taskArgs, hre, runSuper) => {
   hre.config.networks.hardhat.allowUnlimitedContractSize = true;
   hre.config.networks.hardhat.blockGasLimit = 1099511627775;
+
   await runSuper(taskArgs);
 });
-
-function replaceImportStatement(filePath: string, oldImport: string, newImport: string): void {
-  try {
-    let fileContent = fs.readFileSync(filePath, "utf-8");
-    fileContent = fileContent.replace(oldImport, newImport);
-    fs.writeFileSync(filePath, fileContent, "utf-8");
-  } catch (error) {
-    console.error(`Error updating file: ${error}`);
-  }
-}
 
 task("test", async (_taskArgs, hre, runSuper) => {
   // Run modified test task
   if (hre.network.name === "hardhat") {
-    // in fhevm mode all this block is done when launching the node via `pnmp fhevm:start`
-    const privKeyGatewayDeployer = process.env.PRIVATE_KEY_GATEWAY_DEPLOYER;
-    const privKeyFhevmDeployer = process.env.PRIVATE_KEY_FHEVM_DEPLOYER;
-    await hre.run("task:computeGatewayAddress", { privateKey: privKeyGatewayDeployer });
-    await hre.run("task:computeACLAddress", { privateKey: privKeyFhevmDeployer });
-    await hre.run("task:computeTFHEExecutorAddress", { privateKey: privKeyFhevmDeployer });
-    await hre.run("task:computeKMSVerifierAddress", { privateKey: privKeyFhevmDeployer });
-    await hre.run("task:computeInputVerifierAddress", { privateKey: privKeyFhevmDeployer, useAddress: false });
-    await hre.run("task:computeFHEPaymentAddress", { privateKey: privKeyFhevmDeployer });
-    await hre.run("compile:specific", { contract: "contracts/" });
-    const sourceDir = path.resolve(__dirname, "node_modules/fhevm-core-contracts/");
-    const destinationDir = path.resolve(__dirname, "fhevmTemp/");
-    fs.copySync(sourceDir, destinationDir, { dereference: true });
-
-    const sourceDir2 = path.resolve("./node_modules/fhevm/gateway/GatewayContract.sol");
-    const destinationFilePath = path.join(destinationDir, "GatewayContract.sol");
-    fs.copySync(sourceDir2, destinationFilePath, { dereference: true });
-    const oldImport = `import "../lib/TFHE.sol";`;
-    const newImport = `import "fhevm/lib/TFHE.sol";`;
-    replaceImportStatement(destinationFilePath, oldImport, newImport);
-    const sourceDir3 = path.resolve("./node_modules/fhevm/gateway/IKMSVerifier.sol");
-    const destinationFilePath3 = path.join(destinationDir, "IKMSVerifier.sol");
-    fs.copySync(sourceDir3, destinationFilePath3, { dereference: true });
-
-    await hre.run("compile:specific", { contract: "fhevmTemp/" });
-    await hre.run("task:faucetToPrivate", { privateKey: privKeyFhevmDeployer });
-    await hre.run("task:deployACL", { privateKey: privKeyFhevmDeployer });
-    await hre.run("task:deployTFHEExecutor", { privateKey: privKeyFhevmDeployer });
-    await hre.run("task:deployKMSVerifier", { privateKey: privKeyFhevmDeployer });
-    await hre.run("task:deployInputVerifier", { privateKey: privKeyFhevmDeployer });
-    await hre.run("task:deployFHEPayment", { privateKey: privKeyFhevmDeployer });
-    await hre.run("task:addSigners", {
-      numSigners: process.env.NUM_KMS_SIGNERS!,
-      privateKey: privKeyFhevmDeployer,
-      useAddress: false,
-    });
-    await hre.run("task:launchFhevm", { skipGetCoin: false, useAddress: false });
+    await setCodeMocked(hre);
   }
   await runSuper();
 });
