@@ -18,9 +18,9 @@ abstract contract ConfidentialERC20Mintable is Ownable2Step, ConfidentialERC20 {
     event Mint(address indexed to, uint64 amount);
 
     /**
-     * @param name_ Name of the token.
-     * @param symbol_ Symbol.
-     * @param owner_ Owner address.
+     * @param name_     Name of the token.
+     * @param symbol_   Symbol.
+     * @param owner_    Owner address.
      */
     constructor(
         string memory name_,
@@ -29,14 +29,16 @@ abstract contract ConfidentialERC20Mintable is Ownable2Step, ConfidentialERC20 {
     ) Ownable(owner_) ConfidentialERC20(name_, symbol_) {}
 
     /**
-     * @notice Mint tokens.
-     * @param amount Amount of tokens to mint.
+     * @notice          Mint tokens.
+     * @param to        Address to mint tokens to.
+     * @param amount    Amount of tokens to mint.
      */
-    function mint(uint64 amount) public virtual onlyOwner {
-        _unsafeMint(msg.sender, amount);
-        /// @dev Since _totalSupply is not encrypted and _totalSupply >= balances[msg.sender],
-        /// the next line contains an overflow check for the encrypted operation above.
+    function mint(address to, uint64 amount) public virtual onlyOwner {
+        _unsafeMint(to, amount);
+        /// @dev Since _totalSupply is not encrypted and we ensure there is no underflow/overflow of encrypted balances
+        /// during transfers, making _totalSupply invariant during transfers, we know _totalSupply is greater than
+        /// all individual balances. Hence, the next line forbids any overflow to happen in the _unsafeMint above.
         _totalSupply = _totalSupply + amount;
-        emit Mint(msg.sender, amount);
+        emit Mint(to, amount);
     }
 }
