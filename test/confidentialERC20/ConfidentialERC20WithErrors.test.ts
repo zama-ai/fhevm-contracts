@@ -35,7 +35,7 @@ describe("ConfidentialERC20WithErrors", function () {
 
   it("should mint the contract", async function () {
     const mintAmount = 1000;
-    const tx = await this.confidentialERC20.connect(this.signers.alice).mint(mintAmount);
+    const tx = await this.confidentialERC20.connect(this.signers.alice).mint(this.signers.alice, mintAmount);
     await expect(tx).to.emit(this.confidentialERC20, "Mint").withArgs(this.signers.alice, mintAmount);
 
     expect(
@@ -50,7 +50,7 @@ describe("ConfidentialERC20WithErrors", function () {
     const transferAmount = 1337;
     const expectedTransferId = 0n;
 
-    let tx = await this.confidentialERC20.connect(this.signers.alice).mint(mintAmount);
+    let tx = await this.confidentialERC20.connect(this.signers.alice).mint(this.signers.alice, mintAmount);
     await tx.wait();
 
     const input = this.instance.createEncryptedInput(this.confidentialERC20Address, this.signers.alice.address);
@@ -107,7 +107,7 @@ describe("ConfidentialERC20WithErrors", function () {
     const transferAmount = 1337;
     const expectedTransferId = 0n;
 
-    let tx = await this.confidentialERC20.connect(this.signers.alice).mint(mintAmount);
+    let tx = await this.confidentialERC20.connect(this.signers.alice).mint(this.signers.alice, mintAmount);
     await tx.wait();
 
     const input = this.instance.createEncryptedInput(this.confidentialERC20Address, this.signers.alice.address);
@@ -152,7 +152,7 @@ describe("ConfidentialERC20WithErrors", function () {
     const mintAmount = 10_000;
     const transferAmount = 1337;
 
-    let tx = await this.confidentialERC20.connect(this.signers.alice).mint(mintAmount);
+    let tx = await this.confidentialERC20.connect(this.signers.alice).mint(this.signers.alice, mintAmount);
     await tx.wait();
 
     const inputAlice = this.instance.createEncryptedInput(this.confidentialERC20Address, this.signers.alice.address);
@@ -306,7 +306,7 @@ describe("ConfidentialERC20WithErrors", function () {
   it("should not be able to read the balance if not user after initialization", async function () {
     // Mint is used to initialize the balanceOf(alice)
     const amount = 10_000;
-    const tx = await this.confidentialERC20.connect(this.signers.alice).mint(amount);
+    const tx = await this.confidentialERC20.connect(this.signers.alice).mint(this.signers.alice, amount);
     await tx.wait();
 
     const balanceHandleAlice = await this.confidentialERC20.balanceOf(this.signers.alice);
@@ -335,7 +335,7 @@ describe("ConfidentialERC20WithErrors", function () {
     const NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
     const mintAmount = 100_000;
     const transferAmount = 50_000;
-    const tx = await this.confidentialERC20.connect(this.signers.alice).mint(mintAmount);
+    const tx = await this.confidentialERC20.connect(this.signers.alice).mint(this.signers.alice, mintAmount);
     await tx.wait();
 
     const input = this.instance.createEncryptedInput(this.confidentialERC20Address, this.signers.alice.address);
@@ -355,7 +355,7 @@ describe("ConfidentialERC20WithErrors", function () {
     const NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
     const mintAmount = 100_000;
     const transferAmount = 50_000;
-    const tx = await this.confidentialERC20.connect(this.signers.alice).mint(mintAmount);
+    const tx = await this.confidentialERC20.connect(this.signers.alice).mint(this.signers.alice, mintAmount);
     await tx.wait();
 
     const input = this.instance.createEncryptedInput(this.confidentialERC20Address, this.signers.alice.address);
@@ -374,7 +374,7 @@ describe("ConfidentialERC20WithErrors", function () {
   it("sender who is not allowed cannot transfer using a handle from another account", async function () {
     const mintAmount = 100_000;
     const transferAmount = 50_000;
-    let tx = await this.confidentialERC20.connect(this.signers.alice).mint(mintAmount);
+    let tx = await this.confidentialERC20.connect(this.signers.alice).mint(this.signers.alice, mintAmount);
     await tx.wait();
 
     const input = this.instance.createEncryptedInput(this.confidentialERC20Address, this.signers.alice.address);
@@ -400,7 +400,7 @@ describe("ConfidentialERC20WithErrors", function () {
     const mintAmount = 100_000;
     const transferAmount = 50_000;
 
-    let tx = await this.confidentialERC20.connect(this.signers.alice).mint(mintAmount);
+    let tx = await this.confidentialERC20.connect(this.signers.alice).mint(this.signers.alice, mintAmount);
     await tx.wait();
 
     let input = this.instance.createEncryptedInput(this.confidentialERC20Address, this.signers.alice.address);
@@ -440,7 +440,7 @@ describe("ConfidentialERC20WithErrors", function () {
     const transferAmount = 1337;
     const expectedTransferId = 0;
 
-    let tx = await this.confidentialERC20.connect(this.signers.alice).mint(mintAmount);
+    let tx = await this.confidentialERC20.connect(this.signers.alice).mint(this.signers.alice, mintAmount);
     await tx.wait();
 
     const input = this.instance.createEncryptedInput(this.confidentialERC20Address, this.signers.alice.address);
@@ -504,9 +504,8 @@ describe("ConfidentialERC20WithErrors", function () {
   });
 
   it("ConfidentialERC20WithErrorsMintable - only owner can mint", async function () {
-    await expect(this.confidentialERC20.connect(this.signers.bob).mint(1)).to.be.revertedWithCustomError(
-      this.confidentialERC20,
-      "OwnableUnauthorizedAccount",
-    );
+    await expect(
+      this.confidentialERC20.connect(this.signers.bob).mint(this.signers.bob.address, 1),
+    ).to.be.revertedWithCustomError(this.confidentialERC20, "OwnableUnauthorizedAccount");
   });
 });
