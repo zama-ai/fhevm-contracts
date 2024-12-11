@@ -16,7 +16,7 @@ import { TFHEErrors } from "../../utils/TFHEErrors.sol";
  *              The total supply is not encrypted.
  */
 abstract contract ConfidentialERC20 is IConfidentialERC20, IERC20Errors, TFHEErrors {
-    /// @notice used as a placehoder in Approval and Transfer events to comply with the official EIP20
+    /// @notice Used as a placeholder in `Approval` & `Transfer` events to comply with the official EIP20.
     uint256 internal constant _PLACEHOLDER = type(uint256).max;
     /// @notice Total supply.
     uint64 internal _totalSupply;
@@ -34,8 +34,8 @@ abstract contract ConfidentialERC20 is IConfidentialERC20, IERC20Errors, TFHEErr
     mapping(address account => mapping(address spender => euint64 allowance)) internal _allowances;
 
     /**
-     * @param name_ Name of the token.
-     * @param symbol_ Symbol.
+     * @param name_     Name of the token.
+     * @param symbol_   Symbol.
      */
     constructor(string memory name_, string memory symbol_) {
         _name = name_;
@@ -75,7 +75,7 @@ abstract contract ConfidentialERC20 is IConfidentialERC20, IERC20Errors, TFHEErr
     function transfer(address to, euint64 amount) public virtual returns (bool) {
         _isSenderAllowedForAmount(amount);
 
-        /// Make sure the owner has enough tokens.
+        /// @dev Make sure the owner has enough tokens.
         ebool canTransfer = TFHE.le(amount, _balances[msg.sender]);
         _transfer(msg.sender, to, amount, canTransfer);
         return true;
@@ -196,7 +196,7 @@ abstract contract ConfidentialERC20 is IConfidentialERC20, IERC20Errors, TFHEErr
             revert ERC20InvalidReceiver(to);
         }
 
-        /// Add to the balance of `to` and subract from the balance of `from`.
+        /// @dev Add to the balance of `to` and subtract from the balance of `from`.
         euint64 transferValue = TFHE.select(isTransferable, amount, TFHE.asEuint64(0));
         euint64 newBalanceTo = TFHE.add(_balances[to], transferValue);
         _balances[to] = newBalanceTo;
@@ -210,9 +210,9 @@ abstract contract ConfidentialERC20 is IConfidentialERC20, IERC20Errors, TFHEErr
 
     function _updateAllowance(address owner, address spender, euint64 amount) internal virtual returns (ebool) {
         euint64 currentAllowance = _allowance(owner, spender);
-        /// Make sure sure the allowance suffices.
+        /// @dev Make sure sure the allowance suffices.
         ebool allowedTransfer = TFHE.le(amount, currentAllowance);
-        /// Make sure the owner has enough tokens.
+        /// @dev Make sure the owner has enough tokens.
         ebool canTransfer = TFHE.le(amount, _balances[owner]);
         ebool isTransferable = TFHE.and(canTransfer, allowedTransfer);
         _approve(owner, spender, TFHE.select(isTransferable, TFHE.sub(currentAllowance, amount), currentAllowance));
