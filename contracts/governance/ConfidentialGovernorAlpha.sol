@@ -459,10 +459,8 @@ abstract contract ConfidentialGovernorAlpha is Ownable2Step, GatewayCaller {
             description
         );
 
-        ebool canPropose = TFHE.lt(
-            _EUINT64_PROPOSAL_THRESHOLD,
-            CONFIDENTIAL_ERC20_VOTES.getPriorVotesForGovernor(msg.sender, block.number - 1)
-        );
+        euint64 priorVotes = CONFIDENTIAL_ERC20_VOTES.getPriorVotesForGovernor(msg.sender, block.number - 1);
+        ebool canPropose = TFHE.lt(_EUINT64_PROPOSAL_THRESHOLD, priorVotes);
 
         uint256[] memory cts = new uint256[](1);
         cts[0] = Gateway.toUint256(canPropose);

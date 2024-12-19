@@ -165,11 +165,7 @@ abstract contract ConfidentialERC20Votes is IConfidentialERC20Votes, Confidentia
             revert GovernorInvalid();
         }
 
-        if (blockNumber >= block.number) {
-            revert BlockNumberEqualOrHigherThanCurrentBlock();
-        }
-
-        votes = _getPriorVote(account, blockNumber);
+        votes = getPriorVotes(account, blockNumber);
         TFHE.allow(votes, msg.sender);
     }
 
@@ -220,20 +216,17 @@ abstract contract ConfidentialERC20Votes is IConfidentialERC20Votes, Confidentia
         _moveDelegates(currentDelegate, delegatee, delegatorBalance);
     }
 
-    function _getPriorVote(address account, uint256 blockNumber) internal view returns (euint64 votes) {
+    function _getPriorVote(address account, uint256 blockNumber) internal view returns (euint64) {
         uint32 nCheckpoints = numCheckpoints[account];
 
+        /* solhint-disable no-empty-blocks*/
         if (nCheckpoints == 0) {
             /// If there is no checkpoint for the `account`, return encrypted zero.
-            /// @dev It will not be possible to reencrypt it by the `account`.
-            votes = _EUINT64_ZERO;
         } else if (_checkpoints[account][nCheckpoints - 1].fromBlock <= blockNumber) {
             /// First, check the most recent balance.
-            votes = _checkpoints[account][nCheckpoints - 1].votes;
+            return _checkpoints[account][nCheckpoints - 1].votes;
         } else if (_checkpoints[account][0].fromBlock > blockNumber) {
             /// Then, check if there is zero balance.
-            /// @dev It will not be possible to reencrypt it by the `account`.
-            votes = _EUINT64_ZERO;
         } else {
             /// Else, search for the voting power at the `blockNumber`.
             uint32 lower = 0;
@@ -251,7 +244,7 @@ abstract contract ConfidentialERC20Votes is IConfidentialERC20Votes, Confidentia
                     upper = center - 1;
                 }
             }
-            votes = _checkpoints[account][lower].votes;
+            return _checkpoints[account][lower].votes;
         }
     }
 
