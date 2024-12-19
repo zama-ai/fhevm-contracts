@@ -79,10 +79,7 @@ abstract contract ConfidentialERC20Votes is IConfidentialERC20Votes, Confidentia
     mapping(address account => mapping(uint32 index => Checkpoint checkpoint)) internal _checkpoints;
 
     /// @notice Constant for zero using TFHE.
-    /// @dev    Since it is expensive to compute 0, it is stored instead.
-    ///         However, is not possible to define it as constant due to TFHE constraints.
-    /* solhint-disable var-name-mixedcase*/
-    euint64 private _EUINT64_ZERO;
+    euint64 private immutable _EUINT64_ZERO;
 
     /**
      * @param owner_        Owner address.
