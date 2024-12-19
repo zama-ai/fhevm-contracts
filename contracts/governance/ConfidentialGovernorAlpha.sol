@@ -227,16 +227,10 @@ abstract contract ConfidentialGovernorAlpha is Ownable2Step, GatewayCaller {
     ICompoundTimelock public immutable TIMELOCK;
 
     /// @notice Constant for zero using TFHE.
-    /// @dev    Since it is expensive to compute 0, it is stored instead.
-    ///         However, is not possible to define it as constant due to TFHE constraints.
-    /* solhint-disable var-name-mixedcase*/
-    euint64 private _EUINT64_ZERO;
+    euint64 private immutable _EUINT64_ZERO;
 
     /// @notice Constant for PROPOSAL_THRESHOLD using TFHE.
-    /// @dev    Since it is expensive to compute 0, it is stored instead.
-    ///         However, is not possible to define it as constant due to TFHE constraints.
-    /* solhint-disable var-name-mixedcase*/
-    euint64 private _EUINT64_PROPOSAL_THRESHOLD;
+    euint64 private immutable _EUINT64_PROPOSAL_THRESHOLD;
 
     /// @notice The total number of proposals made.
     ///         It includes all proposals, including the ones that
