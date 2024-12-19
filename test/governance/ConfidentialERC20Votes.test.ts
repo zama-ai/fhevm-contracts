@@ -389,12 +389,12 @@ describe("ConfidentialERC20Votes", function () {
       .connect(this.signers.bob)
       .getPriorVotes(this.signers.bob.address, latestBlockNumber);
 
-    // It is an encrypted constant that is not reencryptable by Bob.
-    expect(currentVoteHandle).not.to.be.eq(0n);
+    // The handle is not set.
+    expect(currentVoteHandle).to.be.eq(0n);
 
     await expect(
       reencryptEuint64(this.signers.bob, this.instance, currentVoteHandle, this.confidentialERC20Votes),
-    ).to.be.rejectedWith("Invalid contract address.");
+    ).to.be.rejectedWith("Handle is not initialized");
 
     // 3. If a checkpoint exists using getPriorVotes but block.number < block of first checkpoint
     latestBlockNumber = await ethers.provider.getBlockNumber();
@@ -408,11 +408,11 @@ describe("ConfidentialERC20Votes", function () {
       .getPriorVotes(this.signers.bob.address, latestBlockNumber);
 
     // It is an encrypted constant that is not reencryptable by Bob.
-    expect(currentVoteHandle).not.to.be.eq(0n);
+    expect(currentVoteHandle).to.eq(0n);
 
     await expect(
       reencryptEuint64(this.signers.bob, this.instance, currentVoteHandle, this.confidentialERC20Votes),
-    ).to.be.rejectedWith("Invalid contract address.");
+    ).to.be.rejectedWith("Handle is not initialized");
   });
 
   it("can do multiple checkpoints and access the values when needed", async function () {
