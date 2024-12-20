@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import { ConfidentialERC20 } from "./ConfidentialERC20.sol";
+import { ReentrancyGuardTransient } from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 
 import "fhevm/lib/TFHE.sol";
 import "fhevm/gateway/GatewayCaller.sol";
@@ -13,7 +14,12 @@ import { IConfidentialERC20Wrapped } from "./IConfidentialERC20Wrapped.sol";
  * @notice            This contract allows users to wrap/unwrap trustlessly
  *                    ETH (or other native tokens) to ConfidentialERC20 tokens.
  */
-abstract contract ConfidentialWETH is ConfidentialERC20, IConfidentialERC20Wrapped, GatewayCaller {
+abstract contract ConfidentialWETH is
+    ConfidentialERC20,
+    IConfidentialERC20Wrapped,
+    ReentrancyGuardTransient,
+    GatewayCaller
+{
     /// @notice Returned if ETH transfer fails.
     error ETHTransferFail();
 
@@ -42,13 +48,6 @@ abstract contract ConfidentialWETH is ConfidentialERC20, IConfidentialERC20Wrapp
         if (maxDecryptionDelay_ > 1 days) {
             revert MaxDecryptionDelayTooHigh();
         }
-    }
-
-    /**
-     * @notice         Fallback function calls wrap().
-     */
-    fallback() external payable {
-        wrap();
     }
 
     /**
@@ -106,14 +105,10 @@ abstract contract ConfidentialWETH is ConfidentialERC20, IConfidentialERC20Wrapp
      * @param requestId   Request id.
      * @param canUnwrap   Whether it can be unwrapped.
      */
-    function callbackUnwrap(uint256 requestId, bool canUnwrap) public virtual onlyGateway {
+    function callbackUnwrap(uint256 requestId, bool canUnwrap) public virtual nonReentrant onlyGateway {
         UnwrapRequest memory unwrapRequest = unwrapRequests[requestId];
-        delete unwrapRequests[requestId];
 
         if (canUnwrap) {
-            _unsafeBurn(unwrapRequest.account, unwrapRequest.amount);
-            _totalSupply -= unwrapRequest.amount;
-
             /// @dev It does a supply adjustment.
             uint256 amountUint256 = unwrapRequest.amount * (10 ** (18 - decimals()));
 
@@ -121,15 +116,18 @@ abstract contract ConfidentialWETH is ConfidentialERC20, IConfidentialERC20Wrapp
             /* solhint-disable avoid-low-level-calls*/
             (bool callSuccess, ) = unwrapRequest.account.call{ value: amountUint256 }("");
 
-            if (!callSuccess) {
-                revert ETHTransferFail();
+            if (callSuccess) {
+                _unsafeBurn(unwrapRequest.account, unwrapRequest.amount);
+                _totalSupply -= unwrapRequest.amount;
+                emit Unwrap(unwrapRequest.account, unwrapRequest.amount);
+            } else {
+                emit UnwrapFailTransferFail(unwrapRequest.account, unwrapRequest.amount);
             }
-
-            emit Unwrap(unwrapRequest.account, unwrapRequest.amount);
         } else {
-            emit UnwrapFail(unwrapRequest.account, unwrapRequest.amount);
+            emit UnwrapFailNotEnoughBalance(unwrapRequest.account, unwrapRequest.amount);
         }
 
+        delete unwrapRequests[requestId];
         delete isAccountRestricted[unwrapRequest.account];
     }
 

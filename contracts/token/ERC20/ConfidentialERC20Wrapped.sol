@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { ReentrancyGuardTransient } from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 
 import "fhevm/lib/TFHE.sol";
 import "fhevm/gateway/GatewayCaller.sol";
@@ -18,7 +19,12 @@ import { ConfidentialERC20 } from "./ConfidentialERC20.sol";
  *                    tokens with a fee on transfer. All ERC20 tokens must have decimals
  *                    inferior or equal to 18 decimals but superior or equal to 6 decimals.
  */
-abstract contract ConfidentialERC20Wrapped is ConfidentialERC20, IConfidentialERC20Wrapped, GatewayCaller {
+abstract contract ConfidentialERC20Wrapped is
+    ConfidentialERC20,
+    IConfidentialERC20Wrapped,
+    ReentrancyGuardTransient,
+    GatewayCaller
+{
     using SafeERC20 for IERC20Metadata;
 
     /// @notice Returned if the maximum decryption delay is higher than 1 day.
@@ -114,24 +120,25 @@ abstract contract ConfidentialERC20Wrapped is ConfidentialERC20, IConfidentialER
      * @param requestId   Request id.
      * @param canUnwrap   Whether it can be unwrapped.
      */
-    function callbackUnwrap(uint256 requestId, bool canUnwrap) public virtual onlyGateway {
+    function callbackUnwrap(uint256 requestId, bool canUnwrap) public virtual nonReentrant onlyGateway {
         UnwrapRequest memory unwrapRequest = unwrapRequests[requestId];
-        delete unwrapRequests[requestId];
 
         if (canUnwrap) {
-            _unsafeBurn(unwrapRequest.account, unwrapRequest.amount);
-            _totalSupply -= unwrapRequest.amount;
-
             /// @dev It does a supply adjustment.
             uint256 amountUint256 = unwrapRequest.amount * (10 ** (ERC20_TOKEN.decimals() - decimals()));
 
-            ERC20_TOKEN.safeTransfer(unwrapRequest.account, amountUint256);
-
-            emit Unwrap(unwrapRequest.account, unwrapRequest.amount);
+            try ERC20_TOKEN.transfer(unwrapRequest.account, amountUint256) {
+                _unsafeBurn(unwrapRequest.account, unwrapRequest.amount);
+                _totalSupply -= unwrapRequest.amount;
+                emit Unwrap(unwrapRequest.account, unwrapRequest.amount);
+            } catch {
+                emit UnwrapFailTransferFail(unwrapRequest.account, unwrapRequest.amount);
+            }
         } else {
-            emit UnwrapFail(unwrapRequest.account, unwrapRequest.amount);
+            emit UnwrapFailNotEnoughBalance(unwrapRequest.account, unwrapRequest.amount);
         }
 
+        delete unwrapRequests[requestId];
         delete isAccountRestricted[unwrapRequest.account];
     }
 

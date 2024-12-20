@@ -99,7 +99,6 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      gas: "auto",
       accounts: {
         count: 10,
         mnemonic,
