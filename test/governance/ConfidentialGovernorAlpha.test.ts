@@ -1123,6 +1123,8 @@ describe("ConfidentialGovernorAlpha", function () {
       "TransactionTooLateForExecution",
     );
 
+    await mineNBlocks(1);
+
     proposalInfo = await this.governor.getProposalInfo(proposalId);
     // 9 ==> Expired
     expect(proposalInfo.state).to.equal(9);

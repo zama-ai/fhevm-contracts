@@ -80,9 +80,7 @@ abstract contract ConfidentialERC20Votes is IConfidentialERC20Votes, Confidentia
 
     /// @notice Constant for zero using TFHE.
     /// @dev    Since it is expensive to compute 0, it is stored instead.
-    ///         However, is not possible to define it as constant due to TFHE constraints.
-    /* solhint-disable var-name-mixedcase*/
-    euint64 private _EUINT64_ZERO;
+    euint64 private immutable _EUINT64_ZERO;
 
     /**
      * @param owner_        Owner address.
@@ -168,11 +166,7 @@ abstract contract ConfidentialERC20Votes is IConfidentialERC20Votes, Confidentia
             revert GovernorInvalid();
         }
 
-        if (blockNumber >= block.number) {
-            revert BlockNumberEqualOrHigherThanCurrentBlock();
-        }
-
-        votes = _getPriorVote(account, blockNumber);
+        votes = getPriorVotes(account, blockNumber);
         TFHE.allow(votes, msg.sender);
     }
 
@@ -223,26 +217,24 @@ abstract contract ConfidentialERC20Votes is IConfidentialERC20Votes, Confidentia
         _moveDelegates(currentDelegate, delegatee, delegatorBalance);
     }
 
-    function _getPriorVote(address account, uint256 blockNumber) internal view returns (euint64 votes) {
+    function _getPriorVote(address account, uint256 blockNumber) internal view virtual returns (euint64 votes) {
         uint32 nCheckpoints = numCheckpoints[account];
 
         if (nCheckpoints == 0) {
-            /// If there is no checkpoint for the `account`, return encrypted zero.
-            /// @dev It will not be possible to reencrypt it by the `account`.
-            votes = _EUINT64_ZERO;
+            /// @dev If there is no checkpoint for the `account`, return empty handle.
+            return votes;
         } else if (_checkpoints[account][nCheckpoints - 1].fromBlock <= blockNumber) {
-            /// First, check the most recent balance.
-            votes = _checkpoints[account][nCheckpoints - 1].votes;
+            /// @dev First, check the most recent balance.
+            return _checkpoints[account][nCheckpoints - 1].votes;
         } else if (_checkpoints[account][0].fromBlock > blockNumber) {
-            /// Then, check if there is zero balance.
-            /// @dev It will not be possible to reencrypt it by the `account`.
-            votes = _EUINT64_ZERO;
+            /// @dev Then, check if there is zero balance. If so, return empty handle.
+            return votes;
         } else {
-            /// Else, search for the voting power at the `blockNumber`.
+            /// @dev Else, search for the voting power at the `blockNumber`.
             uint32 lower = 0;
             uint32 upper = nCheckpoints - 1;
             while (upper > lower) {
-                /// Ceil to avoid overflow.
+                /// @dev Ceil to avoid overflow.
                 uint32 center = upper - (upper - lower) / 2;
                 Checkpoint memory cp = _checkpoints[account][center];
 
@@ -254,7 +246,7 @@ abstract contract ConfidentialERC20Votes is IConfidentialERC20Votes, Confidentia
                     upper = center - 1;
                 }
             }
-            votes = _checkpoints[account][lower].votes;
+            return _checkpoints[account][lower].votes;
         }
     }
 

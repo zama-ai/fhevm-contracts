@@ -389,12 +389,12 @@ describe("ConfidentialERC20Votes", function () {
       .connect(this.signers.bob)
       .getPriorVotes(this.signers.bob.address, latestBlockNumber);
 
-    // It is an encrypted constant that is not reencryptable by Bob.
-    expect(currentVoteHandle).not.to.be.eq(0n);
+    // The handle is not set.
+    expect(currentVoteHandle).to.be.eq(0n);
 
     await expect(
       reencryptEuint64(this.signers.bob, this.instance, currentVoteHandle, this.confidentialERC20Votes),
-    ).to.be.rejectedWith("Invalid contract address.");
+    ).to.be.rejectedWith("Handle is not initialized");
 
     // 3. If a checkpoint exists using getPriorVotes but block.number < block of first checkpoint
     latestBlockNumber = await ethers.provider.getBlockNumber();
@@ -408,11 +408,11 @@ describe("ConfidentialERC20Votes", function () {
       .getPriorVotes(this.signers.bob.address, latestBlockNumber);
 
     // It is an encrypted constant that is not reencryptable by Bob.
-    expect(currentVoteHandle).not.to.be.eq(0n);
+    expect(currentVoteHandle).to.eq(0n);
 
     await expect(
       reencryptEuint64(this.signers.bob, this.instance, currentVoteHandle, this.confidentialERC20Votes),
-    ).to.be.rejectedWith("Invalid contract address.");
+    ).to.be.rejectedWith("Handle is not initialized");
   });
 
   it("can do multiple checkpoints and access the values when needed", async function () {
@@ -541,18 +541,16 @@ describe("ConfidentialERC20Votes", function () {
     );
   });
 
-  // TODO: fix issue with mining
-  it.skip("number of checkpoints is incremented once per block, even when written multiple times in same block", async function () {
+  it("number of checkpoints is incremented once per block, even when written multiple times in same block", async function () {
     await network.provider.send("evm_setAutomine", [false]);
     await network.provider.send("evm_setIntervalMining", [0]);
 
-    // do two checkpoints in same block
-    const tx1 = this.confidentialERC20Votes.connect(this.signers.alice).delegate(this.signers.bob);
-    const tx2 = this.confidentialERC20Votes.connect(this.signers.alice).delegate(this.signers.carol);
+    // @dev There are two checkpoints in the same block.
+    await this.confidentialERC20Votes.connect(this.signers.alice).delegate(this.signers.bob);
+    await this.confidentialERC20Votes.connect(this.signers.alice).delegate(this.signers.carol);
 
     await network.provider.send("evm_mine");
     await network.provider.send("evm_setAutomine", [true]);
-    await Promise.all([tx1, tx2]);
 
     expect(await this.confidentialERC20Votes.numCheckpoints(this.signers.alice.address)).to.be.equal(0n);
     expect(await this.confidentialERC20Votes.numCheckpoints(this.signers.bob.address)).to.be.equal(1n);
