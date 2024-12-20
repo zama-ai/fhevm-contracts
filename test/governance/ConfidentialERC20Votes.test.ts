@@ -541,18 +541,16 @@ describe("ConfidentialERC20Votes", function () {
     );
   });
 
-  // TODO: fix issue with mining
-  it.skip("number of checkpoints is incremented once per block, even when written multiple times in same block", async function () {
+  it("number of checkpoints is incremented once per block, even when written multiple times in same block", async function () {
     await network.provider.send("evm_setAutomine", [false]);
     await network.provider.send("evm_setIntervalMining", [0]);
 
-    // do two checkpoints in same block
-    const tx1 = this.confidentialERC20Votes.connect(this.signers.alice).delegate(this.signers.bob);
-    const tx2 = this.confidentialERC20Votes.connect(this.signers.alice).delegate(this.signers.carol);
+    // @dev There are two checkpoints in the same block.
+    await this.confidentialERC20Votes.connect(this.signers.alice).delegate(this.signers.bob);
+    await this.confidentialERC20Votes.connect(this.signers.alice).delegate(this.signers.carol);
 
     await network.provider.send("evm_mine");
     await network.provider.send("evm_setAutomine", [true]);
-    await Promise.all([tx1, tx2]);
 
     expect(await this.confidentialERC20Votes.numCheckpoints(this.signers.alice.address)).to.be.equal(0n);
     expect(await this.confidentialERC20Votes.numCheckpoints(this.signers.bob.address)).to.be.equal(1n);
