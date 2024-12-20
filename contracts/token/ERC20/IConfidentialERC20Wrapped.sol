@@ -16,8 +16,11 @@ interface IConfidentialERC20Wrapped {
     /// @notice Emitted when token is unwrapped.
     event Unwrap(address indexed to, uint64 amount);
 
-    /// @notice Emitted if unwrap fails.
-    event UnwrapFail(address account, uint64 amount);
+    /// @notice Emitted if unwrap fails due to lack of funds.
+    event UnwrapFailNotEnoughBalance(address account, uint64 amount);
+
+    /// @notice Emitted if unwrap fails due to fail transfer.
+    event UnwrapFailTransferFail(address account, uint64 amount);
 
     /// @notice Emitted when token is wrapped.
     event Wrap(address indexed to, uint64 amount);
