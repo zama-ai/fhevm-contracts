@@ -66,12 +66,19 @@ contract MyERC20 is SepoliaZamaFHEVMConfig, ConfidentialERC20 {
 
 These Solidity templates include governance-related and token-related contracts.
 
+### Finance
+
+- [ConfidentialVestingWallet](./contracts/token/finance/ConfidentialVestingWallet.sol)
+- [ConfidentialVestingWalletCliff](./contracts/token/finance/ConfidentialVestingWalletCliff.sol)
+
 ### Token
 
 - [ConfidentialERC20](./contracts/token/ERC20/ConfidentialERC20.sol)
 - [ConfidentialERC20Mintable](./contracts/token/ERC20/extensions/ConfidentialERC20Mintable.sol)
 - [ConfidentialERC20WithErrors](./contracts/token/ERC20/extensions/ConfidentialERC20WithErrors.sol)
 - [ConfidentialERC20WithErrorsMintable](./contracts/token/ERC20/extensions/ConfidentialERC20WithErrorsMintable.sol)
+- [ConfidentialERC20Wrapped](./contracts/token/ERC20/ConfidentialERC20Wrapped.sol)
+- [ConfidentialWETH](./contracts/token/ERC20/ConfidentialWETH.sol)
 
 ### Governance
 
@@ -82,7 +89,7 @@ These Solidity templates include governance-related and token-related contracts.
 
 - [EncryptedErrors](./contracts/utils/EncryptedErrors.sol)
 
-### Contributing
+## Contributing
 
 There are two ways to contribute to the Zama fhEVM contracts:
 
