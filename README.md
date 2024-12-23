@@ -68,8 +68,8 @@ These Solidity templates include governance-related and token-related contracts.
 
 ### Finance
 
-- [ConfidentialVestingWallet](./contracts/token/finance/ConfidentialVestingWallet.sol)
-- [ConfidentialVestingWalletCliff](./contracts/token/finance/ConfidentialVestingWalletCliff.sol)
+- [ConfidentialVestingWallet](./contracts/finance/ConfidentialVestingWallet.sol)
+- [ConfidentialVestingWalletCliff](./contracts/finance/ConfidentialVestingWalletCliff.sol)
 
 ### Token
 
