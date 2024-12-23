@@ -541,7 +541,8 @@ describe("ConfidentialERC20Votes", function () {
     );
   });
 
-  it("number of checkpoints is incremented once per block, even when written multiple times in same block", async function () {
+  // @dev To run this test, it is required to add gas = "auto" in the hardhat config.
+  it.skip("number of checkpoints is incremented once per block, even when written multiple times in same block", async function () {
     await network.provider.send("evm_setAutomine", [false]);
     await network.provider.send("evm_setIntervalMining", [0]);
 
