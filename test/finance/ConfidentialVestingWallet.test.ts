@@ -35,7 +35,6 @@ describe("ConfidentialVestingWallet", function () {
     const contractConfidentialVestingWallet = await deployConfidentialVestingWalletFixture(
       this.signers.alice,
       this.beneficiaryAddress,
-      this.confidentialERC20Address,
       this.startTimestamp,
       this.duration,
     );
@@ -46,18 +45,9 @@ describe("ConfidentialVestingWallet", function () {
 
   it("post-deployment state", async function () {
     expect(await this.confidentialVestingWallet.BENEFICIARY()).to.equal(this.beneficiaryAddress);
-    expect(await this.confidentialVestingWallet.CONFIDENTIAL_ERC20()).to.equal(this.confidentialERC20);
     expect(await this.confidentialVestingWallet.DURATION()).to.equal(this.duration);
     expect(await this.confidentialVestingWallet.END_TIMESTAMP()).to.be.eq(this.startTimestamp + this.duration);
     expect(await this.confidentialVestingWallet.START_TIMESTAMP()).to.be.eq(this.startTimestamp);
-    expect(
-      await reencryptReleased(
-        this.beneficiary,
-        this.instance,
-        this.confidentialVestingWallet,
-        this.confidentialVestingWalletAddress,
-      ),
-    ).to.be.eq(0n);
   });
 
   it("can release", async function () {
@@ -82,14 +72,17 @@ describe("ConfidentialVestingWallet", function () {
     let nextTimestamp = this.startTimestamp;
     await ethers.provider.send("evm_setNextBlockTimestamp", [nextTimestamp.toString()]);
 
-    tx = await this.confidentialVestingWallet.connect(this.beneficiary).release();
-    await expect(tx).to.emit(this.confidentialVestingWallet, "ConfidentialERC20Released");
+    tx = await this.confidentialVestingWallet.connect(this.beneficiary).release(this.confidentialERC20Address);
+    await expect(tx)
+      .to.emit(this.confidentialVestingWallet, "ConfidentialERC20Released")
+      .withArgs(this.confidentialERC20Address);
 
     // It should be equal to 0 because the vesting has not started.
     expect(
       await reencryptReleased(
         this.beneficiary,
         this.instance,
+        this.confidentialERC20Address,
         this.confidentialVestingWallet,
         this.confidentialVestingWalletAddress,
       ),
@@ -98,7 +91,7 @@ describe("ConfidentialVestingWallet", function () {
     nextTimestamp = this.startTimestamp + this.duration / BigInt(4);
     await ethers.provider.send("evm_setNextBlockTimestamp", [nextTimestamp.toString()]);
 
-    tx = await this.confidentialVestingWallet.connect(this.beneficiary).release();
+    tx = await this.confidentialVestingWallet.connect(this.beneficiary).release(this.confidentialERC20Address);
     await tx.wait();
 
     // It should be equal to 1/4 of the amount vested.
@@ -106,6 +99,7 @@ describe("ConfidentialVestingWallet", function () {
       await reencryptReleased(
         this.beneficiary,
         this.instance,
+        this.confidentialERC20Address,
         this.confidentialVestingWallet,
         this.confidentialVestingWalletAddress,
       ),
@@ -118,7 +112,7 @@ describe("ConfidentialVestingWallet", function () {
     nextTimestamp = this.startTimestamp + this.duration / BigInt(2);
     await ethers.provider.send("evm_setNextBlockTimestamp", [nextTimestamp.toString()]);
 
-    tx = await this.confidentialVestingWallet.connect(this.beneficiary).release();
+    tx = await this.confidentialVestingWallet.connect(this.beneficiary).release(this.confidentialERC20Address);
     await tx.wait();
 
     // It should be equal to 1/4 of the amount vested since 1/4 was already collected.
@@ -126,6 +120,7 @@ describe("ConfidentialVestingWallet", function () {
       await reencryptReleased(
         this.beneficiary,
         this.instance,
+        this.confidentialERC20Address,
         this.confidentialVestingWallet,
         this.confidentialVestingWalletAddress,
       ),
@@ -138,7 +133,7 @@ describe("ConfidentialVestingWallet", function () {
     nextTimestamp = this.startTimestamp + this.duration;
     await ethers.provider.send("evm_setNextBlockTimestamp", [nextTimestamp.toString()]);
 
-    tx = await this.confidentialVestingWallet.connect(this.beneficiary).release();
+    tx = await this.confidentialVestingWallet.connect(this.beneficiary).release(this.confidentialERC20Address);
     await tx.wait();
 
     // It should be equal to 1/2 of the amount vested since 2/4 was already collected.
@@ -146,6 +141,7 @@ describe("ConfidentialVestingWallet", function () {
       await reencryptReleased(
         this.beneficiary,
         this.instance,
+        this.confidentialERC20Address,
         this.confidentialVestingWallet,
         this.confidentialVestingWalletAddress,
       ),

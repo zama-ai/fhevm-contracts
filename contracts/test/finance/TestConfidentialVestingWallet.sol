@@ -7,10 +7,9 @@ import { SepoliaZamaFHEVMConfig } from "fhevm/config/ZamaFHEVMConfig.sol";
 contract TestConfidentialVestingWallet is SepoliaZamaFHEVMConfig, ConfidentialVestingWallet {
     constructor(
         address beneficiary_,
-        address token_,
         uint64 startTimestamp_,
         uint64 duration_
-    ) ConfidentialVestingWallet(beneficiary_, token_, startTimestamp_, duration_) {
+    ) ConfidentialVestingWallet(beneficiary_, startTimestamp_, duration_) {
         //
     }
 }

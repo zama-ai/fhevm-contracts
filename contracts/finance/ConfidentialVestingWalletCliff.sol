@@ -22,18 +22,16 @@ abstract contract ConfidentialVestingWalletCliff is ConfidentialVestingWallet {
 
     /**
      * @param beneficiary_      Beneficiary address.
-     * @param token_            Confidential token address.
      * @param startTimestamp_   Start timestamp.
      * @param duration_         Duration (in seconds).
      * @param cliffSeconds_     Cliff (in seconds).
      */
     constructor(
         address beneficiary_,
-        address token_,
         uint128 startTimestamp_,
         uint128 duration_,
         uint128 cliffSeconds_
-    ) ConfidentialVestingWallet(beneficiary_, token_, startTimestamp_, duration_) {
+    ) ConfidentialVestingWallet(beneficiary_, startTimestamp_, duration_) {
         if (cliffSeconds_ > duration_) {
             revert InvalidCliffDuration(cliffSeconds_, duration_);
         }

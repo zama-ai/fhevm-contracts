@@ -37,7 +37,6 @@ describe("ConfidentialVestingWalletCliff", function () {
     const contractConfidentialVestingWallet = await deployConfidentialVestingWalletCliffFixture(
       this.signers.alice,
       this.beneficiaryAddress,
-      this.confidentialERC20Address,
       this.startTimestamp,
       this.duration,
       this.cliffSeconds,
@@ -49,20 +48,11 @@ describe("ConfidentialVestingWalletCliff", function () {
 
   it("post-deployment state", async function () {
     expect(await this.confidentialVestingWallet.BENEFICIARY()).to.equal(this.beneficiaryAddress);
-    expect(await this.confidentialVestingWallet.CONFIDENTIAL_ERC20()).to.equal(this.confidentialERC20);
     expect(await this.confidentialVestingWallet.DURATION()).to.equal(this.duration);
     expect(await this.confidentialVestingWallet.END_TIMESTAMP()).to.be.eq(this.startTimestamp + this.duration);
     expect(await this.confidentialVestingWallet.START_TIMESTAMP()).to.be.eq(this.startTimestamp);
     expect(await this.confidentialVestingWallet.START_TIMESTAMP()).to.be.eq(this.startTimestamp);
     expect(await this.confidentialVestingWallet.CLIFF()).to.be.eq(this.cliffSeconds + this.startTimestamp);
-    expect(
-      await reencryptReleased(
-        this.beneficiary,
-        this.instance,
-        this.confidentialVestingWallet,
-        this.confidentialVestingWalletAddress,
-      ),
-    ).to.be.eq(0n);
   });
 
   it("can release", async function () {
@@ -87,7 +77,7 @@ describe("ConfidentialVestingWalletCliff", function () {
     let nextTimestamp = this.startTimestamp;
     await ethers.provider.send("evm_setNextBlockTimestamp", [nextTimestamp.toString()]);
 
-    tx = await this.confidentialVestingWallet.connect(this.beneficiary).release();
+    tx = await this.confidentialVestingWallet.connect(this.beneficiary).release(this.confidentialERC20Address);
     await expect(tx).to.emit(this.confidentialVestingWallet, "ConfidentialERC20Released");
 
     // It should be equal to 0 because the vesting has not started.
@@ -95,6 +85,7 @@ describe("ConfidentialVestingWalletCliff", function () {
       await reencryptReleased(
         this.beneficiary,
         this.instance,
+        this.confidentialERC20Address,
         this.confidentialVestingWallet,
         this.confidentialVestingWalletAddress,
       ),
@@ -104,7 +95,7 @@ describe("ConfidentialVestingWalletCliff", function () {
     nextTimestamp = this.startTimestamp + this.cliffSeconds - 1n;
     await ethers.provider.send("evm_setNextBlockTimestamp", [nextTimestamp.toString()]);
 
-    tx = await this.confidentialVestingWallet.connect(this.beneficiary).release();
+    tx = await this.confidentialVestingWallet.connect(this.beneficiary).release(this.confidentialERC20Address);
     await tx.wait();
 
     // It should be equal to 0 because of the cliff.
@@ -112,6 +103,7 @@ describe("ConfidentialVestingWalletCliff", function () {
       await reencryptReleased(
         this.beneficiary,
         this.instance,
+        this.confidentialERC20Address,
         this.confidentialVestingWallet,
         this.confidentialVestingWalletAddress,
       ),
@@ -125,7 +117,7 @@ describe("ConfidentialVestingWalletCliff", function () {
     nextTimestamp = this.startTimestamp + this.cliffSeconds;
     await ethers.provider.send("evm_setNextBlockTimestamp", [nextTimestamp.toString()]);
 
-    tx = await this.confidentialVestingWallet.connect(this.beneficiary).release();
+    tx = await this.confidentialVestingWallet.connect(this.beneficiary).release(this.confidentialERC20Address);
     await tx.wait();
 
     // It should be equal to 1/4 since the cliff was reached so everything that was pending is releasable at once.
@@ -133,6 +125,7 @@ describe("ConfidentialVestingWalletCliff", function () {
       await reencryptReleased(
         this.beneficiary,
         this.instance,
+        this.confidentialERC20Address,
         this.confidentialVestingWallet,
         this.confidentialVestingWalletAddress,
       ),
@@ -145,7 +138,7 @@ describe("ConfidentialVestingWalletCliff", function () {
     nextTimestamp = this.startTimestamp + this.duration / BigInt(2);
     await ethers.provider.send("evm_setNextBlockTimestamp", [nextTimestamp.toString()]);
 
-    tx = await this.confidentialVestingWallet.connect(this.beneficiary).release();
+    tx = await this.confidentialVestingWallet.connect(this.beneficiary).release(this.confidentialERC20Address);
     await tx.wait();
 
     // It should be equal to 1/4 of the amount vested since 1/4 was already collected.
@@ -153,6 +146,7 @@ describe("ConfidentialVestingWalletCliff", function () {
       await reencryptReleased(
         this.beneficiary,
         this.instance,
+        this.confidentialERC20Address,
         this.confidentialVestingWallet,
         this.confidentialVestingWalletAddress,
       ),
@@ -165,7 +159,7 @@ describe("ConfidentialVestingWalletCliff", function () {
     nextTimestamp = this.startTimestamp + this.duration;
     await ethers.provider.send("evm_setNextBlockTimestamp", [nextTimestamp.toString()]);
 
-    tx = await this.confidentialVestingWallet.connect(this.beneficiary).release();
+    tx = await this.confidentialVestingWallet.connect(this.beneficiary).release(this.confidentialERC20Address);
     await tx.wait();
 
     // It should be equal to 1/2 of the amount vested since 2/4 was already collected.
@@ -173,6 +167,7 @@ describe("ConfidentialVestingWalletCliff", function () {
       await reencryptReleased(
         this.beneficiary,
         this.instance,
+        this.confidentialERC20Address,
         this.confidentialVestingWallet,
         this.confidentialVestingWalletAddress,
       ),
@@ -192,9 +187,7 @@ describe("ConfidentialVestingWalletCliff", function () {
 
     const contractFactory = await ethers.getContractFactory("TestConfidentialVestingWalletCliff");
     await expect(
-      contractFactory
-        .connect(this.signers.alice)
-        .deploy(this.signers.alice.address, this.confidentialERC20, startTimestamp, duration, cliff),
+      contractFactory.connect(this.signers.alice).deploy(this.signers.alice.address, startTimestamp, duration, cliff),
     )
       .to.be.revertedWithCustomError(this.confidentialVestingWallet, "InvalidCliffDuration")
       .withArgs(cliff, duration);

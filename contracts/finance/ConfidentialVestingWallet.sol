@@ -14,14 +14,12 @@ import { IConfidentialERC20 } from "../token/ERC20/IConfidentialERC20.sol";
  *         To use with the native asset, it is necessary to wrap the native asset to a ConfidentialERC20-like token.
  */
 abstract contract ConfidentialVestingWallet {
-    /// @notice Emitted when tokens are released to the beneficiary address.
-    event ConfidentialERC20Released();
+    /// @notice      Emitted when tokens are released to the beneficiary address.
+    /// @param token Address of the token being released.
+    event ConfidentialERC20Released(address indexed token);
 
     /// @notice Beneficiary address.
     address public immutable BENEFICIARY;
-
-    /// @notice Confidential ERC20.
-    IConfidentialERC20 public immutable CONFIDENTIAL_ERC20;
 
     /// @notice Duration (in seconds).
     uint128 public immutable DURATION;
@@ -38,24 +36,21 @@ abstract contract ConfidentialVestingWallet {
     euint64 internal immutable _EUINT64_ZERO;
 
     /// @notice Total encrypted amount released (to the beneficiary).
-    euint64 internal _amountReleased;
+    mapping(address token => euint64 amountReleased) internal _amountReleased;
 
     /**
      * @param beneficiary_      Beneficiary address.
-     * @param token_            Confidential token address.
      * @param startTimestamp_   Start timestamp.
      * @param duration_         Duration (in seconds).
      */
-    constructor(address beneficiary_, address token_, uint128 startTimestamp_, uint128 duration_) {
+    constructor(address beneficiary_, uint128 startTimestamp_, uint128 duration_) {
         START_TIMESTAMP = startTimestamp_;
-        CONFIDENTIAL_ERC20 = IConfidentialERC20(token_);
         DURATION = duration_;
         END_TIMESTAMP = startTimestamp_ + duration_;
         BENEFICIARY = beneficiary_;
 
         /// @dev Store this constant variable in the storage.
         _EUINT64_ZERO = TFHE.asEuint64(0);
-        _amountReleased = _EUINT64_ZERO;
 
         TFHE.allow(_EUINT64_ZERO, beneficiary_);
         TFHE.allowThis(_EUINT64_ZERO);
@@ -65,17 +60,17 @@ abstract contract ConfidentialVestingWallet {
      * @notice  Release the tokens that have already vested.
      * @dev     Anyone can call this function but the beneficiary receives the tokens.
      */
-    function release() public virtual {
-        euint64 amount = _releasable();
-        euint64 amountReleased = TFHE.add(_amountReleased, amount);
-        _amountReleased = amountReleased;
+    function release(address token) public virtual {
+        euint64 amount = _releasable(token);
+        euint64 amountReleased = TFHE.add(_amountReleased[token], amount);
+        _amountReleased[token] = amountReleased;
 
         TFHE.allow(amountReleased, BENEFICIARY);
         TFHE.allowThis(amountReleased);
-        TFHE.allowTransient(amount, address(CONFIDENTIAL_ERC20));
-        CONFIDENTIAL_ERC20.transfer(BENEFICIARY, amount);
+        TFHE.allowTransient(amount, token);
+        IConfidentialERC20(token).transfer(BENEFICIARY, amount);
 
-        emit ConfidentialERC20Released();
+        emit ConfidentialERC20Released(token);
     }
 
     /**
@@ -83,16 +78,16 @@ abstract contract ConfidentialVestingWallet {
      * @dev                     It is only reencryptable by the owner.
      * @return amountReleased   Total amount of tokens released.
      */
-    function released() public view virtual returns (euint64 amountReleased) {
-        return _amountReleased;
+    function released(address token) public view virtual returns (euint64 amountReleased) {
+        return _amountReleased[token];
     }
 
     /**
      * @notice                  Calculate the amount of tokens that can be released.
      * @return releasableAmount Releasable amount.
      */
-    function _releasable() internal virtual returns (euint64 releasableAmount) {
-        return TFHE.sub(_vestedAmount(uint128(block.timestamp)), released());
+    function _releasable(address token) internal virtual returns (euint64 releasableAmount) {
+        return TFHE.sub(_vestedAmount(token, uint128(block.timestamp)), released(token));
     }
 
     /**
@@ -100,8 +95,9 @@ abstract contract ConfidentialVestingWallet {
      * @param timestamp         Current timestamp.
      * @return vestedAmount     Vested amount.
      */
-    function _vestedAmount(uint128 timestamp) internal virtual returns (euint64 vestedAmount) {
-        return _vestingSchedule(TFHE.add(CONFIDENTIAL_ERC20.balanceOf(address(this)), released()), timestamp);
+    function _vestedAmount(address token, uint128 timestamp) internal virtual returns (euint64 vestedAmount) {
+        return
+            _vestingSchedule(TFHE.add(IConfidentialERC20(token).balanceOf(address(this)), released(token)), timestamp);
     }
 
     /**

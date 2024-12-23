@@ -7,11 +7,10 @@ import { SepoliaZamaFHEVMConfig } from "fhevm/config/ZamaFHEVMConfig.sol";
 contract TestConfidentialVestingWalletCliff is SepoliaZamaFHEVMConfig, ConfidentialVestingWalletCliff {
     constructor(
         address beneficiary_,
-        address token_,
         uint64 startTimestamp_,
         uint64 duration_,
         uint64 cliff_
-    ) ConfidentialVestingWalletCliff(beneficiary_, token_, startTimestamp_, duration_, cliff_) {
+    ) ConfidentialVestingWalletCliff(beneficiary_, startTimestamp_, duration_, cliff_) {
         //
     }
 }
