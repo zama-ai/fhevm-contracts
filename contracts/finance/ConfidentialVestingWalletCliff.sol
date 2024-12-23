@@ -15,10 +15,10 @@ import { ConfidentialVestingWallet } from "./ConfidentialVestingWallet.sol";
  */
 abstract contract ConfidentialVestingWalletCliff is ConfidentialVestingWallet {
     /// @notice Returned if the cliff duration is greater than the vesting duration.
-    error InvalidCliffDuration(uint64 cliffSeconds, uint64 durationSeconds);
+    error InvalidCliffDuration(uint128 cliffSeconds, uint128 durationSeconds);
 
     /// @notice Cliff timestamp.
-    uint64 public immutable CLIFF;
+    uint128 public immutable CLIFF;
 
     /**
      * @param beneficiary_      Beneficiary address.
@@ -30,9 +30,9 @@ abstract contract ConfidentialVestingWalletCliff is ConfidentialVestingWallet {
     constructor(
         address beneficiary_,
         address token_,
-        uint64 startTimestamp_,
-        uint64 duration_,
-        uint64 cliffSeconds_
+        uint128 startTimestamp_,
+        uint128 duration_,
+        uint128 cliffSeconds_
     ) ConfidentialVestingWallet(beneficiary_, token_, startTimestamp_, duration_) {
         if (cliffSeconds_ > duration_) {
             revert InvalidCliffDuration(cliffSeconds_, duration_);
@@ -47,7 +47,7 @@ abstract contract ConfidentialVestingWalletCliff is ConfidentialVestingWallet {
      * @param timestamp         Current timestamp.
      * @return vestedAmount     Vested amount.
      */
-    function _vestingSchedule(euint64 totalAllocation, uint64 timestamp) internal virtual override returns (euint64) {
+    function _vestingSchedule(euint64 totalAllocation, uint128 timestamp) internal virtual override returns (euint64) {
         return timestamp < CLIFF ? _EUINT64_ZERO : super._vestingSchedule(totalAllocation, timestamp);
     }
 }

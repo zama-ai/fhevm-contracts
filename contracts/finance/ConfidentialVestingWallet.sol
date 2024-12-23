@@ -24,13 +24,13 @@ abstract contract ConfidentialVestingWallet {
     IConfidentialERC20 public immutable CONFIDENTIAL_ERC20;
 
     /// @notice Duration (in seconds).
-    uint64 public immutable DURATION;
+    uint128 public immutable DURATION;
 
     /// @notice End timestamp.
-    uint64 public immutable END_TIMESTAMP;
+    uint128 public immutable END_TIMESTAMP;
 
     /// @notice Start timestamp.
-    uint64 public immutable START_TIMESTAMP;
+    uint128 public immutable START_TIMESTAMP;
 
     /// @notice Constant for zero using TFHE.
     /// @dev    Since it is expensive to compute 0, it is stored instead.
@@ -46,7 +46,7 @@ abstract contract ConfidentialVestingWallet {
      * @param startTimestamp_   Start timestamp.
      * @param duration_         Duration (in seconds).
      */
-    constructor(address beneficiary_, address token_, uint64 startTimestamp_, uint64 duration_) {
+    constructor(address beneficiary_, address token_, uint128 startTimestamp_, uint128 duration_) {
         START_TIMESTAMP = startTimestamp_;
         CONFIDENTIAL_ERC20 = IConfidentialERC20(token_);
         DURATION = duration_;
@@ -92,14 +92,15 @@ abstract contract ConfidentialVestingWallet {
      * @return releasableAmount Releasable amount.
      */
     function _releasable() internal virtual returns (euint64 releasableAmount) {
-        return TFHE.sub(_vestedAmount(uint64(block.timestamp)), released());
+        return TFHE.sub(_vestedAmount(uint128(block.timestamp)), released());
     }
 
     /**
      * @notice                  Calculate the amount of tokens that has already vested.
+     * @param timestamp         Current timestamp.
      * @return vestedAmount     Vested amount.
      */
-    function _vestedAmount(uint64 timestamp) internal virtual returns (euint64 vestedAmount) {
+    function _vestedAmount(uint128 timestamp) internal virtual returns (euint64 vestedAmount) {
         return _vestingSchedule(TFHE.add(CONFIDENTIAL_ERC20.balanceOf(address(this)), released()), timestamp);
     }
 
@@ -112,14 +113,18 @@ abstract contract ConfidentialVestingWallet {
      */
     function _vestingSchedule(
         euint64 totalAllocation,
-        uint64 timestamp
+        uint128 timestamp
     ) internal virtual returns (euint64 vestedAmount) {
         if (timestamp < START_TIMESTAMP) {
             return _EUINT64_ZERO;
         } else if (timestamp >= END_TIMESTAMP) {
             return totalAllocation;
         } else {
-            return TFHE.div(TFHE.mul(totalAllocation, (timestamp - START_TIMESTAMP)), DURATION);
+            /// @dev It casts to euint128 to prevent overflow with the multiplication.
+            return
+                TFHE.asEuint64(
+                    TFHE.div(TFHE.mul(TFHE.asEuint128(totalAllocation), timestamp - START_TIMESTAMP), DURATION)
+                );
         }
     }
 }
