@@ -167,7 +167,7 @@ abstract contract ConfidentialERC20 is IConfidentialERC20, IERC20Errors, TFHEErr
      */
     function _unsafeMint(address account, uint64 amount) internal virtual {
         _unsafeMintNoEvent(account, amount);
-        emit Transfer(address(0), account, _PLACEHOLDER);
+        emit Transfer(address(0), account, amount);
     }
 
     /**
