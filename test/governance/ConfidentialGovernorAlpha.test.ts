@@ -241,16 +241,16 @@ describe("ConfidentialGovernorAlpha", function () {
     await tx.wait();
 
     let proposalInfo = await this.governor.getProposalInfo(proposalId);
-    expect(proposalInfo.forVotes).to.be.eq(parseUnits(String(0), 6));
-    expect(proposalInfo.againstVotes).to.be.eq(parseUnits(String(0), 6));
+    expect(proposalInfo.forVotesDecrypted).to.be.eq(parseUnits(String(0), 6));
+    expect(proposalInfo.againstVotesDecrypted).to.be.eq(parseUnits(String(0), 6));
     // 4 ==> Succeeded
     expect(proposalInfo.state).to.equal(4);
 
     // POST-DECRYPTION RESULTS
     await awaitAllDecryptionResults();
     proposalInfo = await this.governor.getProposalInfo(proposalId);
-    expect(proposalInfo.forVotes).to.be.eq(transferAmount * 2n);
-    expect(proposalInfo.againstVotes).to.be.eq(parseUnits(String(0), 6));
+    expect(proposalInfo.forVotesDecrypted).to.be.eq(transferAmount * 2n);
+    expect(proposalInfo.againstVotesDecrypted).to.be.eq(parseUnits(String(0), 6));
     // 7 ==> Succeeded
     expect(proposalInfo.state).to.equal(7);
 
@@ -349,16 +349,16 @@ describe("ConfidentialGovernorAlpha", function () {
 
     await tx.wait();
     let proposalInfo = await this.governor.getProposalInfo(proposalId);
-    expect(proposalInfo.forVotes).to.be.eq(parseUnits(String(0), 6));
-    expect(proposalInfo.againstVotes).to.be.eq(parseUnits(String(0), 6));
+    expect(proposalInfo.forVotesDecrypted).to.be.eq(parseUnits(String(0), 6));
+    expect(proposalInfo.againstVotesDecrypted).to.be.eq(parseUnits(String(0), 6));
     // 4 ==> Succeeded
     expect(proposalInfo.state).to.equal(4);
 
     // POST-DECRYPTION RESULTS
     await awaitAllDecryptionResults();
     proposalInfo = await this.governor.getProposalInfo(proposalId);
-    expect(proposalInfo.forVotes).to.be.eq(transferAmount);
-    expect(proposalInfo.againstVotes).to.be.eq(parseUnits(String(0), 6));
+    expect(proposalInfo.forVotesDecrypted).to.be.eq(transferAmount);
+    expect(proposalInfo.againstVotesDecrypted).to.be.eq(parseUnits(String(0), 6));
 
     // 6 ==> Defeated
     expect(proposalInfo.state).to.equal(6);
@@ -451,16 +451,16 @@ describe("ConfidentialGovernorAlpha", function () {
     tx = await this.governor.requestVoteDecryption(proposalId);
     await tx.wait();
     let proposalInfo = await this.governor.getProposalInfo(proposalId);
-    expect(proposalInfo.forVotes).to.be.eq(parseUnits(String(0), 6));
-    expect(proposalInfo.againstVotes).to.be.eq(parseUnits(String(0), 6));
+    expect(proposalInfo.forVotesDecrypted).to.be.eq(parseUnits(String(0), 6));
+    expect(proposalInfo.againstVotesDecrypted).to.be.eq(parseUnits(String(0), 6));
     // 4 ==> Succeeded
     expect(proposalInfo.state).to.equal(4);
 
     // POST-DECRYPTION RESULTS
     await awaitAllDecryptionResults();
     proposalInfo = await this.governor.getProposalInfo(proposalId);
-    expect(proposalInfo.forVotes).to.be.eq(transferAmountFor);
-    expect(proposalInfo.againstVotes).to.be.eq(transferAmountAgainst);
+    expect(proposalInfo.forVotesDecrypted).to.be.eq(transferAmountFor);
+    expect(proposalInfo.againstVotesDecrypted).to.be.eq(transferAmountAgainst);
     // 6 ==> Defeated
     expect(proposalInfo.state).to.equal(6);
   });
