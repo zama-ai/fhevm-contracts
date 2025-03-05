@@ -2,18 +2,17 @@
 pragma solidity ^0.8.24;
 
 import "fhevm/lib/TFHE.sol";
-
 import { IERC20Errors } from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import { IConfidentialERC20 } from "./IConfidentialERC20.sol";
 import { TFHEErrors } from "../../utils/TFHEErrors.sol";
 
 /**
- * @title       ConfidentialERC20
- * @notice      This contract implements an encrypted ERC20-like token with confidential balances using
- *              Zama's FHE (Fully Homomorphic Encryption) library.
- * @dev         It supports standard ERC20 functions such as transferring tokens, minting,
- *              and setting allowances, but uses encrypted data types.
- *              The total supply is not encrypted.
+ * @title   ConfidentialERC20.
+ * @notice  This contract implements an encrypted ERC20-like token with confidential balances using
+ *          Zama's FHE (Fully Homomorphic Encryption) library.
+ * @dev     It supports standard ERC20 functions such as transferring tokens, minting,
+ *          and setting allowances, but uses encrypted data types.
+ *          The total supply is not encrypted.
  */
 abstract contract ConfidentialERC20 is IConfidentialERC20, IERC20Errors, TFHEErrors {
     /// @notice Used as a placeholder in `Approval` & `Transfer` events to comply with the official EIP20.

@@ -1,11 +1,11 @@
-# CompoundTimelock
+## CompoundTimelock
 
 This contract allows the admin to set a delay period before executing transactions. Transactions must be queued before
 execution. No transaction can be executed during this period, which offers time to verify the validity of pending
 transactions. It also has a grace period to allow for transactions not to be executed after a specific period following
 the queuing.
 
-## GRACE_PERIOD
+### GRACE_PERIOD
 
 ```solidity
 uint256 GRACE_PERIOD
@@ -13,7 +13,7 @@ uint256 GRACE_PERIOD
 
 See {ICompoundTimelock-GRACE_PERIOD}.
 
-## MINIMUM_DELAY
+### MINIMUM_DELAY
 
 ```solidity
 uint256 MINIMUM_DELAY
@@ -21,7 +21,7 @@ uint256 MINIMUM_DELAY
 
 Minimum delay that can be set in the `setDelay` function.
 
-## MAXIMUM_DELAY
+### MAXIMUM_DELAY
 
 ```solidity
 uint256 MAXIMUM_DELAY
@@ -29,7 +29,7 @@ uint256 MAXIMUM_DELAY
 
 Maximum delay that can be set in the `setDelay` function.
 
-## admin
+### admin
 
 ```solidity
 address admin
@@ -37,7 +37,7 @@ address admin
 
 Admin address.
 
-## pendingAdmin
+### pendingAdmin
 
 ```solidity
 address pendingAdmin
@@ -47,7 +47,7 @@ Pending admin address.
 
 _The transer of the admin is a two-step process._
 
-## delay
+### delay
 
 ```solidity
 uint256 delay
@@ -55,7 +55,7 @@ uint256 delay
 
 See {ICompoundTimelock-delay}.
 
-## queuedTransactions
+### queuedTransactions
 
 ```solidity
 mapping(bytes32 => bool) queuedTransactions
@@ -63,26 +63,26 @@ mapping(bytes32 => bool) queuedTransactions
 
 Return whether the transaction is queued based on its hash.
 
-## constructor
+### constructor
 
 ```solidity
 constructor(address admin_, uint256 delay_) public
 ```
 
-### Parameters
+#### Parameters
 
 | Name    | Type    | Description           |
 | ------- | ------- | --------------------- |
 | admin\_ | address | Admin address.        |
 | delay\_ | uint256 | Delay (in timestamp). |
 
-## receive
+### receive
 
 ```solidity
 receive() external payable
 ```
 
-## setDelay
+### setDelay
 
 ```solidity
 function setDelay(uint256 delay_) public
@@ -92,13 +92,13 @@ Set the delay.
 
 _This transaction must be queued._
 
-### Parameters
+#### Parameters
 
 | Name    | Type    | Description           |
 | ------- | ------- | --------------------- |
 | delay\_ | uint256 | Delay (in timestamp). |
 
-## acceptAdmin
+### acceptAdmin
 
 ```solidity
 function acceptAdmin() public
@@ -106,7 +106,7 @@ function acceptAdmin() public
 
 See {ICompoundTimelock-acceptAdmin}.
 
-## setPendingAdmin
+### setPendingAdmin
 
 ```solidity
 function setPendingAdmin(address pendingAdmin_) public
@@ -116,13 +116,13 @@ Set the pending admin.
 
 _This transaction must be queued._
 
-### Parameters
+#### Parameters
 
 | Name           | Type    | Description            |
 | -------------- | ------- | ---------------------- |
 | pendingAdmin\_ | address | Pending admin address. |
 
-## queueTransaction
+### queueTransaction
 
 ```solidity
 function queueTransaction(address target, uint256 value, string signature, bytes data, uint256 eta) public returns (bytes32)
@@ -130,7 +130,7 @@ function queueTransaction(address target, uint256 value, string signature, bytes
 
 See {ICompoundTimelock-queueTransaction}.
 
-## cancelTransaction
+### cancelTransaction
 
 ```solidity
 function cancelTransaction(address target, uint256 value, string signature, bytes data, uint256 eta) public
@@ -138,7 +138,7 @@ function cancelTransaction(address target, uint256 value, string signature, byte
 
 See {ICompoundTimelock-cancelTransaction}.
 
-## executeTransaction
+### executeTransaction
 
 ```solidity
 function executeTransaction(address target, uint256 value, string signature, bytes data, uint256 eta) public payable returns (bytes)

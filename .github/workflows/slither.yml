@@ -1,0 +1,37 @@
+name: Slither analysis
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+jobs:
+  analysis:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version:
+          - 20
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+      - run: cp .env.example .env
+      - run: pnpm install
+      - run: pnpm compile
+      - name: Run Slither
+        uses: crytic/slither-action@v0.4.0
+        with:
+          node-version: 20
+          ignore-compile: false
+          solc-version: "0.8.24"
+          slither-config: ".slither.config.json"
+          sarif: results.sarif
+          fail-on: none
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif

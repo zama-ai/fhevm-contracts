@@ -4,12 +4,11 @@ pragma solidity ^0.8.24;
 import { ICompoundTimelock } from "./ICompoundTimelock.sol";
 
 /**
- * @title       CompoundTimelock
- * @notice      This contract allows the admin to set a delay period before executing transactions.
- *              Transactions must be queued before execution. No transaction can be executed during this period,
- *              which offers time to verify the validity of pending transactions.
- *              It also has a grace period to allow for transactions
- *              not to be executed after a specific period following the queuing.
+ * @title   CompoundTimelock.
+ * @notice  This contract allows the admin to set a delay period before executing transactions.
+ *          Transactions must be queued before execution. No transaction can be executed during this period,
+ *          which offers time to verify the validity of pending transactions. It also has a grace period to allow
+ *          for transactions not to be executed after a specific period following the queuing.
  */
 contract CompoundTimelock is ICompoundTimelock {
     /**

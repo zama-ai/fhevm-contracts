@@ -3,21 +3,20 @@ pragma solidity ^0.8.24;
 
 import "fhevm/lib/TFHE.sol";
 import "fhevm/gateway/GatewayCaller.sol";
-
 import { Ownable2Step, Ownable } from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import { IConfidentialERC20Votes } from "./IConfidentialERC20Votes.sol";
 import { ICompoundTimelock } from "./ICompoundTimelock.sol";
 
 /**
- * @title       ConfidentialGovernorAlpha
- * @notice      This is based on the GovernorAlpha.sol contract written by Compound Labs.
- *              see: compound-finance/compound-protocol/blob/master/contracts/Governance/GovernorAlpha.sol
- *              This decentralized governance system allows users to propose and vote on changes to the protocol.
- *              The contract is responsible for:
- *              - Proposal: A new proposal is made to introduce a change.
- *              - Voting: Users can vote on the proposal, either in favor or against it.
- *              - Quorum: A minimum number of votes (quorum) must be reached for the proposal to pass.
- *              - Execution: Once a proposal passes, it is executed and takes effect on the protocol.
+ * @title   ConfidentialGovernorAlpha.
+ * @notice  This is based on the GovernorAlpha.sol contract written by Compound Labs.
+ *          see: compound-finance/compound-protocol/blob/master/contracts/Governance/GovernorAlpha.sol
+ *          This decentralized governance system allows users to propose and vote on changes to the protocol.
+ *          The contract is responsible for:
+ *          - Proposal: A new proposal is made to introduce a change.
+ *          - Voting: Users can vote on the proposal, either in favor or against it.
+ *          - Quorum: A minimum number of votes (quorum) must be reached for the proposal to pass.
+ *          - Execution: Once a proposal passes, it is executed and takes effect on the protocol.
  */
 abstract contract ConfidentialGovernorAlpha is Ownable2Step, GatewayCaller {
     /// @notice Returned if proposal contains too many changes.
@@ -227,16 +226,12 @@ abstract contract ConfidentialGovernorAlpha is Ownable2Step, GatewayCaller {
     ICompoundTimelock public immutable TIMELOCK;
 
     /// @notice Constant for zero using TFHE.
-    /// @dev    Since it is expensive to compute 0, it is stored instead.
-    ///         However, is not possible to define it as constant due to TFHE constraints.
-    /* solhint-disable var-name-mixedcase*/
-    euint64 private _EUINT64_ZERO;
+    /// @dev    Since it is expensive to compute 0, it is stored once instead.
+    euint64 private immutable _EUINT64_ZERO;
 
     /// @notice Constant for PROPOSAL_THRESHOLD using TFHE.
-    /// @dev    Since it is expensive to compute 0, it is stored instead.
-    ///         However, is not possible to define it as constant due to TFHE constraints.
-    /* solhint-disable var-name-mixedcase*/
-    euint64 private _EUINT64_PROPOSAL_THRESHOLD;
+    /// @dev    Since it is expensive to compute the PROPOSAL_THRESHOLD, it is stored once instead.
+    euint64 private immutable _EUINT64_PROPOSAL_THRESHOLD;
 
     /// @notice The total number of proposals made.
     ///         It includes all proposals, including the ones that
@@ -465,10 +460,8 @@ abstract contract ConfidentialGovernorAlpha is Ownable2Step, GatewayCaller {
             description
         );
 
-        ebool canPropose = TFHE.lt(
-            _EUINT64_PROPOSAL_THRESHOLD,
-            CONFIDENTIAL_ERC20_VOTES.getPriorVotesForGovernor(msg.sender, block.number - 1)
-        );
+        euint64 priorVotes = CONFIDENTIAL_ERC20_VOTES.getPriorVotesForGovernor(msg.sender, block.number - 1);
+        ebool canPropose = TFHE.lt(_EUINT64_PROPOSAL_THRESHOLD, priorVotes);
 
         uint256[] memory cts = new uint256[](1);
         cts[0] = Gateway.toUint256(canPropose);

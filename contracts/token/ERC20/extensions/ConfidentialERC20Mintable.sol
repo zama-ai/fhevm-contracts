@@ -3,13 +3,12 @@ pragma solidity ^0.8.24;
 
 import "fhevm/lib/TFHE.sol";
 import { Ownable2Step, Ownable } from "@openzeppelin/contracts/access/Ownable2Step.sol";
-
 import { ConfidentialERC20 } from "../ConfidentialERC20.sol";
 
 /**
- * @title       ConfidentialERC20Mintable
- * @notice      This contract inherits ConfidentialERC20.
- * @dev         It allows an owner to mint tokens. Mint amounts are public.
+ * @title   ConfidentialERC20Mintable.
+ * @notice  This contract inherits ConfidentialERC20.
+ * @dev     It allows an owner to mint tokens. Mint amounts are not encrypted.
  */
 abstract contract ConfidentialERC20Mintable is Ownable2Step, ConfidentialERC20 {
     /**

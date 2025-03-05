@@ -1,28 +1,18 @@
-# ConfidentialERC20WithErrors
+## ConfidentialERC20WithErrors
 
 This contract implements an encrypted ERC20-like token with confidential balances using Zama's FHE (Fully Homomorphic
 Encryption) library.
 
-It supports standard ERC20 functions such as transferring tokens, minting, and setting allowances, but uses encrypted
-data types. The total supply is not encrypted. It also supports error handling for encrypted errors.
+_It supports standard ERC20 functions such as transferring tokens, minting, and setting allowances, but uses encrypted
+data types. The total supply is not encrypted. It also supports error handling for encrypted errors._
 
-## TransferWithErrorHandling
-
-```solidity
-event TransferWithErrorHandling(address from, address to, uint256 transferId)
-```
-
-Emitted when tokens are moved from one account (`from`) to another (`to`).
-
-## ErrorCodes
+### ErrorCodes
 
 Error codes allow tracking (in the storage) whether a transfer worked.
 
-| Name                  | Description                                                                                      |
-| --------------------- | ------------------------------------------------------------------------------------------------ |
-| NO_ERROR              | The transfer worked as expected.                                                                 |
-| UNSUFFICIENT_BALANCE  | The transfer failed because the from balances were strictly inferior to the amount to transfer.  |
-| UNSUFFICIENT_APPROVAL | The transfer failed because the sender allowance was strictly lower than the amount to transfer. |
+\_NO_ERROR: the transfer worked as expected. UNSUFFICIENT_BALANCE: the transfer failed because the from balances were
+strictly inferior to the amount to transfer. UNSUFFICIENT_APPROVAL: the transfer failed because the sender allowance
+wasstrictly lower than the amount to transfer.
 
 ```solidity
 enum ErrorCodes {
@@ -32,28 +22,20 @@ enum ErrorCodes {
 }
 ```
 
-## \_errorCodeForTransferId
-
-```solidity
-mapping(uint256 => euint8) _errorCodeForTransferId
-```
-
-A mapping from transferId to the error code.
-
-## constructor
+### constructor
 
 ```solidity
 constructor(string name_, string symbol_) internal
 ```
 
-### Parameters
+#### Parameters
 
 | Name     | Type   | Description        |
 | -------- | ------ | ------------------ |
 | name\_   | string | Name of the token. |
 | symbol\_ | string | Symbol.            |
 
-## transfer
+### transfer
 
 ```solidity
 function transfer(address to, euint64 amount) public virtual returns (bool)
@@ -61,7 +43,7 @@ function transfer(address to, euint64 amount) public virtual returns (bool)
 
 See {IConfidentialERC20-transfer}.
 
-## transferFrom
+### transferFrom
 
 ```solidity
 function transferFrom(address from, address to, euint64 amount) public virtual returns (bool)
@@ -69,22 +51,34 @@ function transferFrom(address from, address to, euint64 amount) public virtual r
 
 See {IConfidentialERC20-transferFrom}.
 
-## getErrorCodeForTransferId
+### getErrorCodeForTransferId
 
 ```solidity
 function getErrorCodeForTransferId(uint256 transferId) public view virtual returns (euint8 errorCode)
 ```
 
-Returns the error code corresponding to `transferId`.
+Return the error for a transfer id.
 
-## \_transferWithErrorCode
+#### Parameters
+
+| Name       | Type    | Description                                            |
+| ---------- | ------- | ------------------------------------------------------ |
+| transferId | uint256 | Transfer id. It can be read from the `Transfer` event. |
+
+#### Return Values
+
+| Name      | Type   | Description           |
+| --------- | ------ | --------------------- |
+| errorCode | euint8 | Encrypted error code. |
+
+### \_transfer
 
 ```solidity
-function _transferWithErrorCode(address from, address to, euint64 amount, ebool isTransferable, euint8 errorCode) internal virtual
+function _transfer(address from, address to, euint64 amount, ebool isTransferable) internal
 ```
 
-## \_updateAllowanceWithErrorCode
+### \_updateAllowance
 
 ```solidity
-function _updateAllowanceWithErrorCode(address owner, address spender, euint64 amount) internal virtual returns (ebool isTransferable, euint8 errorCode)
+function _updateAllowance(address owner, address spender, euint64 amount) internal virtual returns (ebool isTransferable)
 ```

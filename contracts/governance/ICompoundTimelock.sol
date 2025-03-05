@@ -2,7 +2,8 @@
 pragma solidity ^0.8.24;
 
 /**
- * @title       ICompoundTimelock
+ * @title ICompoundTimelock.
+ * @dev   The CompoundTimelock inherits this interface.
  */
 interface ICompoundTimelock {
     /// @notice Returned if the delay is below the minimum delay.

@@ -1,8 +1,8 @@
-# IConfidentialERC20Votes
+## IConfidentialERC20Votes
 
-_The ConfidentialGovernorAlpha relies on this interface._
+_Governor contracts use this interface to build a logic using votes._
 
-## getPriorVotesForGovernor
+### getPriorVotesForGovernor
 
 ```solidity
 function getPriorVotesForGovernor(address account, uint256 blockNumber) external returns (euint64 votes)
@@ -13,14 +13,14 @@ Determine the prior number of votes for an account as of a block number.
 _Block number must be a finalized block or else this function will revert. This function can change the state since the
 governor needs access in the ACL contract._
 
-### Parameters
+#### Parameters
 
 | Name        | Type    | Description                                  |
 | ----------- | ------- | -------------------------------------------- |
 | account     | address | Account address.                             |
 | blockNumber | uint256 | The block number to get the vote balance at. |
 
-### Return Values
+#### Return Values
 
 | Name  | Type    | Description                                               |
 | ----- | ------- | --------------------------------------------------------- |

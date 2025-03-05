@@ -4,8 +4,8 @@ pragma solidity ^0.8.24;
 import "fhevm/lib/TFHE.sol";
 
 /**
- * @title       IConfidentialERC20Votes
- * @dev         The ConfidentialGovernorAlpha relies on this interface.
+ * @title   IConfidentialERC20Votes.
+ * @dev     Governor contracts use this interface to build a logic using votes.
  */
 interface IConfidentialERC20Votes {
     /**

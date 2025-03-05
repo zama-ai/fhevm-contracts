@@ -6,18 +6,18 @@ import { ConfidentialERC20 } from "../ConfidentialERC20.sol";
 import { EncryptedErrors } from "../../../utils/EncryptedErrors.sol";
 
 /**
- * @title       ConfidentialERC20WithErrors
- * @notice      This contract implements an encrypted ERC20-like token with confidential balances using
- *              Zama's FHE (Fully Homomorphic Encryption) library.
- * @dev         It supports standard ERC20 functions such as transferring tokens, minting,
- *              and setting allowances, but uses encrypted data types.
- *              The total supply is not encrypted.
- *              It also supports error handling for encrypted errors.
+ * @title   ConfidentialERC20WithErrors.
+ * @notice  This contract implements an encrypted ERC20-like token with confidential balances using
+ *          Zama's FHE (Fully Homomorphic Encryption) library.
+ * @dev     It supports standard ERC20 functions such as transferring tokens, minting,
+ *          and setting allowances, but uses encrypted data types.
+ *          The total supply is not encrypted.
+ *          It also supports error handling for encrypted errors.
  */
 abstract contract ConfidentialERC20WithErrors is ConfidentialERC20, EncryptedErrors {
     /**
      * @notice Error codes allow tracking (in the storage) whether a transfer worked.
-     * @dev    NO_ERROR: the transfer worked as expected
+     * @dev    NO_ERROR: the transfer worked as expected.
      *         UNSUFFICIENT_BALANCE: the transfer failed because the
      *         from balances were strictly inferior to the amount to transfer.
      *         UNSUFFICIENT_APPROVAL: the transfer failed because the sender allowance
@@ -65,8 +65,8 @@ abstract contract ConfidentialERC20WithErrors is ConfidentialERC20, EncryptedErr
     }
 
     /**
-     * @notice            Returns the error for a transfer id.
-     * @param transferId  Transfer id. It can read from the `Transfer` event.
+     * @notice            Return the error for a transfer id.
+     * @param transferId  Transfer id. It can be read from the `Transfer` event.
      * @return errorCode  Encrypted error code.
      */
     function getErrorCodeForTransferId(uint256 transferId) public view virtual returns (euint8 errorCode) {

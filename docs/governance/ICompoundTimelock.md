@@ -1,5 +1,7 @@
 ## ICompoundTimelock
 
+_The CompoundTimelock inherits this interface._
+
 ### DelayBelowMinimumDelay
 
 ```solidity

@@ -1,13 +1,14 @@
 # ConfidentialERC20Votes
 
-This contract inherits ConfidentialERC20, EIP712, and Ownable2Step. This is based on the Comp.sol contract written by
-Compound Labs. see: compound-finance/compound-protocol/blob/master/contracts/Governance/Comp.sol. It is a governance
-token used to delegate votes, which can be used by contracts such as ConfidentialGovernorAlpha.sol. It uses encrypted
-votes to delegate the voting power associated with an account's balance.
+This contract inherits [ConfidentialERC20](../token/ERC20/ConfidentialERC20.md), EIP712, and Ownable2Step. This is based
+on the
+[Comp.sol contract written by Compound Labs](https://github.com/compound-finance/compound-protocol/blob/master/contracts/Governance/Comp.sol).
+It is a governance token used to delegate votes, which can be used by contracts such as ConfidentialGovernorAlpha. It
+uses encrypted votes to delegate the voting power associated with an account's balance.
 
 _The delegation of votes leaks information about the account's encrypted balance to the `delegatee`._
 
-## BlockNumberEqualOrHigherThanCurrentBlock
+### BlockNumberEqualOrHigherThanCurrentBlock
 
 ```solidity
 error BlockNumberEqualOrHigherThanCurrentBlock()
@@ -17,7 +18,7 @@ Returned if the `blockNumber` is higher or equal to the (current) `block.number`
 
 _It is returned in requests to access votes._
 
-## GovernorInvalid
+### GovernorInvalid
 
 ```solidity
 error GovernorInvalid()
@@ -25,7 +26,7 @@ error GovernorInvalid()
 
 Returned if the `msg.sender` is not the `governor` contract.
 
-## SignatureExpired
+### SignatureExpired
 
 ```solidity
 error SignatureExpired()
@@ -33,7 +34,7 @@ error SignatureExpired()
 
 Returned if the signature has expired.
 
-## SignatureNonceInvalid
+### SignatureNonceInvalid
 
 ```solidity
 error SignatureNonceInvalid()
@@ -41,7 +42,7 @@ error SignatureNonceInvalid()
 
 Returned if the signature's nonce is invalid.
 
-## SignatureVerificationFail
+### SignatureVerificationFail
 
 ```solidity
 error SignatureVerificationFail()
@@ -51,7 +52,7 @@ Returned if the signature's verification has failed.
 
 _See {SignatureChecker} for potential reasons._
 
-## DelegateChanged
+### DelegateChanged
 
 ```solidity
 event DelegateChanged(address delegator, address fromDelegate, address toDelegate)
@@ -59,15 +60,7 @@ event DelegateChanged(address delegator, address fromDelegate, address toDelegat
 
 Emitted when an `account` (i.e. `delegator`) changes its delegate.
 
-## DelegateVotesChanged
-
-```solidity
-event DelegateVotesChanged(address delegate)
-```
-
-Emitted when a `delegate` account's vote balance changes.
-
-## NewGovernor
+### NewGovernor
 
 ```solidity
 event NewGovernor(address governor)
@@ -77,7 +70,7 @@ Emitted when the governor contract that can reencrypt votes changes.
 
 _WARNING: it can be set to a malicious contract, which could reencrypt all user votes._
 
-## NonceIncremented
+### NonceIncremented
 
 ```solidity
 event NonceIncremented(address account, uint256 newNonce)
@@ -85,19 +78,17 @@ event NonceIncremented(address account, uint256 newNonce)
 
 Emitted when the account cancels a signature.
 
-## Checkpoint
+### Checkpoint
 
 A checkpoint for marking number of votes from a given block.
 
 _In Compound's implementation, `fromBlock` is defined as uint32 to allow tight-packing. However, in this implementations
 `votes` is uint256-based. `fromBlock`'s type is set to uint256, which simplifies the codebase._
 
-### Parameters
+#### Parameters
 
-| Name      | Type    | Description                                  |
-| --------- | ------- | -------------------------------------------- |
-| fromBlock | uint256 | Block from where the checkpoint applies.     |
-| votes     | euint64 | Total number of votes for the account power. |
+| Name | Type | Description |
+| ---- | ---- | ----------- |
 
 ```solidity
 struct Checkpoint {
@@ -106,7 +97,7 @@ struct Checkpoint {
 }
 ```
 
-## DELEGATION_TYPEHASH
+### DELEGATION_TYPEHASH
 
 ```solidity
 bytes32 DELEGATION_TYPEHASH
@@ -114,7 +105,7 @@ bytes32 DELEGATION_TYPEHASH
 
 The EIP-712 typehash for the `Delegation` struct.
 
-## governor
+### governor
 
 ```solidity
 address governor
@@ -124,7 +115,7 @@ The smart contract that can access encrypted votes.
 
 _The contract is expected to be a governor contract._
 
-## delegates
+### delegates
 
 ```solidity
 mapping(address => address) delegates
@@ -132,7 +123,7 @@ mapping(address => address) delegates
 
 A record of each account's `delegate`.
 
-## nonces
+### nonces
 
 ```solidity
 mapping(address => uint256) nonces
@@ -140,7 +131,7 @@ mapping(address => uint256) nonces
 
 A record of states for signing/validating signatures.
 
-## numCheckpoints
+### numCheckpoints
 
 ```solidity
 mapping(address => uint32) numCheckpoints
@@ -148,7 +139,7 @@ mapping(address => uint32) numCheckpoints
 
 The number of checkpoints for an `account`.
 
-## \_checkpoints
+### \_checkpoints
 
 ```solidity
 mapping(address => mapping(uint32 => struct ConfidentialERC20Votes.Checkpoint)) _checkpoints
@@ -156,13 +147,13 @@ mapping(address => mapping(uint32 => struct ConfidentialERC20Votes.Checkpoint)) 
 
 A record of votes \_checkpoints for an `account` using incremental indices.
 
-## constructor
+### constructor
 
 ```solidity
 constructor(address owner_, string name_, string symbol_, string version_, uint64 totalSupply_) internal
 ```
 
-### Parameters
+#### Parameters
 
 | Name          | Type    | Description                  |
 | ------------- | ------- | ---------------------------- |
@@ -172,7 +163,7 @@ constructor(address owner_, string name_, string symbol_, string version_, uint6
 | version\_     | string  | Version (e.g. "0.1", "1.0"). |
 | totalSupply\_ | uint64  | Total supply to mint.        |
 
-## delegate
+### delegate
 
 ```solidity
 function delegate(address delegatee) public virtual
@@ -180,13 +171,13 @@ function delegate(address delegatee) public virtual
 
 Delegate votes from `msg.sender` to `delegatee`.
 
-### Parameters
+#### Parameters
 
 | Name      | Type    | Description                       |
 | --------- | ------- | --------------------------------- |
 | delegatee | address | The address to delegate votes to. |
 
-## delegateBySig
+### delegateBySig
 
 ```solidity
 function delegateBySig(address delegator, address delegatee, uint256 nonce, uint256 expiry, bytes signature) public virtual
@@ -197,7 +188,7 @@ Delegate votes from signatory to `delegatee`.
 _Signature can be either 64-byte or 65-byte long if it is from an EOA. Else, it must adhere to ERC1271. See
 {https://eips.ethereum.org/EIPS/eip-1271}_
 
-### Parameters
+#### Parameters
 
 | Name      | Type    | Description                                                  |
 | --------- | ------- | ------------------------------------------------------------ |
@@ -207,7 +198,7 @@ _Signature can be either 64-byte or 65-byte long if it is from an EOA. Else, it 
 | expiry    | uint256 | The time at which to expire the signature.                   |
 | signature | bytes   | The signature.                                               |
 
-## incrementNonce
+### incrementNonce
 
 ```solidity
 function incrementNonce() public virtual
@@ -217,7 +208,7 @@ Increment the nonce.
 
 _This function enables the sender to cancel a signature._
 
-## getPriorVotesForGovernor
+### getPriorVotesForGovernor
 
 ```solidity
 function getPriorVotesForGovernor(address account, uint256 blockNumber) public virtual returns (euint64 votes)
@@ -225,7 +216,7 @@ function getPriorVotesForGovernor(address account, uint256 blockNumber) public v
 
 See {IConfidentialERC20Votes-getPriorVotesForGovernor}.
 
-## getCurrentVotes
+### getCurrentVotes
 
 ```solidity
 function getCurrentVotes(address account) public view virtual returns (euint64 votes)
@@ -233,19 +224,19 @@ function getCurrentVotes(address account) public view virtual returns (euint64 v
 
 Get current votes of account.
 
-### Parameters
+#### Parameters
 
 | Name    | Type    | Description     |
 | ------- | ------- | --------------- |
 | account | address | Account address |
 
-### Return Values
+#### Return Values
 
 | Name  | Type    | Description                |
 | ----- | ------- | -------------------------- |
 | votes | euint64 | Current (encrypted) votes. |
 
-## getPriorVotes
+### getPriorVotes
 
 ```solidity
 function getPriorVotes(address account, uint256 blockNumber) public view virtual returns (euint64 votes)
@@ -255,20 +246,20 @@ Get the prior number of votes for an account as of a block number.
 
 _Block number must be a finalized block or else this function will revert._
 
-### Parameters
+#### Parameters
 
 | Name        | Type    | Description                                  |
 | ----------- | ------- | -------------------------------------------- |
 | account     | address | Account address.                             |
 | blockNumber | uint256 | The block number to get the vote balance at. |
 
-### Return Values
+#### Return Values
 
 | Name  | Type    | Description                                        |
 | ----- | ------- | -------------------------------------------------- |
 | votes | euint64 | Number of votes the account as of the given block. |
 
-## setGovernor
+### setGovernor
 
 ```solidity
 function setGovernor(address newGovernor) public virtual
@@ -276,31 +267,31 @@ function setGovernor(address newGovernor) public virtual
 
 Set a governor contract.
 
-### Parameters
+#### Parameters
 
 | Name        | Type    | Description                                            |
 | ----------- | ------- | ------------------------------------------------------ |
 | newGovernor | address | New governor contract that can reencrypt/access votes. |
 
-## \_delegate
+### \_delegate
 
 ```solidity
 function _delegate(address delegator, address delegatee) internal virtual
 ```
 
-## \_getPriorVote
+### \_getPriorVote
 
 ```solidity
-function _getPriorVote(address account, uint256 blockNumber) internal view returns (euint64 votes)
+function _getPriorVote(address account, uint256 blockNumber) internal view virtual returns (euint64 votes)
 ```
 
-## \_moveDelegates
+### \_moveDelegates
 
 ```solidity
 function _moveDelegates(address srcRep, address dstRep, euint64 amount) internal virtual
 ```
 
-## \_transfer
+### \_transfer
 
 ```solidity
 function _transfer(address from, address to, euint64 amount, ebool isTransferable) internal virtual
@@ -308,7 +299,7 @@ function _transfer(address from, address to, euint64 amount, ebool isTransferabl
 
 _Original restrictions to transfer from/to address(0) are removed since they are inherited._
 
-## \_writeCheckpoint
+### \_writeCheckpoint
 
 ```solidity
 function _writeCheckpoint(address delegatee, uint32 nCheckpoints, euint64 newVotes) internal virtual

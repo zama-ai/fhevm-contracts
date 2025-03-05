@@ -1,0 +1,4 @@
+{
+  "solc_remaps": ["@openzeppelin/=node_modules/@openzeppelin/", "fhevm/=node_modules/fhevm/"],
+  "filter_paths": "node_modules/|lib/|test/"
+}

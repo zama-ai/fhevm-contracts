@@ -4,87 +4,129 @@ pragma solidity ^0.8.24;
 import "fhevm/lib/TFHE.sol";
 
 /**
- * @title       IConfidentialERC20
- * @notice      Interface that defines ERC20-like tokens with encrypted balances.
+ * @title   IConfidentialERC20.
+ * @notice  Interface that defines ERC20-like tokens with encrypted balances.
  */
 interface IConfidentialERC20 {
     /**
-     * @notice Emitted when the allowance of a `spender` for an `owner` is set by
-     * a call to {approve}.
+     * @notice              Emitted when the allowance of a `spender` for an `owner` is set by
+     *                      a call to {approve}.
+     * @param owner         Owner address.
+     * @param spender       Spender address.
+     * @param placeholder   Placeholder.
      */
     event Approval(address indexed owner, address indexed spender, uint256 placeholder);
 
     /**
-     * @notice Emitted when tokens are moved from one account (`from`) to
-     * another (`to`).
-     * Last argument is either a default placeholder, typically equal to max(uint256), in case of
-     * a ConfidentialERC20 without error handling, or an errorId in case of encrypted error handling.
+     * @notice              Emitted when tokens are moved from one account (`from`) to
+     *                      another (`to`).
+     * @param from          Sender address.
+     * @param to            Receiver address.
+     * @param transferId    If the implementation does not support error handling, it must be set to a default
+     *                      placeholder (typically equal to max(uint256). However, it must be set to a transferId
+     *                      if the implementation supports encrypted error handling.
      */
-    event Transfer(address indexed from, address indexed to, uint256 errorId);
+    event Transfer(address indexed from, address indexed to, uint256 transferId);
 
     /**
-     * @notice Sets the `encryptedAmount` as the allowance of `spender` over the caller's tokens.
+     * @notice                  Set the `encryptedAmount` as the allowance of `spender` over the caller's tokens.
+     * @param spender           Spender address.
+     * @param encryptedAmount   Encrypted amount.
+     * @param inputProof        Input proof.
+     * @return isSuccess        Whether it succeeds.
      */
-    function approve(address spender, einput encryptedAmount, bytes calldata inputProof) external returns (bool);
+    function approve(
+        address spender,
+        einput encryptedAmount,
+        bytes calldata inputProof
+    ) external returns (bool isSuccess);
 
     /**
-     * @notice Sets the `amount` as the allowance of `spender` over the caller's tokens.
+     * @notice                  Set the `amount` as the allowance of `spender` over the caller's tokens.
+     * @param spender           Spender address.
+     * @param amount            Encrypted amount.
+     * @return isSuccess        Whether it succeeds.
      */
-    function approve(address spender, euint64 amount) external returns (bool);
+    function approve(address spender, euint64 amount) external returns (bool isSuccess);
 
     /**
-     * @notice Transfers an encrypted amount from the message sender address to the `to` address.
+     * @notice                  Transfer an encrypted amount from the message sender address to the `to` address.
+     * @param to                Receiver address.
+     * @param encryptedAmount   Encrypted amount.
+     * @param inputProof        Input proof.
+     * @return isSuccess        Whether it succeeds.
      */
-    function transfer(address to, einput encryptedAmount, bytes calldata inputProof) external returns (bool);
+    function transfer(address to, einput encryptedAmount, bytes calldata inputProof) external returns (bool isSuccess);
 
     /**
-     * @notice Transfers an amount from the message sender address to the `to` address.
+     * @notice              Transfer an amount from the message sender address to the `to` address.
+     * @param to            Receiver address.
+     * @param amount        Encrypted amount.
+     * @return isSuccess    Whether it succeeds.
      */
-    function transfer(address to, euint64 amount) external returns (bool);
+    function transfer(address to, euint64 amount) external returns (bool isSuccess);
 
     /**
-     * @notice Transfers `amount` tokens using the caller's allowance.
+     * @notice              Transfer `amount` tokens using the caller's allowance.
+     * @param from          Sender address.
+     * @param to            Receiver address.
+     * @param amount        Encrypted amount.
+     * @return isSuccess    Whether it succeeds.
      */
-    function transferFrom(address from, address to, euint64 amount) external returns (bool);
+    function transferFrom(address from, address to, euint64 amount) external returns (bool isSuccess);
 
     /**
-     * @notice Transfers `encryptedAmount` tokens using the caller's allowance.
+     * @notice                  Transfer `encryptedAmount` tokens using the caller's allowance.
+     * @param from              Sender address.
+     * @param to                Receiver address.
+     * @param encryptedAmount   Encrypted amount.
+     * @param inputProof        Input proof.
+     * @return isSuccess        Whether it succeeds.
      */
     function transferFrom(
         address from,
         address to,
         einput encryptedAmount,
         bytes calldata inputProof
-    ) external returns (bool);
+    ) external returns (bool isSuccess);
 
     /**
-     * @notice Returns the remaining number of tokens that `spender` is allowed to spend
-               on behalf of the caller.
+     * @notice              Return the remaining number of tokens that `spender` is allowed to spend
+     *                      on behalf of the `owner`.
+     * @param owner         Owner address.
+     * @param spender       Spender address.
+     * @return allowance    Allowance handle of the spender on behalf of the owner.
      */
-    function allowance(address owner, address spender) external view returns (euint64);
+    function allowance(address owner, address spender) external view returns (euint64 allowance);
 
     /**
-     * @notice Returns the balance handle of the caller.
+     * @notice          Return the balance handle of the `account`.
+     * @param account   Account address.
+     * @return balance  Balance handle of the `account`.
      */
-    function balanceOf(address wallet) external view returns (euint64);
+    function balanceOf(address account) external view returns (euint64 balance);
 
     /**
-     * @notice Returns the number of decimals.
+     * @notice          Return the number of decimals.
+     * @return decimals Number of decimals (e.g. 6).
      */
-    function decimals() external view returns (uint8);
+    function decimals() external view returns (uint8 decimals);
 
     /**
-     * @notice Returns the name of the token.
+     * @notice          Return the name of the token.
+     * @return name     Name of the token (e.g. "TestToken").
      */
-    function name() external view returns (string memory);
+    function name() external view returns (string memory name);
 
     /**
-     * @notice Returns the symbol of the token, usually a shorter version of the name.
+     * @notice          Return the symbol of the token.
+     * @return symbol   Symbol of the token (e.g. "TEST").
      */
-    function symbol() external view returns (string memory);
+    function symbol() external view returns (string memory symbol);
 
     /**
-     * @notice Returns the total supply of the token.
+     * @notice              Return the total supply of the token.
+     * @return totalSupply  Total supply of the token.
      */
-    function totalSupply() external view returns (uint64);
+    function totalSupply() external view returns (uint64 totalSupply);
 }

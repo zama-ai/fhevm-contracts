@@ -6,6 +6,7 @@ import { HardhatUserConfig, extendProvider } from "hardhat/config";
 import { task } from "hardhat/config";
 import type { NetworkUserConfig } from "hardhat/types";
 import { resolve } from "path";
+import "solidity-docgen";
 
 import CustomProvider from "./CustomProvider";
 import { setCodeMocked } from "./test/mockedSetup";

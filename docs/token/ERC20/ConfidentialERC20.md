@@ -1,4 +1,4 @@
-# ConfidentialERC20
+## ConfidentialERC20
 
 This contract implements an encrypted ERC20-like token with confidential balances using Zama's FHE (Fully Homomorphic
 Encryption) library.
@@ -6,7 +6,15 @@ Encryption) library.
 _It supports standard ERC20 functions such as transferring tokens, minting, and setting allowances, but uses encrypted
 data types. The total supply is not encrypted._
 
-## \_totalSupply
+### \_PLACEHOLDER
+
+```solidity
+uint256 _PLACEHOLDER
+```
+
+Used as a placeholder in `Approval` & `Transfer` events to comply with the official EIP20.
+
+### \_totalSupply
 
 ```solidity
 uint64 _totalSupply
@@ -14,7 +22,7 @@ uint64 _totalSupply
 
 Total supply.
 
-## \_name
+### \_name
 
 ```solidity
 string _name
@@ -22,7 +30,7 @@ string _name
 
 Name.
 
-## \_symbol
+### \_symbol
 
 ```solidity
 string _symbol
@@ -30,7 +38,7 @@ string _symbol
 
 Symbol.
 
-## \_balances
+### \_balances
 
 ```solidity
 mapping(address => euint64) _balances
@@ -38,7 +46,7 @@ mapping(address => euint64) _balances
 
 A mapping from `account` address to an encrypted `balance`.
 
-## \_allowances
+### \_allowances
 
 ```solidity
 mapping(address => mapping(address => euint64)) _allowances
@@ -46,28 +54,20 @@ mapping(address => mapping(address => euint64)) _allowances
 
 A mapping of the form mapping(account => mapping(spender => allowance)).
 
-## TFHESenderNotAllowed
-
-```solidity
-error TFHESenderNotAllowed()
-```
-
-Error when the `sender` is not allowed to access a value.
-
-## constructor
+### constructor
 
 ```solidity
 constructor(string name_, string symbol_) internal
 ```
 
-### Parameters
+#### Parameters
 
 | Name     | Type   | Description        |
 | -------- | ------ | ------------------ |
 | name\_   | string | Name of the token. |
 | symbol\_ | string | Symbol.            |
 
-## approve
+### approve
 
 ```solidity
 function approve(address spender, einput encryptedAmount, bytes inputProof) public virtual returns (bool)
@@ -75,7 +75,7 @@ function approve(address spender, einput encryptedAmount, bytes inputProof) publ
 
 See {IConfidentialERC20-approve}.
 
-## approve
+### approve
 
 ```solidity
 function approve(address spender, euint64 amount) public virtual returns (bool)
@@ -83,7 +83,7 @@ function approve(address spender, euint64 amount) public virtual returns (bool)
 
 See {IConfidentialERC20-approve}.
 
-## transfer
+### transfer
 
 ```solidity
 function transfer(address to, einput encryptedAmount, bytes inputProof) public virtual returns (bool)
@@ -91,7 +91,7 @@ function transfer(address to, einput encryptedAmount, bytes inputProof) public v
 
 See {IConfidentialERC20-transfer}.
 
-## transfer
+### transfer
 
 ```solidity
 function transfer(address to, euint64 amount) public virtual returns (bool)
@@ -99,7 +99,7 @@ function transfer(address to, euint64 amount) public virtual returns (bool)
 
 See {IConfidentialERC20-transfer}.
 
-## transferFrom
+### transferFrom
 
 ```solidity
 function transferFrom(address from, address to, einput encryptedAmount, bytes inputProof) public virtual returns (bool)
@@ -107,7 +107,7 @@ function transferFrom(address from, address to, einput encryptedAmount, bytes in
 
 See {IConfidentialERC20-transferFrom}.
 
-## transferFrom
+### transferFrom
 
 ```solidity
 function transferFrom(address from, address to, euint64 amount) public virtual returns (bool)
@@ -115,7 +115,7 @@ function transferFrom(address from, address to, euint64 amount) public virtual r
 
 See {IConfidentialERC20-transferFrom}.
 
-## allowance
+### allowance
 
 ```solidity
 function allowance(address owner, address spender) public view virtual returns (euint64)
@@ -123,7 +123,7 @@ function allowance(address owner, address spender) public view virtual returns (
 
 See {IConfidentialERC20-allowance}.
 
-## balanceOf
+### balanceOf
 
 ```solidity
 function balanceOf(address account) public view virtual returns (euint64)
@@ -131,7 +131,7 @@ function balanceOf(address account) public view virtual returns (euint64)
 
 See {IConfidentialERC20-balanceOf}.
 
-## decimals
+### decimals
 
 ```solidity
 function decimals() public view virtual returns (uint8)
@@ -139,7 +139,7 @@ function decimals() public view virtual returns (uint8)
 
 See {IConfidentialERC20-decimals}.
 
-## name
+### name
 
 ```solidity
 function name() public view virtual returns (string)
@@ -147,7 +147,7 @@ function name() public view virtual returns (string)
 
 See {IConfidentialERC20-name}.
 
-## symbol
+### symbol
 
 ```solidity
 function symbol() public view virtual returns (string)
@@ -155,7 +155,7 @@ function symbol() public view virtual returns (string)
 
 See {IConfidentialERC20-symbol}.
 
-## totalSupply
+### totalSupply
 
 ```solidity
 function totalSupply() public view virtual returns (uint64)
@@ -163,45 +163,53 @@ function totalSupply() public view virtual returns (uint64)
 
 See {IConfidentialERC20-totalSupply}.
 
-## \_approve
+### \_approve
 
 ```solidity
 function _approve(address owner, address spender, euint64 amount) internal virtual
 ```
 
-## \_unsafeMint
+### \_unsafeMint
 
 ```solidity
-function _unsafeMint(address account, euint64 amount) internal virtual
+function _unsafeMint(address account, uint64 amount) internal virtual
 ```
 
 _It does not incorporate any overflow check. It must be implemented by the function calling it._
 
-## \_transfer
+### \_unsafeMintNoEvent
+
+```solidity
+function _unsafeMintNoEvent(address account, uint64 amount) internal virtual
+```
+
+_It does not incorporate any overflow check. It must be implemented by the function calling it._
+
+### \_transfer
 
 ```solidity
 function _transfer(address from, address to, euint64 amount, ebool isTransferable) internal virtual
 ```
 
-## \_transferNoEvent
+### \_transferNoEvent
 
 ```solidity
 function _transferNoEvent(address from, address to, euint64 amount, ebool isTransferable) internal virtual
 ```
 
-## \_updateAllowance
+### \_updateAllowance
 
 ```solidity
 function _updateAllowance(address owner, address spender, euint64 amount) internal virtual returns (ebool)
 ```
 
-## \_allowance
+### \_allowance
 
 ```solidity
 function _allowance(address owner, address spender) internal view virtual returns (euint64)
 ```
 
-## \_isSenderAllowedForAmount
+### \_isSenderAllowedForAmount
 
 ```solidity
 function _isSenderAllowedForAmount(euint64 amount) internal view virtual

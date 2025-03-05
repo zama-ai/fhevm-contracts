@@ -81,7 +81,7 @@
     "clean": "rimraf ./fhevmTemp ./artifacts ./cache ./coverage ./types ./coverage.json && pnpm typechain",
     "compile": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat compile",
     "deploy:contracts": "hardhat deploy",
-    "docgen": "hardhat docgen",
+    "docgen": "hardhat docgen && prettier --write \"docs/**/*.{md,}\"",
     "lint": "npm run lint:sol && npm run lint:ts && npm run prettier:check",
     "lint:sol": "solhint --max-warnings 10 \"contracts/**/*.sol\"",
     "lint:ts": "eslint --ignore-path ./.eslintignore --ext .js,.ts .",
@@ -94,8 +94,8 @@
     "task:accounts": "hardhat task:accounts"
   },
   "dependencies": {
-    "fhevm": "^0.6.1",
-    "@openzeppelin/contracts": "^5.0.2",
-    "@openzeppelin/contracts-upgradeable": "^5.0.2"
+    "fhevm": "^0.6.2",
+    "@openzeppelin/contracts": "^5.1.0",
+    "@openzeppelin/contracts-upgradeable": "^5.1.0"
   }
 }

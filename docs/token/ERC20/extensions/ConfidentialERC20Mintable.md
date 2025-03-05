@@ -1,10 +1,10 @@
-# ConfidentialERC20Mintable
+## ConfidentialERC20Mintable
 
-This contract inherits ConfidentialERC20.
+This contract inherits [ConfidentialERC20](../ConfidentialERC20.md).
 
-_It allows an owner to mint tokens. Mint amounts are public._
+_It allows an owner to mint tokens. Mint amounts are not encrypted._
 
-## Mint
+### Mint
 
 ```solidity
 event Mint(address to, uint64 amount)
@@ -12,13 +12,13 @@ event Mint(address to, uint64 amount)
 
 Emitted when `amount` tokens are minted to one account (`to`).
 
-## constructor
+### constructor
 
 ```solidity
 constructor(string name_, string symbol_, address owner_) internal
 ```
 
-### Parameters
+#### Parameters
 
 | Name     | Type    | Description        |
 | -------- | ------- | ------------------ |
@@ -26,16 +26,17 @@ constructor(string name_, string symbol_, address owner_) internal
 | symbol\_ | string  | Symbol.            |
 | owner\_  | address | Owner address.     |
 
-## mint
+### mint
 
 ```solidity
-function mint(uint64 amount) public virtual
+function mint(address to, uint64 amount) public virtual
 ```
 
 Mint tokens.
 
-### Parameters
+#### Parameters
 
-| Name   | Type   | Description               |
-| ------ | ------ | ------------------------- |
-| amount | uint64 | Amount of tokens to mint. |
+| Name   | Type    | Description                |
+| ------ | ------- | -------------------------- |
+| to     | address | Address to mint tokens to. |
+| amount | uint64  | Amount of tokens to mint.  |

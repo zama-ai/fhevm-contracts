@@ -1,15 +1,16 @@
-# ConfidentialGovernorAlpha
+## ConfidentialGovernorAlpha
 
-This is based on the GovernorAlpha.sol contract written by Compound Labs. see:
-compound-finance/compound-protocol/blob/master/contracts/Governance/GovernorAlpha.sol This decentralized governance
-system allows users to propose and vote on changes to the protocol. The contract is responsible for:
+This is based on the GovernorAlpha.sol contract written by Compound Labs. This decentralized governance system allows
+users to propose and vote on changes to the protocol.
 
-- Proposal: A new proposal is made to introduce a change.
-- Voting: Users can vote on the proposal, either in favor or against it.
-- Quorum: A minimum number of votes (quorum) must be reached for the proposal to pass.
-- Execution: Once a proposal passes, it is executed and takes effect on the protocol.
+The contract is responsible for:
 
-## LengthAboveMaxOperations
+- **Proposal**: A new proposal is made to introduce a change.
+- **Voting**: Users can vote on the proposal, either in favor or against it.
+- **Quorum**: A minimum number of votes (quorum) must be reached for the proposal to pass.
+- **Execution**: Once a proposal passes, it is executed and takes effect on the protocol.
+
+### LengthAboveMaxOperations
 
 ```solidity
 error LengthAboveMaxOperations()
@@ -17,7 +18,7 @@ error LengthAboveMaxOperations()
 
 Returned if proposal contains too many changes.
 
-## LengthIsNull
+### LengthIsNull
 
 ```solidity
 error LengthIsNull()
@@ -25,7 +26,7 @@ error LengthIsNull()
 
 Returned if the array length is equal to 0.
 
-## LengthsDoNotMatch
+### LengthsDoNotMatch
 
 ```solidity
 error LengthsDoNotMatch()
@@ -33,7 +34,15 @@ error LengthsDoNotMatch()
 
 Returned if array lengths are not equal.
 
-## ProposalActionsAlreadyQueued
+### MaxDecryptionDelayTooHigh
+
+```solidity
+error MaxDecryptionDelayTooHigh()
+```
+
+Returned if the maximum decryption delay is higher than 1 day.
+
+### ProposalActionsAlreadyQueued
 
 ```solidity
 error ProposalActionsAlreadyQueued()
@@ -41,7 +50,7 @@ error ProposalActionsAlreadyQueued()
 
 Returned if proposal's actions have already been queued.
 
-## ProposalStateInvalid
+### ProposalStateInvalid
 
 ```solidity
 error ProposalStateInvalid()
@@ -51,7 +60,7 @@ Returned if the proposal state is invalid for this operation.
 
 _It is returned for any proposal state not matching the expected state to conduct the operation._
 
-## ProposalStateNotActive
+### ProposalStateNotActive
 
 ```solidity
 error ProposalStateNotActive()
@@ -59,7 +68,7 @@ error ProposalStateNotActive()
 
 Returned if the proposal's state is active but `block.number` > `endBlock`.
 
-## ProposalStateStillActive
+### ProposalStateStillActive
 
 ```solidity
 error ProposalStateStillActive()
@@ -67,7 +76,7 @@ error ProposalStateStillActive()
 
 Returned if the proposal state is still active.
 
-## ProposerHasAnotherProposal
+### ProposerHasAnotherProposal
 
 ```solidity
 error ProposerHasAnotherProposal()
@@ -75,7 +84,7 @@ error ProposerHasAnotherProposal()
 
 Returned if the proposer has another proposal in progress.
 
-## VoterHasAlreadyVoted
+### VoterHasAlreadyVoted
 
 ```solidity
 error VoterHasAlreadyVoted()
@@ -83,7 +92,7 @@ error VoterHasAlreadyVoted()
 
 Returned if the voter has already cast a vote for this proposal.
 
-## ProposalActive
+### ProposalActive
 
 ```solidity
 event ProposalActive(uint256 id)
@@ -91,7 +100,7 @@ event ProposalActive(uint256 id)
 
 Emitted when a proposal is now active.
 
-## ProposalCanceled
+### ProposalCanceled
 
 ```solidity
 event ProposalCanceled(uint256 id)
@@ -99,7 +108,7 @@ event ProposalCanceled(uint256 id)
 
 Emitted when a proposal has been canceled.
 
-## ProposalCreated
+### ProposalCreated
 
 ```solidity
 event ProposalCreated(uint256 id, address proposer, address[] targets, uint256[] values, string[] signatures, bytes[] calldatas, uint256 startBlock, uint256 endBlock, string description)
@@ -107,15 +116,16 @@ event ProposalCreated(uint256 id, address proposer, address[] targets, uint256[]
 
 Emitted when a new proposal is created.
 
-## ProposalDefeated
+### ProposalDefeated
 
 ```solidity
 event ProposalDefeated(uint256 id)
 ```
 
-Emitted when a proposal is defeated either by lack of votes or by more votes against.
+Emitted when a proposal is defeated either by (1) number of `for` votes inferior to the quorum, (2) the number of `for`
+votes equal or inferior to `against` votes.
 
-## ProposalExecuted
+### ProposalExecuted
 
 ```solidity
 event ProposalExecuted(uint256 id)
@@ -123,7 +133,7 @@ event ProposalExecuted(uint256 id)
 
 Emitted when a proposal has been executed in the Timelock.
 
-## ProposalQueued
+### ProposalQueued
 
 ```solidity
 event ProposalQueued(uint256 id, uint256 eta)
@@ -131,23 +141,25 @@ event ProposalQueued(uint256 id, uint256 eta)
 
 Emitted when a proposal has been queued in the Timelock.
 
-## ProposalRejected
+### ProposalRejected
 
 ```solidity
 event ProposalRejected(uint256 id)
 ```
 
-Emitted when a proposal has been rejected since the number of votes is lower than the required threshold.
+Emitted when a proposal has been rejected since the number of votes of the proposer is lower than the required
+threshold.
 
-## ProposalSucceeded
+### ProposalSucceeded
 
 ```solidity
 event ProposalSucceeded(uint256 id)
 ```
 
-Emitted when a proposal has been rejected since the number of votes is lower than the required threshold.
+Emitted when a proposal has succeeded since the number of `for` votes is higher than quorum and strictly higher than
+`against` votes.
 
-## VoteCast
+### VoteCast
 
 ```solidity
 event VoteCast(address voter, uint256 proposalId)
@@ -155,25 +167,14 @@ event VoteCast(address voter, uint256 proposalId)
 
 Emitted when a vote has been cast on a proposal.
 
-## ProposalState
+### ProposalState
 
 Possible states that a proposal may be in.
 
-### Parameters
+#### Parameters
 
-| Name                         | Description                                                                                 |
-| ---------------------------- | ------------------------------------------------------------------------------------------- |
-| Pending                      | Proposal does not exist.                                                                    |
-| PendingThresholdVerification | Proposal is created but token threshold verification is pending.                            |
-| Rejected                     | Proposal was rejected as the proposer did not meet the token threshold.                     |
-| Active                       | Proposal is active and voters can cast their votes.                                         |
-| PendingResults               | Proposal is not active and the result decryption is in progress.                            |
-| Canceled                     | Proposal has been canceled by the proposer or by this contract's owner.                     |
-| Defeated                     | Proposal has been defeated (either not reaching the quorum or `againstVotes` > `forVotes`). |
-| Succeeded                    | Proposal has succeeded (`forVotes` > `againstVotes`).                                       |
-| Queued                       | Proposal has been queued in the `Timelock`.                                                 |
-| Expired                      | Proposal has expired (@dev This state exists only in read-only functions).                  |
-| Executed                     | Proposal has been executed in the `Timelock`.                                               |
+| Name | Type | Description |
+| ---- | ---- | ----------- |
 
 ```solidity
 enum ProposalState {
@@ -191,25 +192,12 @@ enum ProposalState {
 }
 ```
 
-## Proposal
+### Proposal
 
-### Parameters
+#### Parameters
 
-| Name                  | Type                                    | Description                                                                                                      |
-| --------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| proposer              | address                                 | Proposal creator.                                                                                                |
-| state                 | ConfidentialGovernorAlpha.ProposalState | State of the proposal.                                                                                           |
-| eta                   | uint256                                 | The timestamp that the proposal will be available for execution, it is set automatically once the vote succeeds. |
-| targets               | address[]                               | The ordered list of target addresses for calls to be made.                                                       |
-| values                | uint256[]                               | The ordered list of values (i.e. `msg.value`) to be passed to the calls to be made.                              |
-| signatures            | string[]                                | The ordered list of function signatures to be called.                                                            |
-| calldatas             | calldatas                               | The ordered list of calldata to be passed to each call.                                                          |
-| startBlock            | startBlock                              | The block at which voting begins: holders must delegate their votes prior to this block.                         |
-| endBlock              | endBlock                                | The block at which voting ends: votes must be cast prior to this block. -----------                              |
-| forVotes              | forVotes                                | Current encrypted number of votes for to this proposal.-----------                                               |
-| againstVotes          | againstVotes                            | Current encrypted number of votes in opposition to this proposal.-----------                                     |
-| forVotesDecrypted     | forVotesDecrypted                       | For votes once decrypted by the gateway.-----------                                                              |
-| againstVotesDecrypted | againstVotesDecrypted                   | Against votes once decrypted by the gateway.-----------                                                          |
+| Name | Type | Description |
+| ---- | ---- | ----------- |
 
 ```solidity
 struct Proposal {
@@ -229,23 +217,12 @@ struct Proposal {
 }
 ```
 
-## ProposalInfo
+### ProposalInfo
 
-### Parameters
+#### Parameters
 
-| Name         | Type                                    | Description                                                                                                      |
-| ------------ | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| proposer     | address                                 | Proposal creator.                                                                                                |
-| state        | ConfidentialGovernorAlpha.ProposalState | State of the proposal.                                                                                           |
-| eta          | uint256                                 | The timestamp that the proposal will be available for execution, it is set automatically once the vote succeeds. |
-| targets      | address[]                               | The ordered list of target addresses for calls to be made.                                                       |
-| values       | uint256[]                               | The ordered list of values (i.e. `msg.value`) to be passed to the calls to be made.                              |
-| signatures   | string[]                                | The ordered list of function signatures to be called.                                                            |
-| calldatas    | calldatas                               | The ordered list of calldata to be passed to each call.                                                          |
-| startBlock   | startBlock                              | The block at which voting begins: holders must delegate their votes prior to this block.                         |
-| endBlock     | endBlock                                | The block at which voting ends: votes must be cast prior to this block. -----------                              |
-| forVotes     | forVotesDecrypted                       | For votes once decrypted by the gateway.-----------                                                              |
-| againstVotes | againstVotesDecrypted                   | Against votes once decrypted by the gateway.-----------                                                          |
+| Name | Type | Description |
+| ---- | ---- | ----------- |
 
 ```solidity
 struct ProposalInfo {
@@ -263,17 +240,14 @@ struct ProposalInfo {
 }
 ```
 
-## Receipt
+### Receipt
 
 Ballot receipt record for a voter.
 
-### Parameters
+#### Parameters
 
-| Name     | Type    | Description                                     |
-| -------- | ------- | ----------------------------------------------- |
-| hasVoted | bool    | Whether or not a vote has been cast.            |
-| support  | ebool   | Whether or not the voter supports the proposal. |
-| support  | euint64 | The number of votes cast by the voter.          |
+| Name | Type | Description |
+| ---- | ---- | ----------- |
 
 ```solidity
 struct Receipt {
@@ -283,7 +257,7 @@ struct Receipt {
 }
 ```
 
-## PROPOSAL_MAX_OPERATIONS
+### PROPOSAL_MAX_OPERATIONS
 
 ```solidity
 uint256 PROPOSAL_MAX_OPERATIONS
@@ -293,7 +267,7 @@ The maximum number of actions that can be included in a proposal.
 
 _It is 10 actions per proposal._
 
-## PROPOSAL_THRESHOLD
+### PROPOSAL_THRESHOLD
 
 ```solidity
 uint256 PROPOSAL_THRESHOLD
@@ -303,7 +277,7 @@ The number of votes required for a voter to become a proposer.
 
 _It is set at 100,000, which is 1% of the total supply of the ConfidentialERC20Votes token._
 
-## QUORUM_VOTES
+### QUORUM_VOTES
 
 ```solidity
 uint64 QUORUM_VOTES
@@ -313,7 +287,7 @@ The number of votes in support of a proposal required in order for a quorum to b
 
 _It is set at 400,000, which is 4% of the total supply of the ConfidentialERC20Votes token._
 
-## VOTING_DELAY
+### VOTING_DELAY
 
 ```solidity
 uint256 VOTING_DELAY
@@ -321,7 +295,15 @@ uint256 VOTING_DELAY
 
 The delay before voting on a proposal may take place once proposed. It is 1 block.
 
-## VOTING_PERIOD
+### MAX_DECRYPTION_DELAY
+
+```solidity
+uint256 MAX_DECRYPTION_DELAY
+```
+
+The maximum decryption delay for the Gateway to callback with the decrypted value.
+
+### VOTING_PERIOD
 
 ```solidity
 uint256 VOTING_PERIOD
@@ -331,7 +313,7 @@ The duration of voting on a proposal, in blocks
 
 _It is recommended to be set at 3 days in blocks (i.e 21,600 for 12-second blocks)._
 
-## CONFIDENTIAL_ERC20_VOTES
+### CONFIDENTIAL_ERC20_VOTES
 
 ```solidity
 contract IConfidentialERC20Votes CONFIDENTIAL_ERC20_VOTES
@@ -339,7 +321,7 @@ contract IConfidentialERC20Votes CONFIDENTIAL_ERC20_VOTES
 
 ConfidentialERC20Votes governance token.
 
-## TIMELOCK
+### TIMELOCK
 
 ```solidity
 contract ICompoundTimelock TIMELOCK
@@ -347,7 +329,7 @@ contract ICompoundTimelock TIMELOCK
 
 Compound Timelock.
 
-## proposalCount
+### proposalCount
 
 ```solidity
 uint256 proposalCount
@@ -355,7 +337,7 @@ uint256 proposalCount
 
 The total number of proposals made. It includes all proposals, including the ones that were rejected/canceled/defeated.
 
-## latestProposalIds
+### latestProposalIds
 
 ```solidity
 mapping(address => uint256) latestProposalIds
@@ -363,7 +345,7 @@ mapping(address => uint256) latestProposalIds
 
 The latest proposal for each proposer.
 
-## \_accountReceiptForProposalId
+### \_accountReceiptForProposalId
 
 ```solidity
 mapping(uint256 => mapping(address => struct ConfidentialGovernorAlpha.Receipt)) _accountReceiptForProposalId
@@ -371,7 +353,7 @@ mapping(uint256 => mapping(address => struct ConfidentialGovernorAlpha.Receipt))
 
 Ballot receipt for an account for a proposal id.
 
-## \_proposals
+### \_proposals
 
 ```solidity
 mapping(uint256 => struct ConfidentialGovernorAlpha.Proposal) _proposals
@@ -379,7 +361,7 @@ mapping(uint256 => struct ConfidentialGovernorAlpha.Proposal) _proposals
 
 The official record of all proposals that have been created.
 
-## \_requestIdToProposalId
+### \_requestIdToProposalId
 
 ```solidity
 mapping(uint256 => uint256) _requestIdToProposalId
@@ -389,25 +371,29 @@ Returns the proposal id associated with the request id from the Gateway.
 
 _This mapping is used for decryption._
 
-## constructor
+### constructor
 
 ```solidity
-constructor(address owner_, address timelock_, address confidentialERC20Votes_, uint256 votingPeriod_) internal
+constructor(address owner_, address timelock_, address confidentialERC20Votes_, uint256 votingPeriod_, uint256 maxDecryptionDelay_) internal
 ```
 
-_Do not use a small value in production such as 5 or 20 to avoid security issues unless for testing purpose. It should
-by at least a few days,. For instance, 3 days would have a votingPeriod = 21,600 blocks if 12s per block._
+_Do not use a small value in production such as 5 or 20 to avoid security issues unless for testing purposes. It should
+by at least a few days. For instance, 3 days would have a votingPeriod = 21,600 blocks if 12s per block. Do not use a
+small value in production to avoid security issues if the response cannot be processed because the block time is higher
+than the delay. The current implementation expects the Gateway to always return a decrypted value within the delay
+specified, as long as it is sufficient enough._
 
-### Parameters
+#### Parameters
 
-| Name                     | Type    | Description                   |
-| ------------------------ | ------- | ----------------------------- |
-| owner\_                  | address | Owner address.                |
-| timelock\_               | address | Timelock contract.            |
-| confidentialERC20Votes\_ | address | ConfidentialERC20Votes token. |
-| votingPeriod\_           | uint256 | Voting period.                |
+| Name                     | Type    | Description                               |
+| ------------------------ | ------- | ----------------------------------------- |
+| owner\_                  | address | Owner address.                            |
+| timelock\_               | address | Timelock contract.                        |
+| confidentialERC20Votes\_ | address | ConfidentialERC20Votes token.             |
+| votingPeriod\_           | uint256 | Voting period.                            |
+| maxDecryptionDelay\_     | uint256 | Maximum delay for the Gateway to decrypt. |
 
-## cancel
+### cancel
 
 ```solidity
 function cancel(uint256 proposalId) public virtual
@@ -418,13 +404,13 @@ Cancel the proposal.
 _Only this contract's owner or the proposer can cancel. In the original GovernorAlpha, the proposer can cancel only if
 her votes are still above the threshold._
 
-### Parameters
+#### Parameters
 
 | Name       | Type    | Description  |
 | ---------- | ------- | ------------ |
 | proposalId | uint256 | Proposal id. |
 
-## castVote
+### castVote
 
 ```solidity
 function castVote(uint256 proposalId, einput value, bytes inputProof) public virtual
@@ -432,7 +418,7 @@ function castVote(uint256 proposalId, einput value, bytes inputProof) public vir
 
 Cast a vote.
 
-### Parameters
+#### Parameters
 
 | Name       | Type    | Description      |
 | ---------- | ------- | ---------------- |
@@ -440,7 +426,7 @@ Cast a vote.
 | value      | einput  | Encrypted value. |
 | inputProof | bytes   | Input proof.     |
 
-## castVote
+### castVote
 
 ```solidity
 function castVote(uint256 proposalId, ebool support) public virtual
@@ -448,14 +434,14 @@ function castVote(uint256 proposalId, ebool support) public virtual
 
 Cast a vote.
 
-### Parameters
+#### Parameters
 
 | Name       | Type    | Description                                             |
 | ---------- | ------- | ------------------------------------------------------- |
 | proposalId | uint256 | Proposal id.                                            |
 | support    | ebool   | Support (true ==> `forVotes`, false ==> `againstVotes`) |
 
-## execute
+### execute
 
 ```solidity
 function execute(uint256 proposalId) public payable virtual
@@ -465,7 +451,7 @@ Execute the proposal id.
 
 _Anyone can execute a proposal once it has been queued and the delay in the timelock is sufficient._
 
-## propose
+### propose
 
 ```solidity
 function propose(address[] targets, uint256[] values, string[] signatures, bytes[] calldatas, string description) public virtual returns (uint256 proposalId)
@@ -473,7 +459,7 @@ function propose(address[] targets, uint256[] values, string[] signatures, bytes
 
 Start a new proposal.
 
-### Parameters
+#### Parameters
 
 | Name        | Type      | Description                             |
 | ----------- | --------- | --------------------------------------- |
@@ -483,13 +469,13 @@ Start a new proposal.
 | calldatas   | bytes[]   | Calldatas.                              |
 | description | string    | Plain text description of the proposal. |
 
-### Return Values
+#### Return Values
 
 | Name       | Type    | Description  |
 | ---------- | ------- | ------------ |
 | proposalId | uint256 | Proposal id. |
 
-## queue
+### queue
 
 ```solidity
 function queue(uint256 proposalId) public virtual
@@ -499,13 +485,13 @@ Queue a new proposal.
 
 _It can be done only if the proposal has succeeded. Anyone can queue a proposal._
 
-### Parameters
+#### Parameters
 
 | Name       | Type    | Description  |
 | ---------- | ------- | ------------ |
 | proposalId | uint256 | Proposal id. |
 
-## requestVoteDecryption
+### requestVoteDecryption
 
 ```solidity
 function requestVoteDecryption(uint256 proposalId) public virtual
@@ -515,13 +501,13 @@ Request the vote results to be decrypted.
 
 _Anyone can request the decryption of the vote._
 
-### Parameters
+#### Parameters
 
 | Name       | Type    | Description  |
 | ---------- | ------- | ------------ |
 | proposalId | uint256 | Proposal id. |
 
-## callbackInitiateProposal
+### callbackInitiateProposal
 
 ```solidity
 function callbackInitiateProposal(uint256 requestId, bool canInitiate) public virtual
@@ -529,14 +515,14 @@ function callbackInitiateProposal(uint256 requestId, bool canInitiate) public vi
 
 _Only callable by the gateway._
 
-### Parameters
+#### Parameters
 
 | Name        | Type    | Description                            |
 | ----------- | ------- | -------------------------------------- |
 | requestId   | uint256 | Request id (from the Gateway)          |
 | canInitiate | bool    | Whether the proposal can be initiated. |
 
-## callbackVoteDecryption
+### callbackVoteDecryption
 
 ```solidity
 function callbackVoteDecryption(uint256 requestId, uint256 forVotesDecrypted, uint256 againstVotesDecrypted) public virtual
@@ -544,7 +530,7 @@ function callbackVoteDecryption(uint256 requestId, uint256 forVotesDecrypted, ui
 
 _Only callable by the gateway. If `forVotesDecrypted` == `againstVotesDecrypted`, proposal is defeated._
 
-### Parameters
+#### Parameters
 
 | Name                  | Type    | Description    |
 | --------------------- | ------- | -------------- |
@@ -552,7 +538,7 @@ _Only callable by the gateway. If `forVotesDecrypted` == `againstVotesDecrypted`
 | forVotesDecrypted     | uint256 | For votes.     |
 | againstVotesDecrypted | uint256 | Against votes. |
 
-## acceptTimelockAdmin
+### acceptTimelockAdmin
 
 ```solidity
 function acceptTimelockAdmin() public virtual
@@ -560,7 +546,7 @@ function acceptTimelockAdmin() public virtual
 
 _Only callable by `owner`._
 
-## executeSetTimelockPendingAdmin
+### executeSetTimelockPendingAdmin
 
 ```solidity
 function executeSetTimelockPendingAdmin(address newPendingAdmin, uint256 eta) public virtual
@@ -568,14 +554,14 @@ function executeSetTimelockPendingAdmin(address newPendingAdmin, uint256 eta) pu
 
 _Only callable by `owner`._
 
-### Parameters
+#### Parameters
 
 | Name            | Type    | Description                                        |
 | --------------- | ------- | -------------------------------------------------- |
 | newPendingAdmin | address | Address of the new pending admin for the timelock. |
 | eta             | uint256 | Eta for executing the transaction in the timelock. |
 
-## queueSetTimelockPendingAdmin
+### queueSetTimelockPendingAdmin
 
 ```solidity
 function queueSetTimelockPendingAdmin(address newPendingAdmin, uint256 eta) public virtual
@@ -583,14 +569,14 @@ function queueSetTimelockPendingAdmin(address newPendingAdmin, uint256 eta) publ
 
 _Only callable by `owner`._
 
-### Parameters
+#### Parameters
 
 | Name            | Type    | Description                                        |
 | --------------- | ------- | -------------------------------------------------- |
 | newPendingAdmin | address | Address of the new pending admin for the timelock. |
 | eta             | uint256 | Eta for queuing the transaction in the timelock.   |
 
-## getProposalInfo
+### getProposalInfo
 
 ```solidity
 function getProposalInfo(uint256 proposalId) public view virtual returns (struct ConfidentialGovernorAlpha.ProposalInfo proposalInfo)
@@ -600,19 +586,19 @@ Returns proposal information for a proposal id.
 
 _It returns decrypted `forVotes`/`againstVotes`. These are only available after the decryption._
 
-### Parameters
+#### Parameters
 
 | Name       | Type    | Description  |
 | ---------- | ------- | ------------ |
 | proposalId | uint256 | Proposal id. |
 
-### Return Values
+#### Return Values
 
 | Name         | Type                                          | Description           |
 | ------------ | --------------------------------------------- | --------------------- |
 | proposalInfo | struct ConfidentialGovernorAlpha.ProposalInfo | Proposal information. |
 
-## getReceipt
+### getReceipt
 
 ```solidity
 function getReceipt(uint256 proposalId, address account) public view virtual returns (bool, ebool, euint64)
@@ -620,28 +606,28 @@ function getReceipt(uint256 proposalId, address account) public view virtual ret
 
 Returns the vote receipt information for the account for a proposal id.
 
-### Parameters
+#### Parameters
 
 | Name       | Type    | Description      |
 | ---------- | ------- | ---------------- |
 | proposalId | uint256 | Proposal id.     |
 | account    | address | Account address. |
 
-### Return Values
+#### Return Values
 
-| Name | Type    | Description                                                                      |
-| ---- | ------- | -------------------------------------------------------------------------------- |
-| [0]  | bool    | hasVoted Whether the account has voted.                                          |
-| [1]  | ebool   | support The support for the account (true ==> vote for, false ==> vote against). |
-| [2]  | euint64 | votes The number of votes cast.                                                  |
+| Name     | Type    | Description                                                              |
+| -------- | ------- | ------------------------------------------------------------------------ |
+| hasVoted | bool    | Whether the account has voted.                                           |
+| support  | ebool   | The support for the account (true ==> vote for, false ==> vote against). |
+| votes    | euint64 | The number of votes cast.                                                |
 
-## \_castVote
+### \_castVote
 
 ```solidity
 function _castVote(address voter, uint256 proposalId, ebool support) internal virtual
 ```
 
-## \_queueOrRevert
+### \_queueOrRevert
 
 ```solidity
 function _queueOrRevert(address target, uint256 value, string signature, bytes data, uint256 eta) internal virtual
