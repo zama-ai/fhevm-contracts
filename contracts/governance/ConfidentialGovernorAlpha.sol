@@ -156,33 +156,6 @@ abstract contract ConfidentialGovernorAlpha is Ownable2Step, GatewayCaller {
     }
 
     /**
-     * @param proposer      Proposal creator.
-     * @param state         State of the proposal.
-     * @param eta           The timestamp when the proposal will be available for execution, set once the vote succeeds.
-     * @param targets       The ordered list of target addresses for calls to be made.
-     * @param values        The ordered list of values (i.e. `msg.value`) to be passed to the calls to be made.
-     * @param signatures    The ordered list of function signatures to be called.
-     * @param calldatas     The ordered list of calldata to be passed to each call.
-     * @param startBlock    The block at which voting begins: holders must delegate their votes prior to this block.
-     * @param endBlock      The block at which voting ends: votes must be cast prior to this block.
-     * @param forVotes      Number of votes for this proposal once decrypted.
-     * @param againstVotes  Number of votes in opposition to this proposal once decrypted.
-     */
-    struct ProposalInfo {
-        address proposer;
-        ProposalState state;
-        uint256 eta;
-        address[] targets;
-        uint256[] values;
-        string[] signatures;
-        bytes[] calldatas;
-        uint256 startBlock;
-        uint256 endBlock;
-        uint64 forVotes;
-        uint64 againstVotes;
-    }
-
-    /**
      * @notice          Ballot receipt record for a voter.
      * @param hasVoted  Whether or not a vote has been cast.
      * @param support   Whether or not the voter supports the proposal.
@@ -605,30 +578,16 @@ abstract contract ConfidentialGovernorAlpha is Ownable2Step, GatewayCaller {
     /**
      * @notice                  Returns proposal information for a proposal id.
      * @dev                     It returns decrypted `forVotes`/`againstVotes`.
-     *                          These are only available after the decryption.
+     *                          if there are only available after the decryption.
      * @param proposalId        Proposal id.
-     * @return proposalInfo     Proposal information.
+     * @return proposal         Proposal information.
      */
-    function getProposalInfo(uint256 proposalId) public view virtual returns (ProposalInfo memory proposalInfo) {
-        Proposal memory proposal = _proposals[proposalId];
-        proposalInfo.proposer = proposal.proposer;
-        proposalInfo.state = proposal.state;
-        proposalInfo.eta = proposal.eta;
-        proposalInfo.targets = proposal.targets;
-        proposalInfo.values = proposal.values;
-        proposalInfo.signatures = proposal.signatures;
-        proposalInfo.calldatas = proposal.calldatas;
-        proposalInfo.startBlock = proposal.startBlock;
-        proposalInfo.endBlock = proposal.endBlock;
-        proposalInfo.forVotes = proposal.forVotesDecrypted;
-        proposalInfo.againstVotes = proposal.againstVotesDecrypted;
+    function getProposalInfo(uint256 proposalId) public view virtual returns (Proposal memory proposal) {
+        proposal = _proposals[proposalId];
 
-        /// The state is adjusted but not closed.
-        if (
-            (proposalInfo.state == ProposalState.Queued) &&
-            (block.timestamp > proposalInfo.eta + TIMELOCK.GRACE_PERIOD())
-        ) {
-            proposalInfo.state = ProposalState.Expired;
+        /// @dev The state is adjusted but not closed.
+        if ((proposal.state == ProposalState.Queued) && (block.timestamp > proposal.eta + TIMELOCK.GRACE_PERIOD())) {
+            proposal.state = ProposalState.Expired;
         }
     }
 
