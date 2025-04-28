@@ -1,4 +1,5 @@
 name: Slither analysis
+
 on:
   pull_request:
     branches:
@@ -6,6 +7,11 @@ on:
   push:
     branches:
       - main
+
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   analysis:
     runs-on: ubuntu-latest
@@ -14,16 +20,16 @@ jobs:
         node-version:
           - 20
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
         with:
           version: 8
       - run: cp .env.example .env
       - run: pnpm install
       - run: pnpm compile
       - name: Run Slither
-        uses: crytic/slither-action@v0.4.0
+        uses: crytic/slither-action@d86660fe7e45835a0ec7b7aeb768d271fb421ea0 # temporarily commit that fixes the issue
         with:
           node-version: 20
           ignore-compile: true
@@ -32,6 +38,6 @@ jobs:
           sarif: results.sarif
           fail-on: none
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@80f993039571a6de66594ecaa432875a6942e8e0 #v2.20.6
         with:
           sarif_file: results.sarif
